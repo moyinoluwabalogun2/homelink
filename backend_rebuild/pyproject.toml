@@ -20,7 +20,8 @@ dependencies = [
   "argon2-cffi>=23.1,<26.0",
   "email-validator>=2.2,<3.0",
   "redis>=5.0,<7.0",
-  "httpx>=0.27,<1.0"
+  "httpx>=0.27,<1.0",
+  "cloudinary>=1.46,<2.0"
 ]
 
 [project.optional-dependencies]
