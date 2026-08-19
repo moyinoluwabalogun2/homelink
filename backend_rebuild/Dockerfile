@@ -15,13 +15,6 @@ COPY alembic ./alembic
 RUN python -m pip install --upgrade pip \
     && python -m pip install .
 
-EXPOSE 8000
+EXPOSE 10000
 
-CMD [
-  "uvicorn",
-  "app.main:app",
-  "--host",
-  "0.0.0.0",
-  "--port",
-  "8000"
-]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
