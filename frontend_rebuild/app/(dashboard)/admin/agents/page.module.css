@@ -1,0 +1,321 @@
+.bio {
+  max-width: 860px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+
+/* =========================================================
+   COVERAGE
+========================================================= */
+
+.areas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.areas span {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: var(--surface-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   REJECTION NOTE
+========================================================= */
+
+.rejectionNote {
+  padding: 15px 17px;
+  border-left: 3px solid #b84f3b;
+  background: #fbf3f1;
+}
+
+.rejectionNote strong {
+  display: block;
+  color: #7f3427;
+  font-size: 13px;
+}
+
+.rejectionNote p {
+  margin: 5px 0 0;
+  color: #704b44;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   DOCUMENT AREA
+========================================================= */
+
+.documents {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.documentsHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.documentsHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.documentsHeader span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.documentsHeader span svg {
+  width: 15px;
+  height: 15px;
+}
+
+.documentsHeader strong {
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 18px;
+}
+
+.documentsHeader > b {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   EMPTY DOCUMENTS
+========================================================= */
+
+.noDocuments {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  background: var(--surface-muted);
+}
+
+.noDocuments > svg {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+.noDocuments strong {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.noDocuments p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   DOCUMENT LIST
+========================================================= */
+
+.documentList {
+  display: grid;
+  border-top: 1px solid var(--border);
+}
+
+.documentRow {
+  display: grid;
+  grid-template-columns:
+    44px
+    minmax(180px, 1fr)
+    auto
+    auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 82px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.documentIcon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #516071;
+  background: #f0f1f3;
+}
+
+.documentIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.documentInfo {
+  min-width: 0;
+}
+
+.documentInfo > strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.documentInfo > span {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.documentInfo small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.documentInfo .documentReason {
+  color: #9b4232;
+}
+
+.documentStatus {
+  justify-self: end;
+}
+
+
+/* =========================================================
+   DOCUMENT ACTIONS
+========================================================= */
+
+.documentActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.documentActions button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #122033;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.documentActions button:hover:not(:disabled) {
+  border-color: #9db3ef;
+  color: var(--accent);
+  background: #f5f7ff;
+}
+
+.documentActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.documentActions button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.removedLabel {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+
+/* =========================================================
+   APPROVAL
+========================================================= */
+
+.approvalWarning {
+  margin: 0;
+  color: #8a4c25;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+  .documentRow {
+    grid-template-columns:
+      44px
+      minmax(0, 1fr)
+      auto;
+  }
+
+  .documentActions {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+}
+
+
+@media (max-width: 620px) {
+  .documentsHeader {
+    align-items: flex-start;
+  }
+
+  .documentRow {
+    grid-template-columns:
+      40px
+      minmax(0, 1fr);
+  }
+
+  .documentIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .documentStatus {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .documentActions {
+    grid-column: 2;
+    width: 100%;
+  }
+
+  .documentActions button {
+    flex: 1;
+  }
+}

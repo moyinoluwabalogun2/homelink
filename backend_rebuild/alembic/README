@@ -1,0 +1,13 @@
+HomeLink Alembic migration environment.
+
+Create a migration:
+
+python -m alembic revision --autogenerate -m "describe change"
+
+Apply migrations:
+
+python -m alembic upgrade head
+
+Rollback one migration:
+
+python -m alembic downgrade -1

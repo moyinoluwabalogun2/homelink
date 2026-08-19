@@ -1,0 +1,995 @@
+/* =========================================================
+   HOMELINK DESIGN FOUNDATION
+
+   Direction:
+   - clean property/lifestyle product
+   - warmer neutrals
+   - premium blue identity
+   - restrained surfaces
+   - editorial spacing
+   - less SaaS / less dashboard
+========================================================= */
+
+:root {
+  color-scheme: light;
+
+
+  /* =========================================================
+     TYPOGRAPHY
+  ========================================================= */
+
+  --font-body:
+    var(--font-dm-sans),
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  --font-heading:
+    var(--font-manrope),
+    var(--font-dm-sans),
+    Arial,
+    Helvetica,
+    sans-serif;
+
+
+  /* =========================================================
+     LAYOUT
+  ========================================================= */
+
+  --container-width:
+    1180px;
+
+  --container-wide:
+    1420px;
+
+  --content-gutter:
+    28px;
+
+  --nav-height:
+    78px;
+
+
+  /* =========================================================
+     CORE BRAND
+  ========================================================= */
+
+  --accent:
+    #1f5eff;
+
+  --accent-hover:
+    #174ed8;
+
+  --accent-active:
+    #123daf;
+
+  --accent-soft:
+    #edf3ff;
+
+  --accent-soft-hover:
+    #e4edff;
+
+  --accent-border:
+    #c8d8ff;
+
+  --primary:
+    var(--accent);
+
+  --primary-hover:
+    var(--accent-hover);
+
+
+  --brand-navy:
+    #122033;
+
+  --brand-blue:
+    #1f5eff;
+
+  --brand-gold:
+    #dca74b;
+
+
+  /* =========================================================
+     WARM NEUTRALS
+  ========================================================= */
+
+  --background:
+    #f7f5f0;
+
+  --surface:
+    #ffffff;
+
+  --surface-raised:
+    #ffffff;
+
+  --surface-muted:
+    #f1efe9;
+
+  --surface-soft:
+    #faf9f6;
+
+  --surface-hover:
+    #f4f2ed;
+
+  --surface-inverse:
+    #122033;
+
+  --surface-blue:
+    #eaf1ff;
+
+  --surface-sand:
+    #eee9df;
+
+
+  /* =========================================================
+     TEXT
+  ========================================================= */
+
+  --text-primary:
+    #122033;
+
+  --text-secondary:
+    #4f5b6b;
+
+  --text-muted:
+    #838c98;
+
+  --text-disabled:
+    #a6adb6;
+
+  --text-inverse:
+    #ffffff;
+
+
+  /* =========================================================
+     BORDERS
+  ========================================================= */
+
+  --border:
+    #dddcd6;
+
+  --border-subtle:
+    #e9e7e1;
+
+  --border-strong:
+    #cbc9c1;
+
+
+  /* =========================================================
+     STATUS
+  ========================================================= */
+
+  --success-text:
+    #176442;
+
+  --success-soft:
+    #edf8f2;
+
+  --success-border:
+    #b8e3cc;
+
+
+  --warning-text:
+    #876014;
+
+  --warning-soft:
+    #fff8e8;
+
+  --warning-border:
+    #ecd79b;
+
+
+  --danger-text:
+    #b42318;
+
+  --danger-soft:
+    #fff1ef;
+
+  --danger-border:
+    #f4c4bf;
+
+
+  --info-text:
+    #1956cb;
+
+  --info-soft:
+    #edf4ff;
+
+  --info-border:
+    #bfd2ff;
+
+
+  /* =========================================================
+     RADIUS
+
+     Less "app UI".
+     More deliberate editorial shapes.
+  ========================================================= */
+
+  --radius-xs:
+    6px;
+
+  --radius-sm:
+    9px;
+
+  --radius-md:
+    12px;
+
+  --radius-lg:
+    16px;
+
+  --radius-xl:
+    22px;
+
+  --radius-2xl:
+    30px;
+
+  --radius-round:
+    999px;
+
+
+  /* =========================================================
+     SHADOWS
+
+     Softer and wider.
+     Avoid floating SaaS-card look.
+  ========================================================= */
+
+  --shadow-xs:
+    0 1px 2px
+    rgb(18 32 51 / 4%);
+
+
+  --shadow-sm:
+    0 5px 16px
+    rgb(18 32 51 / 6%);
+
+
+  --shadow-md:
+    0 14px 36px
+    rgb(18 32 51 / 9%);
+
+
+  --shadow-lg:
+    0 24px 70px
+    rgb(18 32 51 / 13%);
+
+
+  --shadow-image:
+    0 30px 80px
+    rgb(18 32 51 / 17%);
+
+
+  /* =========================================================
+     INTERACTION
+  ========================================================= */
+
+  --focus-ring:
+    rgb(31 94 255 / 24%);
+
+  --transition-fast:
+    150ms ease;
+
+  --transition-normal:
+    200ms ease;
+
+  --transition-slow:
+    420ms
+    cubic-bezier(
+      0.22,
+      1,
+      0.36,
+      1
+    );
+
+
+  /* =========================================================
+     IMAGE OVERLAYS
+  ========================================================= */
+
+  --overlay-navy:
+    linear-gradient(
+      180deg,
+      rgb(8 20 38 / 5%) 0%,
+      rgb(8 20 38 / 18%) 48%,
+      rgb(8 20 38 / 82%) 100%
+    );
+
+
+  --overlay-blue:
+    linear-gradient(
+      135deg,
+      rgb(13 44 115 / 70%),
+      rgb(21 92 240 / 27%)
+    );
+}
+
+
+/* =========================================================
+   DARK THEME
+
+   Dashboard/components still receive dark values,
+   while public pages can deliberately override these.
+========================================================= */
+
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing:
+    border-box;
+}
+
+
+html {
+  min-width:
+    320px;
+
+  scroll-behavior:
+    smooth;
+
+  background:
+    var(--background);
+}
+
+
+body {
+  min-width:
+    320px;
+
+  min-height:
+    100vh;
+
+  margin:
+    0;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--background);
+
+  font-family:
+    var(--font-body);
+
+  font-size:
+    15px;
+
+  font-weight:
+    400;
+
+  line-height:
+    1.55;
+
+  text-rendering:
+    optimizeLegibility;
+
+  -webkit-font-smoothing:
+    antialiased;
+
+  -moz-osx-font-smoothing:
+    grayscale;
+
+  transition:
+    color
+    var(--transition-normal),
+    background-color
+    var(--transition-normal);
+}
+
+
+/* =========================================================
+   TYPOGRAPHY
+========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top:
+    0;
+
+  color:
+    var(--text-primary);
+
+  font-family:
+    var(--font-heading);
+
+  font-weight:
+    700;
+
+  line-height:
+    1.06;
+
+  letter-spacing:
+    -0.045em;
+}
+
+
+h1 {
+  font-size:
+    clamp(
+      2.8rem,
+      6vw,
+      5.7rem
+    );
+
+  letter-spacing:
+    -0.065em;
+}
+
+
+h2 {
+  font-size:
+    clamp(
+      2rem,
+      4vw,
+      3.6rem
+    );
+
+  letter-spacing:
+    -0.055em;
+}
+
+
+h3 {
+  font-size:
+    clamp(
+      1.25rem,
+      2vw,
+      1.8rem
+    );
+}
+
+
+h4 {
+  font-size:
+    1.15rem;
+}
+
+
+p {
+  margin-top:
+    0;
+
+  color:
+    var(--text-secondary);
+}
+
+
+strong {
+  color:
+    inherit;
+}
+
+
+a {
+  color:
+    inherit;
+}
+
+
+/* =========================================================
+   LINKS
+========================================================= */
+
+a {
+  text-decoration-thickness:
+    1px;
+
+  text-underline-offset:
+    3px;
+}
+
+
+/* =========================================================
+   FORMS
+========================================================= */
+
+button,
+input,
+select,
+textarea {
+  font:
+    inherit;
+}
+
+
+input,
+select,
+textarea {
+  color:
+    var(--text-primary);
+
+  border-color:
+    var(--border);
+
+  background:
+    var(--surface);
+}
+
+
+input::placeholder,
+textarea::placeholder {
+  color:
+    var(--text-muted);
+
+  opacity:
+    0.86;
+}
+
+
+button,
+a {
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+
+button {
+  border:
+    0;
+}
+
+
+button:not(:disabled) {
+  cursor:
+    pointer;
+}
+
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor:
+    not-allowed;
+
+  opacity:
+    0.62;
+}
+
+
+/* =========================================================
+   MEDIA
+========================================================= */
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display:
+    block;
+
+  max-width:
+    100%;
+}
+
+
+img,
+video {
+  height:
+    auto;
+}
+
+
+img {
+  image-rendering:
+    auto;
+}
+
+
+/* =========================================================
+   SITE SHELL
+========================================================= */
+
+.site-shell {
+  min-height:
+    100vh;
+}
+
+
+.site-main {
+  min-height:
+    calc(
+      100vh -
+      var(--nav-height)
+    );
+}
+
+
+/* =========================================================
+   GLOBAL CONTENT UTILITIES
+========================================================= */
+
+.container {
+  width:
+    min(
+      calc(
+        100% -
+        (
+          var(--content-gutter)
+          * 2
+        )
+      ),
+      var(--container-width)
+    );
+
+  margin-inline:
+    auto;
+}
+
+
+.containerWide {
+  width:
+    min(
+      calc(
+        100% -
+        (
+          var(--content-gutter)
+          * 2
+        )
+      ),
+      var(--container-wide)
+    );
+
+  margin-inline:
+    auto;
+}
+
+
+/* =========================================================
+   SELECTION
+========================================================= */
+
+::selection {
+  color:
+    #ffffff;
+
+  background:
+    var(--accent);
+}
+
+
+/* =========================================================
+   FOCUS
+========================================================= */
+
+:focus-visible {
+  outline:
+    3px solid
+    var(--focus-ring);
+
+  outline-offset:
+    3px;
+}
+
+
+/* =========================================================
+   SKIP LINK
+========================================================= */
+
+.skip-link {
+  position:
+    fixed;
+
+  top:
+    12px;
+
+  left:
+    12px;
+
+  z-index:
+    9999;
+
+  padding:
+    11px
+    15px;
+
+  border-radius:
+    9px;
+
+  color:
+    #ffffff;
+
+  background:
+    var(--accent);
+
+  box-shadow:
+    var(--shadow-md);
+
+  font-size:
+    12px;
+
+  font-weight:
+    700;
+
+  text-decoration:
+    none;
+
+  transform:
+    translateY(-170%);
+
+  transition:
+    transform
+    var(--transition-fast);
+}
+
+
+.skip-link:focus {
+  transform:
+    translateY(0);
+}
+
+
+.site-main:focus {
+  outline:
+    none;
+}
+
+
+/* =========================================================
+   TEXT WRAPPING
+========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+li,
+a,
+button,
+label,
+span,
+strong {
+  overflow-wrap:
+    break-word;
+}
+
+
+@supports (text-wrap: balance) {
+  h1,
+  h2,
+  h3 {
+    text-wrap:
+      balance;
+  }
+}
+
+
+@supports (text-wrap: pretty) {
+  p,
+  li {
+    text-wrap:
+      pretty;
+  }
+}
+
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+::-webkit-scrollbar {
+  width:
+    9px;
+
+  height:
+    9px;
+}
+
+
+::-webkit-scrollbar-track {
+  background:
+    var(--background);
+}
+
+
+::-webkit-scrollbar-thumb {
+  border:
+    2px solid
+    var(--background);
+
+  border-radius:
+    999px;
+
+  background:
+    var(--border-strong);
+}
+
+
+::-webkit-scrollbar-thumb:hover {
+  background:
+    var(--text-muted);
+}
+
+
+/* =========================================================
+   ANIMATION HELPERS
+========================================================= */
+
+@keyframes fadeUp {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateY(18px);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity:
+      0;
+  }
+
+  to {
+    opacity:
+      1;
+  }
+}
+
+
+@keyframes slideInLeft {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateX(-20px);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateX(0);
+  }
+}
+
+
+@keyframes slideInRight {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateX(20px);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateX(0);
+  }
+}
+
+
+@keyframes imageDrift {
+  from {
+    transform:
+      scale(1.02);
+  }
+
+  to {
+    transform:
+      scale(1.075);
+  }
+}
+
+
+@keyframes softPulse {
+  0%,
+  100% {
+    transform:
+      scale(1);
+  }
+
+  50% {
+    transform:
+      scale(1.04);
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  html {
+    scroll-behavior:
+      auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration:
+      0.01ms !important;
+
+    animation-iteration-count:
+      1 !important;
+
+    transition-duration:
+      0.01ms !important;
+
+    scroll-behavior:
+      auto !important;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE FOUNDATION
+========================================================= */
+
+@media (max-width: 900px) {
+  :root {
+    --content-gutter:
+      20px;
+
+    --nav-height:
+      70px;
+  }
+}
+
+
+@media (max-width: 600px) {
+  :root {
+    --content-gutter:
+      16px;
+
+    --nav-height:
+      66px;
+  }
+
+  body {
+    font-size:
+      14px;
+  }
+
+  h1 {
+    font-size:
+      clamp(
+        2.55rem,
+        13vw,
+        4rem
+      );
+  }
+
+  h2 {
+    font-size:
+      clamp(
+        1.9rem,
+        9vw,
+        2.8rem
+      );
+  }
+}

@@ -1,0 +1,225 @@
+/* =========================================================
+   Form Cards
+========================================================= */
+
+.formCard {
+  display: grid;
+  gap: 22px;
+
+  padding: 24px;
+
+  border: 1px solid var(--border);
+  border-radius: 21px;
+
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+
+  padding-bottom: 18px;
+
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sectionHeading > span {
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 12px;
+
+  color: var(--accent);
+  background: var(--accent-soft);
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.sectionHeading svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+
+  font-family: var(--font-heading);
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.sectionHeading p {
+  margin: 4px 0 0;
+
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* =========================================================
+   Form Fields
+========================================================= */
+
+.twoColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+}
+
+.twoColumns label {
+  display: grid;
+  gap: 8px;
+}
+
+.twoColumns label > span {
+  color: var(--text-secondary);
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.twoColumns small {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.twoColumns input,
+.twoColumns select,
+.twoColumns textarea {
+  width: 100%;
+  min-height: 46px;
+
+  padding: 0 13px;
+
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  outline: 0;
+
+  color: var(--text-primary);
+  background: var(--surface-muted);
+}
+
+.twoColumns textarea {
+  min-height: 135px;
+  padding: 13px;
+
+  resize: vertical;
+
+  line-height: 1.6;
+}
+
+.twoColumns input:focus,
+.twoColumns select:focus,
+.twoColumns textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.checkbox {
+  min-height: 46px;
+
+  display: grid;
+  grid-template-columns: 18px 1fr !important;
+  align-content: end;
+  align-items: center;
+
+  padding: 0 13px;
+
+  border: 1px solid var(--border);
+  border-radius: 11px;
+
+  background: var(--surface-muted);
+
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 17px;
+  min-height: 17px;
+  padding: 0;
+
+  accent-color: var(--accent);
+}
+
+/* =========================================================
+   Media Uploads
+========================================================= */
+
+.mediaStack {
+  display: grid;
+  gap: 24px;
+}
+
+/* =========================================================
+   Submit Bar
+========================================================= */
+
+.submitBar {
+  position: sticky;
+  bottom: 18px;
+  z-index: 20;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 16px 18px;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
+}
+
+.submitBar > div {
+  display: grid;
+  gap: 3px;
+}
+
+.submitBar strong {
+  font-size: 13px;
+}
+
+.submitBar span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+/* =========================================================
+   Responsive
+========================================================= */
+
+@media (max-width: 700px) {
+  .twoColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .full {
+    grid-column: auto;
+  }
+
+  .submitBar {
+    position: static;
+
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .submitBar button {
+    width: 100%;
+  }
+}

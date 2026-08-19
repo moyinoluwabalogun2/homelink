@@ -1,0 +1,513 @@
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header > div:first-child {
+  max-width: 780px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #1f5eff;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.eyebrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.header h1 {
+  margin: 10px 0 0;
+  color: #122033;
+  font-family: var(--font-heading);
+  font-size: clamp(
+    32px,
+    4vw,
+    50px
+  );
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.header p {
+  max-width: 700px;
+  margin: 16px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.refreshButton {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #122033;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.refreshButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.refreshButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+
+/* =========================================================
+   SECTION HEADING
+========================================================= */
+
+.sectionHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sectionHeading > div > span {
+  display: block;
+  color: #1f5eff;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.sectionHeading h2 {
+  margin: 4px 0 0;
+  color: #122033;
+  font-family: var(--font-heading);
+  font-size: 23px;
+  letter-spacing: -0.025em;
+}
+
+.sectionHeading > p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.sectionHeading > svg {
+  width: 21px;
+  height: 21px;
+  color: #26704f;
+}
+
+
+/* =========================================================
+   HEALTH
+========================================================= */
+
+.healthSection {
+  margin-top: 32px;
+}
+
+.healthGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(
+        0,
+        1fr
+      )
+    );
+  margin-top: 17px;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.healthCard {
+  min-height: 125px;
+  display: grid;
+  grid-template-columns:
+    46px
+    minmax(
+      0,
+      1fr
+    )
+    24px;
+  gap: 14px;
+  align-items: center;
+  padding: 21px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+}
+
+.healthIcon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #1f5eff;
+  background: #eef3ff;
+}
+
+.healthIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.healthCard > div {
+  min-width: 0;
+}
+
+.healthCard > div > span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.healthCard strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #122033;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.healthCard > svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ok {
+  color: #26704f;
+}
+
+.bad {
+  color: #aa4936;
+}
+
+
+/* =========================================================
+   MAINTENANCE
+========================================================= */
+
+.maintenance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  margin-top: 35px;
+  padding: 30px;
+  color: #ffffff;
+  background: #122033;
+}
+
+.maintenanceCopy {
+  max-width: 780px;
+  display: grid;
+  grid-template-columns:
+    48px
+    minmax(
+      0,
+      1fr
+    );
+  gap: 17px;
+}
+
+.maintenanceIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.17
+    );
+  color: #a8baff;
+}
+
+.maintenanceIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.maintenanceEyebrow {
+  display: block;
+  color: #9fb5ff;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.maintenance h2 {
+  max-width: 620px;
+  margin: 7px 0 0;
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.maintenance p {
+  max-width: 700px;
+  margin: 11px 0 0;
+  color: #bdc6d3;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.maintenanceButton {
+  min-height: 47px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 0 17px;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  color: #122033;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.maintenanceButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.maintenanceButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+
+/* =========================================================
+   RESULTS
+========================================================= */
+
+.results {
+  margin-top: 34px;
+}
+
+.resultGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(
+        0,
+        1fr
+      )
+    );
+  margin-top: 17px;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.resultGrid > div {
+  min-height: 105px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+}
+
+.resultGrid span {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.resultGrid strong {
+  margin-top: auto;
+  padding-top: 13px;
+  color: #122033;
+  font-family: var(--font-heading);
+  font-size: 25px;
+}
+
+
+/* =========================================================
+   NOTES
+========================================================= */
+
+.operationsNote,
+.retentionNote {
+  display: grid;
+  grid-template-columns:
+    42px
+    minmax(
+      0,
+      1fr
+    );
+  gap: 13px;
+  align-items: start;
+  margin-top: 20px;
+  padding: 17px 18px;
+}
+
+.operationsNote {
+  border-left: 3px solid #1f5eff;
+  background: #eef3ff;
+}
+
+.retentionNote {
+  border-left: 3px solid #b07a2b;
+  background: #fbf6eb;
+}
+
+.operationsNote > span,
+.retentionNote > span {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+}
+
+.operationsNote > span {
+  color: #1f5eff;
+}
+
+.retentionNote > span {
+  color: #9a6722;
+}
+
+.operationsNote svg,
+.retentionNote svg {
+  width: 18px;
+  height: 18px;
+}
+
+.operationsNote strong {
+  color: #183e9e;
+  font-size: 13px;
+}
+
+.retentionNote strong {
+  color: #75501e;
+  font-size: 13px;
+}
+
+.operationsNote p,
+.retentionNote p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.operationsNote p {
+  color: #52627f;
+}
+
+.retentionNote p {
+  color: #695b46;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (
+  max-width: 960px
+) {
+  .healthGrid {
+    grid-template-columns:
+      1fr;
+  }
+
+  .resultGrid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+  .maintenance {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .maintenanceButton {
+    width: fit-content;
+  }
+}
+
+
+@media (
+  max-width: 650px
+) {
+  .header {
+    display: block;
+  }
+
+  .refreshButton {
+    margin-top: 20px;
+  }
+
+  .sectionHeading {
+    display: block;
+  }
+
+  .sectionHeading > p {
+    margin-top: 7px;
+  }
+
+  .resultGrid {
+    grid-template-columns:
+      1fr;
+  }
+
+  .maintenance {
+    padding: 24px 20px;
+  }
+
+  .maintenanceCopy {
+    grid-template-columns:
+      1fr;
+  }
+
+  .maintenanceButton {
+    width: 100%;
+  }
+}

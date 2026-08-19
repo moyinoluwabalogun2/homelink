@@ -1,0 +1,193 @@
+.profileCard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 19px;
+  background: var(--border);
+}
+
+.profileCard > div {
+  min-height: 98px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px;
+  background: var(--surface);
+}
+
+.profileCard span {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.profileCard strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.sectionCard,
+.dangerZone {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.sectionIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.sectionIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.sectionCard h2,
+.formCard h2,
+.dangerZone h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  letter-spacing: -0.03em;
+}
+
+.sectionCard p,
+.formCard p,
+.dangerZone p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.formCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 19px;
+  background: var(--surface);
+}
+
+.formCard h2 {
+  margin-top: 14px;
+}
+
+.formCard label {
+  width: 100%;
+  display: grid;
+  gap: 7px;
+  margin-top: 15px;
+}
+
+.formCard label > span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.formCard input,
+.deleteFields input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 45px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--text-primary);
+  background: var(--surface-muted);
+  outline: 0;
+}
+
+.formCard input:focus,
+.deleteFields input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.formCard button {
+  margin-top: 17px;
+}
+
+.dangerZone {
+  grid-template-columns:
+    48px minmax(220px, 0.8fr)
+    minmax(300px, 1fr) auto;
+  border-color: var(--danger-border);
+}
+
+.dangerZone .sectionIcon {
+  color: var(--danger-text);
+  background: var(--danger-soft);
+}
+
+.deleteFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+@media (max-width: 980px) {
+  .dangerZone {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .deleteFields,
+  .dangerZone > button {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 760px) {
+  .profileCard {
+    grid-template-columns: 1fr;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionCard {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .sectionCard > button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .deleteFields,
+  .dangerZone {
+    grid-template-columns: 1fr;
+  }
+
+  .deleteFields,
+  .dangerZone > button {
+    grid-column: auto;
+    width: 100%;
+  }
+}

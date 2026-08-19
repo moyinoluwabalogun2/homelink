@@ -1,0 +1,172 @@
+/* =========================================================
+   Page Wrapper
+========================================================= */
+
+.wrap {
+  min-height: calc(100vh - 140px);
+
+  display: grid;
+  place-items: center;
+}
+
+
+/* =========================================================
+   Result Card
+========================================================= */
+
+.card {
+  width: min(100%, 540px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 38px;
+
+  border: 1px solid var(--border);
+  border-radius: 24px;
+
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   Icon
+========================================================= */
+
+.icon {
+  width: 66px;
+  height: 66px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 20px;
+
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+
+/* =========================================================
+   Eyebrow Text
+========================================================= */
+
+.eyebrow {
+  margin-top: 19px;
+
+  color: var(--accent);
+
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
+   Card Typography
+========================================================= */
+
+.card h1 {
+  margin: 9px 0 8px;
+
+  font-family: var(--font-heading);
+  font-size: 31px;
+  letter-spacing: -0.05em;
+}
+
+.card > p {
+  margin: 0 0 20px;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+
+/* =========================================================
+   Reference Details
+========================================================= */
+
+.reference {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 12px 13px;
+
+  border-radius: 11px;
+
+  background: var(--surface-muted);
+
+  text-align: left;
+}
+
+.reference + .reference {
+  margin-top: 8px;
+}
+
+.reference span {
+  color: var(--text-muted);
+
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.reference strong {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   Actions
+========================================================= */
+
+.card > button,
+.card > a {
+  width: 100%;
+  margin-top: 18px;
+}
+
+.card button svg {
+  width: 16px;
+  height: 16px;
+
+  animation: spin 1s linear infinite;
+}
+
+
+/* =========================================================
+   Animations
+========================================================= */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   Responsive
+========================================================= */
+
+@media (max-width: 560px) {
+  .card {
+    padding: 28px 20px;
+  }
+}

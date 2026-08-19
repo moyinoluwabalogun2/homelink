@@ -1,0 +1,350 @@
+/* =========================================================
+   GRID
+========================================================= */
+
+.grid {
+  display: grid;
+
+  align-items: start;
+}
+
+
+.propertyGrid {
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    30px
+    22px;
+}
+
+
+.marketGrid {
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    27px
+    16px;
+}
+
+
+/* =========================================================
+   SKELETON
+========================================================= */
+
+.skeleton {
+  min-width: 0;
+}
+
+
+.skeletonMedia {
+  width: 100%;
+
+  overflow: hidden;
+
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #e8e6e0,
+      #f2f0eb,
+      #e8e6e0
+    );
+
+  background-size:
+    220%
+    100%;
+
+  animation:
+    pulse
+    1.35s
+    linear
+    infinite;
+}
+
+
+.propertyGrid
+.skeletonMedia {
+  aspect-ratio:
+    4 / 3;
+}
+
+
+.marketGrid
+.skeletonMedia {
+  aspect-ratio:
+    1 / 1;
+}
+
+
+.skeletonContent {
+  display: grid;
+
+  gap: 8px;
+
+  padding:
+    13px
+    2px
+    0;
+}
+
+
+.skeletonContent span {
+  height: 9px;
+
+  border-radius: 999px;
+
+  background: #e7e5df;
+}
+
+
+.skeletonContent
+span:first-child {
+  width: 43%;
+}
+
+
+.skeletonContent
+span:nth-child(2) {
+  width: 82%;
+}
+
+
+.skeletonContent
+span:nth-child(3) {
+  width: 63%;
+}
+
+
+.skeletonContent
+span:last-child {
+  width: 52%;
+}
+
+
+@keyframes pulse {
+  to {
+    background-position:
+      -220%
+      0;
+  }
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.empty {
+  min-height: 390px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  padding:
+    45px
+    25px;
+
+  border-top:
+    1px solid
+    #dedcd5;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+
+  text-align: center;
+}
+
+
+.emptyIcon {
+  width: 50px;
+  height: 50px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 6px;
+
+  border-radius: 50%;
+
+  color: #1f5eff;
+
+  background: #eaf1ff;
+}
+
+
+.emptyIcon svg {
+  width: 21px;
+  height: 21px;
+}
+
+
+.emptyLabel {
+  color: #1f5eff;
+
+  font-size: 8px;
+  font-weight: 750;
+
+  letter-spacing:
+    0.09em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.empty h2 {
+  margin: 0;
+
+  color: #122033;
+
+  font-family:
+    var(--font-heading);
+
+  font-size: 25px;
+  font-weight: 600;
+
+  letter-spacing:
+    -0.045em;
+}
+
+
+.empty p {
+  max-width: 410px;
+
+  margin: 0;
+
+  color: #7b8692;
+
+  font-size: 10px;
+
+  line-height: 1.7;
+}
+
+
+.empty button {
+  min-height: 41px;
+
+  margin-top: 9px;
+
+  padding:
+    0
+    14px;
+
+  border:
+    1px solid
+    #d7d9dd;
+
+  border-radius: 7px;
+
+  color: #122033;
+
+  background: #ffffff;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    color 170ms ease,
+    border-color 170ms ease,
+    transform 170ms ease;
+}
+
+
+.empty button:hover {
+  color: #1f5eff;
+
+  border-color:
+    #b9caff;
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1280px) {
+  .marketGrid {
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+  }
+}
+
+
+@media (max-width: 1060px) {
+  .propertyGrid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+}
+
+
+@media (max-width: 800px) {
+  .marketGrid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      24px
+      14px;
+  }
+}
+
+
+@media (max-width: 650px) {
+  .propertyGrid {
+    grid-template-columns:
+      1fr;
+
+    gap: 22px;
+  }
+
+
+  .marketGrid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      23px
+      11px;
+  }
+
+
+  .marketGrid
+  .skeletonContent {
+    gap: 6px;
+
+    padding-top: 9px;
+  }
+}

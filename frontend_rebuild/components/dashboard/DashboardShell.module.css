@@ -1,0 +1,700 @@
+.shell {
+  min-height: 100vh;
+
+  display: grid;
+  grid-template-columns:
+    270px
+    minmax(0, 1fr);
+
+  background: #f7f5f0;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+  position: sticky;
+  top: 0;
+
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  padding:
+    25px
+    18px
+    20px;
+
+  overflow-y: auto;
+
+  border-right:
+    1px solid
+    #dedcd5;
+
+  background: #ffffff;
+}
+
+
+.brandArea {
+  padding:
+    0
+    7px
+    21px;
+
+  border-bottom:
+    1px solid
+    #ece9e2;
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.profileCard {
+  display: grid;
+
+  grid-template-columns:
+    42px
+    minmax(0, 1fr)
+    18px;
+
+  align-items: center;
+
+  gap: 11px;
+
+  margin-top: 20px;
+
+  padding:
+    13px
+    7px;
+}
+
+
+.avatar {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+  background: #122033;
+
+  font-size: 12px;
+  font-weight: 750;
+
+  letter-spacing:
+    0.03em;
+}
+
+
+.profileCard > div {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 3px;
+}
+
+
+.profileCard strong {
+  overflow: hidden;
+
+  color: #122033;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.profileCard
+span:not(.avatar) {
+  color: #7c8793;
+
+  font-size: 12px;
+}
+
+
+.profileCard > svg {
+  width: 17px;
+  height: 17px;
+
+  color: #1f5eff;
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+.navigation {
+  display: grid;
+
+  gap: 9px;
+
+  margin-top: 18px;
+}
+
+
+.navGroup {
+  display: grid;
+
+  gap: 3px;
+}
+
+
+.groupLabel {
+  margin:
+    19px
+    10px
+    7px;
+
+  color: #8a949f;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing:
+    0.08em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.navItem {
+  min-height: 45px;
+
+  display: grid;
+
+  grid-template-columns:
+    19px
+    minmax(0, 1fr)
+    auto;
+
+  align-items: center;
+
+  gap: 11px;
+
+  padding:
+    0
+    10px;
+
+  border-radius: 8px;
+
+  color: #596675;
+
+  font-size: 13px;
+  font-weight: 650;
+
+  text-decoration: none;
+
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+
+.navItem:hover {
+  color: #122033;
+
+  background: #f4f2ed;
+}
+
+
+.navItem > svg {
+  width: 18px;
+  height: 18px;
+}
+
+
+.navTail {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+}
+
+
+.navTail > svg {
+  width: 13px;
+  height: 13px;
+
+  color: #a2abb5;
+
+  opacity: 0;
+}
+
+
+.navItem:hover
+.navTail > svg,
+.activeNavItem
+.navTail > svg {
+  opacity: 1;
+}
+
+
+.activeNavItem {
+  color: #1f5eff;
+
+  background: #edf2ff;
+}
+
+
+.activeNavItem
+> svg {
+  color: #1f5eff;
+}
+
+
+/* =========================================================
+   UNREAD NOTIFICATION BADGE
+========================================================= */
+
+.navBadge {
+  min-width: 21px;
+  height: 21px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    0
+    6px;
+
+  border-radius: 999px;
+
+  color: #ffffff;
+
+  background: #1f5eff;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  line-height: 1;
+}
+
+
+/* =========================================================
+   SIDEBAR FOOTER
+========================================================= */
+
+.sidebarFooter {
+  display: grid;
+
+  gap: 8px;
+
+  margin-top: auto;
+
+  padding-top: 28px;
+}
+
+
+.postButton,
+.logoutButton {
+  min-height: 45px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding:
+    0
+    14px;
+
+  border-radius: 8px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+.postButton {
+  color: #ffffff;
+
+  background: #1f5eff;
+
+  text-decoration: none;
+
+  transition:
+    background-color 160ms ease;
+}
+
+
+.postButton:hover {
+  background: #174ed8;
+}
+
+
+.logoutButton {
+  border:
+    1px solid
+    #dedcd5;
+
+  color: #677381;
+
+  background: #ffffff;
+}
+
+
+.logoutButton:hover {
+  color: #122033;
+
+  background: #f7f5f0;
+}
+
+
+.postButton svg,
+.logoutButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+
+/* =========================================================
+   CONTENT COLUMN
+========================================================= */
+
+.contentColumn {
+  min-width: 0;
+}
+
+
+/* =========================================================
+   DESKTOP TOPBAR
+========================================================= */
+
+.desktopTopbar {
+  min-height: 73px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 18px;
+
+  padding:
+    0
+    34px;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+
+  background:
+    rgb(
+      247 245 240 /
+      94%
+    );
+
+  backdrop-filter:
+    blur(16px);
+}
+
+
+.accountMeta {
+  display: grid;
+
+  justify-items: end;
+
+  gap: 3px;
+}
+
+
+.accountMeta span {
+  color: #8a949f;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing:
+    0.06em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.accountMeta strong {
+  color: #344154;
+
+  font-size: 13px;
+  font-weight: 650;
+}
+
+
+.topbarActions {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  flex-wrap: nowrap;
+}
+
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main {
+  width:
+    min(
+      calc(
+        100% -
+        68px
+      ),
+      1240px
+    );
+
+  margin-inline: auto;
+
+  padding:
+    48px
+    0
+    90px;
+}
+
+
+/* =========================================================
+   MOBILE HIDDEN ELEMENTS
+========================================================= */
+
+.mobileHeader,
+.backdrop,
+.mobileDrawer {
+  display: none;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (
+  max-width: 980px
+) {
+  .shell {
+    display: block;
+  }
+
+
+  .sidebar,
+  .desktopTopbar {
+    display: none;
+  }
+
+
+  .mobileHeader {
+    position: sticky;
+
+    top: 0;
+
+    z-index: 70;
+
+    min-height: 68px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding:
+      0
+      20px;
+
+    border-bottom:
+      1px solid
+      #dedcd5;
+
+    background:
+      rgb(
+        247 245 240 /
+        94%
+      );
+
+    backdrop-filter:
+      blur(16px);
+  }
+
+
+  .menuButton,
+  .closeButton {
+    width: 42px;
+    height: 42px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border:
+      1px solid
+      #d7d8da;
+
+    border-radius: 8px;
+
+    color: #122033;
+
+    background: #ffffff;
+
+    cursor: pointer;
+  }
+
+
+  .menuButton svg,
+  .closeButton svg {
+    width: 20px;
+    height: 20px;
+  }
+
+
+  .backdrop {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 80;
+
+    display: block;
+
+    border: 0;
+
+    background:
+      rgb(
+        5 15 32 /
+        52%
+      );
+  }
+
+
+  .mobileDrawer {
+    position: fixed;
+
+    inset:
+      0
+      0
+      0
+      auto;
+
+    z-index: 81;
+
+    width:
+      min(
+        90vw,
+        330px
+      );
+
+    display: flex;
+    flex-direction: column;
+
+    padding:
+      24px
+      18px
+      20px;
+
+    overflow-y: auto;
+
+    background: #ffffff;
+  }
+
+
+  .closeButton {
+    position: absolute;
+
+    top: 17px;
+    right: 17px;
+  }
+
+
+  .mobileDrawer
+  .brandArea {
+    padding-right: 55px;
+  }
+
+
+  .main {
+    width:
+      min(
+        calc(
+          100% -
+          40px
+        ),
+        1240px
+      );
+
+    padding-top: 38px;
+  }
+}
+
+
+/* =========================================================
+   PHONE
+========================================================= */
+
+@media (
+  max-width: 560px
+) {
+  .mobileHeader {
+    padding-inline: 16px;
+  }
+
+
+  .main {
+    width:
+      min(
+        calc(
+          100% -
+          28px
+        ),
+        1240px
+      );
+
+    padding:
+      30px
+      0
+      68px;
+  }
+  .mobileActions {
+  gap: 6px;
+}
+
+
+  .profileCard strong,
+  .navItem {
+    font-size: 14px;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .navItem,
+  .postButton {
+    transition: none;
+  }
+}
+.mobileActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

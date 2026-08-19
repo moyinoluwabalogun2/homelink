@@ -1,0 +1,93 @@
+.card {
+  width: min(100%, 500px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 38px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+
+.icon {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  color: var(--success-text);
+  background: var(--success-soft);
+}
+
+.errorIcon {
+  color: var(--danger-text);
+  background: var(--danger-soft);
+}
+
+.icon svg {
+  width: 31px;
+  height: 31px;
+}
+
+.icon svg:first-child {
+  animation: spin 1s linear infinite;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 19px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.eyebrow svg {
+  width: 14px;
+  height: 14px;
+}
+
+.card h1 {
+  margin: 10px 0 8px;
+  font-family: var(--font-heading);
+  font-size: 31px;
+  letter-spacing: -0.05em;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.card a {
+  width: 100%;
+  min-height: 43px;
+  display: grid;
+  place-items: center;
+  margin-top: 20px;
+  border-radius: 12px;
+  color: #ffffff;
+  background: var(--accent);
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon svg:first-child {
+    animation: none;
+  }
+}

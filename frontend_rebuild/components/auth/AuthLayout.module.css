@@ -1,0 +1,308 @@
+/* =========================================================
+   Authentication Page
+========================================================= */
+
+.page {
+  min-height: 100svh;
+
+  display: grid;
+  grid-template-columns:
+    minmax(420px, 0.95fr)
+    minmax(500px, 1.05fr);
+
+  background: var(--surface);
+}
+
+
+/* =========================================================
+   Brand Panel
+========================================================= */
+
+.brandPanel {
+  position: relative;
+  isolation: isolate;
+
+  min-height: 100svh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  padding:
+    clamp(32px, 5vw, 64px)
+    clamp(32px, 5vw, 72px);
+
+  color: #ffffff;
+
+  background:
+    radial-gradient(
+      circle at 12% 8%,
+      rgb(59 130 246 / 28%),
+      transparent 32%
+    ),
+    linear-gradient(
+      145deg,
+      #172b4d 0%,
+      #0e172b 48%,
+      #101d42 100%
+    );
+}
+
+
+/* =========================================================
+   HomeLink Brand
+========================================================= */
+
+.brand {
+  position: relative;
+  z-index: 2;
+
+  width: max-content;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.brandMark {
+  width: 46px;
+  height: 46px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 auto;
+
+  overflow: hidden;
+
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 14px;
+
+  background: #ffffff;
+  box-shadow:
+    0 12px 32px rgb(0 0 0 / 18%);
+}
+
+.logo {
+  width: 34px;
+  height: 34px;
+
+  object-fit: contain;
+}
+
+.brandCopy {
+  display: grid;
+  gap: 2px;
+}
+
+.brandCopy strong {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+}
+
+.brandCopy small {
+  color: rgb(255 255 255 / 64%);
+
+  font-size: 0.57rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
+   Brand Message
+========================================================= */
+
+.brandMessage {
+  position: relative;
+  z-index: 2;
+
+  width: min(100%, 650px);
+  margin: auto 0;
+}
+
+.trustBadge {
+  width: max-content;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 8px 11px;
+
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+
+  color: rgb(255 255 255 / 84%);
+  background: rgb(255 255 255 / 8%);
+
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.trustBadge svg {
+  width: 15px;
+  height: 15px;
+}
+
+.brandMessage h1 {
+  max-width: 620px;
+  margin: 28px 0 20px;
+
+  font-family: var(--font-heading);
+  font-size: clamp(2.8rem, 4.6vw, 4.65rem);
+  font-weight: 850;
+  letter-spacing: -0.065em;
+  line-height: 1.01;
+}
+
+.brandMessage p {
+  max-width: 570px;
+  margin: 0;
+
+  color: rgb(255 255 255 / 70%);
+
+  font-size: clamp(0.92rem, 1.2vw, 1.05rem);
+  line-height: 1.75;
+}
+
+
+/* =========================================================
+   Brand Footer
+========================================================= */
+
+.brandFootnote {
+  position: relative;
+  z-index: 2;
+
+  margin: 0;
+
+  color: rgb(255 255 255 / 50%);
+
+  font-size: 0.68rem;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   Decorative Element
+========================================================= */
+
+.decorativeCircle {
+  position: absolute;
+  right: -140px;
+  bottom: -210px;
+  z-index: 1;
+
+  width: 560px;
+  height: 560px;
+
+  border: 46px solid rgb(255 255 255 / 4%);
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.decorativeCircle::before {
+  position: absolute;
+  inset: 44px;
+
+  border: 1px solid rgb(255 255 255 / 6%);
+  border-radius: inherit;
+
+  content: "";
+}
+
+
+/* =========================================================
+   Form Panel
+========================================================= */
+
+.formPanel {
+  min-height: 100svh;
+
+  display: grid;
+  place-items: center;
+
+  padding:
+    clamp(32px, 5vw, 72px)
+    clamp(24px, 6vw, 88px);
+
+  background: var(--surface);
+}
+
+.formWrap {
+  width: min(100%, 470px);
+}
+
+.formTop {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  margin-bottom: 38px;
+}
+
+
+/* =========================================================
+   Tablet
+========================================================= */
+
+@media (max-width: 980px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .brandPanel {
+    min-height: auto;
+    padding: 24px 28px;
+  }
+
+  .brandMessage,
+  .brandFootnote,
+  .decorativeCircle {
+    display: none;
+  }
+
+  .formPanel {
+    min-height: calc(100svh - 94px);
+  }
+}
+
+
+/* =========================================================
+   Mobile
+========================================================= */
+
+@media (max-width: 560px) {
+  .brandPanel {
+    padding: 20px;
+  }
+
+  .brandMark {
+    width: 42px;
+    height: 42px;
+  }
+
+  .logo {
+    width: 31px;
+    height: 31px;
+  }
+
+  .formPanel {
+    place-items: start center;
+
+    padding: 34px 20px 56px;
+  }
+
+  .formTop {
+    margin-bottom: 30px;
+  }
+}

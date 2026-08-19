@@ -1,0 +1,1366 @@
+/* =========================================================
+   HOMELINK DISCOVERY
+========================================================= */
+
+.page {
+  min-height: 100vh;
+
+  padding-bottom: 110px;
+
+  color: #122033;
+
+  background: #f7f5f0;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero {
+  position: relative;
+
+  overflow: hidden;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+
+  background: #ffffff;
+}
+
+
+.heroInner {
+  position: relative;
+
+  z-index: 2;
+
+  width:
+    min(
+      calc(
+        100% -
+        (
+          var(--content-gutter)
+          * 2
+        )
+      ),
+      var(--container-wide)
+    );
+
+  min-height: 390px;
+
+  margin-inline: auto;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    250px;
+
+  align-items: end;
+
+  gap:
+    clamp(
+      55px,
+      8vw,
+      120px
+    );
+
+  padding:
+    86px
+    0
+    64px;
+}
+
+
+.heroCopy {
+  max-width: 860px;
+}
+
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 18px;
+
+  color: #1f5eff;
+
+  font-size: 9px;
+  font-weight: 750;
+
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+}
+
+
+.eyebrow::before {
+  content: "";
+
+  width: 30px;
+  height: 2px;
+
+  background: #1f5eff;
+}
+
+
+.hero h1 {
+  max-width: 860px;
+
+  margin: 0;
+
+  color: #122033;
+
+  font-family:
+    var(--font-heading);
+
+  font-size:
+    clamp(
+      44px,
+      5.5vw,
+      76px
+    );
+
+  font-weight: 600;
+
+  line-height: 0.98;
+
+  letter-spacing:
+    -0.065em;
+}
+
+
+.hero p {
+  max-width: 650px;
+
+  margin:
+    23px
+    0
+    0;
+
+  color: #667281;
+
+  font-size: 13px;
+
+  line-height: 1.75;
+}
+
+
+/* =========================================================
+   MARKETPLACE HERO
+========================================================= */
+
+.marketplaceHero {
+  background:
+    linear-gradient(
+      105deg,
+      #ffffff 0%,
+      #ffffff 67%,
+      #edf3ff 67%,
+      #edf3ff 100%
+    );
+}
+
+
+.marketplaceHero::after {
+  content: "";
+
+  position: absolute;
+
+  top: -240px;
+  right: -130px;
+
+  width: 520px;
+  height: 520px;
+
+  border:
+    1px solid
+    rgb(31 94 255 / 12%);
+
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+
+.marketplacePage
+.heroInner {
+  min-height: 340px;
+
+  padding:
+    70px
+    0
+    53px;
+}
+
+
+.marketplacePage
+.hero h1 {
+  max-width: 790px;
+
+  font-size:
+    clamp(
+      42px,
+      5vw,
+      68px
+    );
+}
+
+
+/* =========================================================
+   TRUST NOTE
+========================================================= */
+
+.trustNote {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  padding-bottom: 8px;
+}
+
+
+.trustIcon {
+  width: 40px;
+  height: 40px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 auto;
+
+  border-radius: 50%;
+
+  color: #1f5eff;
+
+  background: #eaf1ff;
+}
+
+
+.trustIcon svg {
+  width: 17px;
+  height: 17px;
+}
+
+
+.trustNote > div {
+  display: grid;
+
+  gap: 5px;
+}
+
+
+.trustNote
+span:not(.trustIcon) {
+  color: #122033;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+.trustNote p {
+  margin: 0;
+
+  color: #808a97;
+
+  font-size: 9px;
+
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+.searchSection {
+  width:
+    min(
+      calc(
+        100% -
+        (
+          var(--content-gutter)
+          * 2
+        )
+      ),
+      var(--container-wide)
+    );
+
+  margin-inline: auto;
+
+  padding:
+    25px
+    0;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+}
+
+
+.searchBar {
+  width:
+    min(
+      760px,
+      100%
+    );
+
+  min-height: 56px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding:
+    6px
+    6px
+    6px
+    16px;
+
+  border:
+    1px solid
+    #d7d8dc;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  transition:
+    border-color 170ms ease,
+    box-shadow 170ms ease;
+}
+
+
+.marketplacePage
+.searchBar {
+  width: 100%;
+}
+
+
+.searchBar:focus-within {
+  border-color: #1f5eff;
+
+  box-shadow:
+    0 0 0 4px
+    rgb(31 94 255 / 9%);
+}
+
+
+.searchBar > svg {
+  width: 18px;
+  height: 18px;
+
+  flex: 0 0 auto;
+
+  color: #8b94a0;
+}
+
+
+.searchBar input {
+  min-width: 0;
+
+  flex: 1;
+
+  border: 0;
+  outline: 0;
+
+  color: #122033;
+
+  background: transparent;
+
+  font-size: 12px;
+}
+
+
+.searchBar input::placeholder {
+  color: #959da8;
+}
+
+
+.searchBar button,
+.applyButton {
+  min-height: 44px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-inline: 18px;
+
+  border: 0;
+
+  border-radius: 7px;
+
+  color: #ffffff;
+
+  background: #1f5eff;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  transition:
+    background-color 170ms ease,
+    transform 170ms ease;
+}
+
+
+.searchBar button:hover,
+.applyButton:hover {
+  background: #174ed8;
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* =========================================================
+   MARKETPLACE CATEGORY RAIL
+========================================================= */
+
+.categoryRail {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  margin-top: 14px;
+
+  overflow-x: auto;
+
+  padding-bottom: 2px;
+
+  scrollbar-width: none;
+}
+
+
+.categoryRail::-webkit-scrollbar {
+  display: none;
+}
+
+
+.categoryRail button {
+  min-height: 34px;
+
+  flex: 0 0 auto;
+
+  padding:
+    0
+    12px;
+
+  border:
+    1px solid
+    #d9dadd;
+
+  border-radius: 999px;
+
+  color: #65717f;
+
+  background: #ffffff;
+
+  font-size: 9px;
+  font-weight: 650;
+
+  white-space: nowrap;
+
+  transition:
+    color 170ms ease,
+    background-color 170ms ease,
+    border-color 170ms ease,
+    transform 170ms ease;
+}
+
+
+.categoryRail button:hover {
+  color: #1f5eff;
+
+  border-color:
+    #b9caff;
+
+  transform:
+    translateY(-1px);
+}
+
+
+.categoryRail
+.activeCategory {
+  color: #ffffff;
+
+  border-color: #1f5eff;
+
+  background: #1f5eff;
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.content {
+  width:
+    min(
+      calc(
+        100% -
+        (
+          var(--content-gutter)
+          * 2
+        )
+      ),
+      var(--container-wide)
+    );
+
+  margin:
+    45px
+    auto
+    0;
+
+  display: grid;
+
+  grid-template-columns:
+    220px
+    minmax(0, 1fr);
+
+  gap:
+    clamp(
+      35px,
+      4vw,
+      58px
+    );
+
+  align-items: start;
+}
+
+
+.marketplacePage
+.content {
+  margin-top: 35px;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+  position: sticky;
+
+  top:
+    calc(
+      var(--nav-height) +
+      25px
+    );
+
+  border-top:
+    1px solid
+    #cfd1d5;
+
+  border-bottom:
+    1px solid
+    #cfd1d5;
+}
+
+
+.sidebarHeading {
+  min-height: 64px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+}
+
+
+.sidebarHeading > div {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+.sidebarHeading svg {
+  width: 15px;
+  height: 15px;
+
+  color: #1f5eff;
+}
+
+
+.sidebarHeading strong {
+  color: #122033;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.sidebarHeading button {
+  padding: 0;
+
+  color: #1f5eff;
+
+  background: transparent;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   FILTERS
+========================================================= */
+
+.filterForm {
+  display: grid;
+
+  gap: 21px;
+
+  padding:
+    22px
+    0;
+}
+
+
+.field {
+  display: grid;
+
+  gap: 8px;
+}
+
+
+.field > span {
+  color: #667281;
+
+  font-size: 8px;
+  font-weight: 750;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+
+.field input,
+.field select {
+  width: 100%;
+
+  min-height: 44px;
+
+  padding:
+    0
+    11px;
+
+  border:
+    1px solid
+    #d8d9dc;
+
+  border-radius: 7px;
+
+  outline: none;
+
+  color: #122033;
+
+  background: #ffffff;
+
+  font-size: 10px;
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+
+.field input:focus,
+.field select:focus {
+  border-color: #1f5eff;
+
+  box-shadow:
+    0 0 0 4px
+    rgb(31 94 255 / 9%);
+}
+
+
+.priceFields {
+  display: grid;
+
+  grid-template-columns: 1fr;
+
+  gap: 18px;
+}
+
+
+.applyButton {
+  width: 100%;
+
+  min-height: 45px;
+
+  margin-top: 3px;
+}
+
+
+/* =========================================================
+   SIDEBAR NOTE
+========================================================= */
+
+.sidebarNote {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 9px;
+
+  padding:
+    19px
+    0
+    22px;
+
+  border-top:
+    1px solid
+    #dedcd5;
+}
+
+
+.sidebarNote svg {
+  width: 15px;
+  height: 15px;
+
+  flex: 0 0 auto;
+
+  color: #1f5eff;
+}
+
+
+.sidebarNote p {
+  margin: 0;
+
+  color: #848d98;
+
+  font-size: 8px;
+
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   RESULTS
+========================================================= */
+
+.results {
+  min-width: 0;
+}
+
+
+.resultsToolbar {
+  min-height: 54px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 20px;
+
+  padding-bottom: 14px;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+}
+
+
+.resultCount {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+
+.resultCount > span {
+  min-width: 28px;
+
+  color: #1f5eff;
+
+  font-family:
+    var(--font-heading);
+
+  font-size: 28px;
+  font-weight: 600;
+
+  line-height: 1;
+}
+
+
+.resultCount > div {
+  display: grid;
+
+  gap: 1px;
+}
+
+
+.resultCount strong {
+  color: #122033;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.resultCount small {
+  color: #8b94a0;
+
+  font-size: 8px;
+}
+
+
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+.sortField {
+  min-height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding:
+    0
+    10px;
+
+  border:
+    1px solid
+    #d8d9dc;
+
+  border-radius: 7px;
+
+  background: #ffffff;
+}
+
+
+.sortField svg {
+  width: 14px;
+  height: 14px;
+
+  color: #8b94a0;
+}
+
+
+.sortField select {
+  border: 0;
+  outline: 0;
+
+  color: #122033;
+
+  background: transparent;
+
+  font-size: 9px;
+  font-weight: 650;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   MOBILE FILTER BUTTON
+========================================================= */
+
+.mobileFilterButton {
+  min-height: 40px;
+
+  display: none;
+
+  align-items: center;
+
+  gap: 7px;
+
+  padding:
+    0
+    11px;
+
+  border:
+    1px solid
+    #d8d9dc;
+
+  border-radius: 7px;
+
+  color: #122033;
+
+  background: #ffffff;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.mobileFilterButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+.mobileFilterButton span {
+  width: 18px;
+  height: 18px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+
+  background: #1f5eff;
+
+  font-size: 8px;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  margin-bottom: 20px;
+
+  padding:
+    14px
+    16px;
+
+  border:
+    1px solid
+    var(--danger-border);
+
+  border-radius: 8px;
+
+  color: var(--danger-text);
+
+  background: var(--danger-soft);
+}
+
+
+.errorBanner p {
+  margin: 0;
+
+  font-size: 10px;
+}
+
+
+.errorBanner button {
+  flex: 0 0 auto;
+
+  color: inherit;
+
+  background: transparent;
+
+  font-size: 9px;
+  font-weight: 750;
+}
+
+
+/* =========================================================
+   MOBILE SHEET
+========================================================= */
+
+.mobileOverlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1200;
+}
+
+
+.mobileBackdrop {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 0;
+
+  background:
+    rgb(5 14 27 / 55%);
+
+  backdrop-filter:
+    blur(4px);
+}
+
+
+.mobileSheet {
+  position: absolute;
+
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  max-height: 88vh;
+
+  overflow-y: auto;
+
+  border-radius:
+    22px
+    22px
+    0
+    0;
+
+  background:
+    #f7f5f0;
+
+  box-shadow:
+    0 -20px 70px
+    rgb(5 14 27 / 18%);
+}
+
+
+.mobileSheetHeading {
+  position: sticky;
+
+  top: 0;
+
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 20px;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+
+  background:
+    rgb(247 245 240 / 96%);
+
+  backdrop-filter:
+    blur(14px);
+}
+
+
+.mobileSheetHeading > div {
+  display: grid;
+
+  gap: 2px;
+}
+
+
+.mobileSheetHeading span {
+  color: #122033;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+
+.mobileSheetHeading small {
+  color: #8b94a0;
+
+  font-size: 9px;
+}
+
+
+.mobileSheetHeading button {
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border:
+    1px solid
+    #dad9d4;
+
+  border-radius: 50%;
+
+  color: #122033;
+
+  background: #ffffff;
+}
+
+
+.mobileSheetHeading svg {
+  width: 17px;
+  height: 17px;
+}
+
+
+.mobileSheet
+.filterForm {
+  padding:
+    22px
+    20px
+    28px;
+}
+
+
+.mobileSheetActions {
+  display: grid;
+
+  grid-template-columns:
+    1fr
+    1.5fr;
+
+  gap: 9px;
+
+  padding-top: 5px;
+}
+
+
+.mobileSheetActions button {
+  min-height: 47px;
+
+  border-radius: 7px;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+.mobileSheetActions
+button:first-child {
+  border:
+    1px solid
+    #d8d9dc;
+
+  color: #122033;
+
+  background: #ffffff;
+}
+
+
+.mobileSheetActions
+button:last-child {
+  color: #ffffff;
+
+  background: #1f5eff;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 980px) {
+  .heroInner {
+    grid-template-columns:
+      1fr;
+
+    min-height: 350px;
+
+    gap: 30px;
+
+    padding:
+      70px
+      0
+      50px;
+  }
+
+
+  .marketplaceHero {
+    background:
+      linear-gradient(
+        180deg,
+        #ffffff 0%,
+        #ffffff 74%,
+        #edf3ff 74%,
+        #edf3ff 100%
+      );
+  }
+
+
+  .trustNote {
+    max-width: 350px;
+  }
+
+
+  .content {
+    grid-template-columns: 1fr;
+
+    gap: 0;
+  }
+
+
+  .sidebar {
+    display: none;
+  }
+
+
+  .mobileFilterButton {
+    display: inline-flex;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 640px) {
+  .page {
+    padding-bottom: 75px;
+  }
+
+
+  .heroInner,
+  .searchSection,
+  .content {
+    width:
+      calc(
+        100% -
+        32px
+      );
+  }
+
+
+  .heroInner {
+    min-height: 300px;
+
+    padding:
+      52px
+      0
+      40px;
+  }
+
+
+  .marketplacePage
+  .heroInner {
+    min-height: 285px;
+
+    padding:
+      48px
+      0
+      38px;
+  }
+
+
+  .hero h1 {
+    font-size:
+      clamp(
+        40px,
+        12vw,
+        54px
+      );
+  }
+
+
+  .marketplacePage
+  .hero h1 {
+    font-size:
+      clamp(
+        38px,
+        11.5vw,
+        50px
+      );
+  }
+
+
+  .hero p {
+    margin-top: 17px;
+
+    font-size: 12px;
+  }
+
+
+  .trustNote {
+    display: none;
+  }
+
+
+  .searchSection {
+    padding:
+      18px
+      0;
+  }
+
+
+  .searchBar {
+    min-height: 53px;
+
+    padding-left: 13px;
+  }
+
+
+  .searchBar button {
+    min-height: 41px;
+
+    padding-inline: 14px;
+  }
+
+
+  .categoryRail {
+    margin-top: 11px;
+  }
+
+
+  .categoryRail button {
+    min-height: 32px;
+
+    padding-inline: 11px;
+  }
+
+
+  .content {
+    margin-top: 30px;
+  }
+
+
+  .resultsToolbar {
+    align-items: flex-end;
+  }
+
+
+  .resultCount > span {
+    font-size: 24px;
+  }
+
+
+  .resultCount small {
+    display: none;
+  }
+
+
+  .sortField {
+    max-width: 140px;
+  }
+
+
+  .sortField svg {
+    display: none;
+  }
+
+
+  .sortField select {
+    width: 100%;
+  }
+}

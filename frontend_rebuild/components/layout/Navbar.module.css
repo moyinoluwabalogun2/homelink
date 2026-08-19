@@ -1,0 +1,1527 @@
+/* =========================================================
+   HOMELINK NAVIGATION
+
+   Homepage:
+   transparent / photographic overlay
+
+   Inner pages:
+   clean white navigation
+
+   Homepage after scroll:
+   white navigation
+========================================================= */
+
+
+/* =========================================================
+   HEADER BASE
+========================================================= */
+
+.header {
+  --nav-text:
+    #122033;
+
+  --nav-secondary:
+    #566273;
+
+  --nav-line:
+    rgb(18 32 51 / 9%);
+
+  --nav-hover:
+    rgb(18 32 51 / 5%);
+
+  --nav-background:
+    rgb(255 255 255 / 94%);
+
+  top: 0;
+
+  z-index: 1000;
+
+  width: 100%;
+
+  color:
+    var(--nav-text);
+
+  transition:
+    background-color
+      260ms ease,
+    border-color
+      260ms ease,
+    box-shadow
+      260ms ease,
+    color
+      260ms ease,
+    backdrop-filter
+      260ms ease;
+
+  animation:
+    navReveal
+    520ms
+    cubic-bezier(
+      0.22,
+      1,
+      0.36,
+      1
+    )
+    both;
+}
+
+
+/* =========================================================
+   INNER PAGE NAVBAR
+========================================================= */
+
+.innerHeader {
+  position: sticky;
+
+  border-bottom:
+    1px solid
+    var(--nav-line);
+
+  background:
+    var(--nav-background);
+
+  box-shadow:
+    0 1px 0
+      rgb(18 32 51 / 2%);
+
+  backdrop-filter:
+    blur(18px)
+    saturate(145%);
+
+  -webkit-backdrop-filter:
+    blur(18px)
+    saturate(145%);
+}
+
+
+/* =========================================================
+   HOME NAVBAR
+========================================================= */
+
+.homeHeader {
+  position: fixed;
+
+  --nav-text:
+    #ffffff;
+
+  --nav-secondary:
+    rgb(255 255 255 / 78%);
+
+  --nav-line:
+    rgb(255 255 255 / 17%);
+
+  --nav-hover:
+    rgb(255 255 255 / 10%);
+
+  border-bottom:
+    1px solid
+    transparent;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgb(7 18 35 / 34%) 0%,
+      rgb(7 18 35 / 10%) 60%,
+      transparent 100%
+    );
+
+  box-shadow:
+    none;
+}
+
+
+/* =========================================================
+   HOME NAVBAR AFTER SCROLL
+========================================================= */
+
+.homeHeader.scrolled,
+.homeHeader.menuIsOpen {
+  --nav-text:
+    #122033;
+
+  --nav-secondary:
+    #566273;
+
+  --nav-line:
+    rgb(18 32 51 / 9%);
+
+  --nav-hover:
+    rgb(18 32 51 / 5%);
+
+  border-bottom:
+    1px solid
+    var(--nav-line);
+
+  background:
+    rgb(255 255 255 / 94%);
+
+  box-shadow:
+    0 7px 30px
+    rgb(18 32 51 / 7%);
+
+  backdrop-filter:
+    blur(18px)
+    saturate(145%);
+
+  -webkit-backdrop-filter:
+    blur(18px)
+    saturate(145%);
+}
+
+
+/* =========================================================
+   NAVBAR INNER
+========================================================= */
+
+.navbar {
+  width:
+    min(
+      calc(
+        100% -
+        (
+          var(--content-gutter)
+          * 2
+        )
+      ),
+      var(--container-wide)
+    );
+
+  height:
+    var(--nav-height);
+
+  margin-inline:
+    auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 30px;
+}
+
+
+/* =========================================================
+   LOGO
+========================================================= */
+
+.logoArea {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  flex: 0 0 auto;
+}
+
+.brandLogo {
+  transform-origin:
+    left center;
+
+  transition:
+    filter 240ms ease,
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+
+/* logo becomes white when sitting on hero */
+
+.homeHeader:not(.scrolled):not(.menuIsOpen)
+.brandLogo {
+  filter:
+    brightness(0)
+    invert(1);
+}
+
+
+.brandLogo:hover {
+  transform:
+    translateY(-1px);
+
+  opacity:
+    0.94;
+}
+
+
+/* =========================================================
+   DESKTOP NAVIGATION
+========================================================= */
+
+.desktopNavigation {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 2px;
+
+  margin-left: auto;
+}
+
+
+.navLink {
+  position: relative;
+
+  min-height: 44px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-inline:
+    14px;
+
+  color:
+    var(--nav-secondary);
+
+  font-size:
+    12px;
+
+  font-weight:
+    650;
+
+  letter-spacing:
+    -0.015em;
+
+  text-decoration:
+    none;
+
+  white-space:
+    nowrap;
+
+  transition:
+    color 170ms ease,
+    transform 170ms ease;
+}
+
+
+.navLink::before {
+  content: "";
+
+  position: absolute;
+
+  inset:
+    7px
+    4px;
+
+  z-index: -1;
+
+  border-radius:
+    9px;
+
+  background:
+    var(--nav-hover);
+
+  opacity:
+    0;
+
+  transform:
+    scale(0.96);
+
+  transition:
+    opacity 170ms ease,
+    transform 170ms ease;
+}
+
+
+.navLink:hover {
+  color:
+    var(--nav-text);
+
+  transform:
+    translateY(-1px);
+}
+
+
+.navLink:hover::before {
+  opacity:
+    1;
+
+  transform:
+    scale(1);
+}
+
+
+/* =========================================================
+   ACTIVE INDICATOR
+========================================================= */
+
+.navIndicator {
+  position: absolute;
+
+  left: 14px;
+  right: 14px;
+  bottom: 4px;
+
+  height:
+    2px;
+
+  border-radius:
+    999px;
+
+  background:
+    currentColor;
+
+  opacity:
+    0;
+
+  transform:
+    scaleX(0.25);
+
+  transform-origin:
+    center;
+
+  transition:
+    opacity 180ms ease,
+    transform 220ms
+      cubic-bezier(
+        0.22,
+        1,
+        0.36,
+        1
+      );
+}
+
+
+.activeNavLink {
+  color:
+    var(--nav-text);
+}
+
+
+.activeNavLink
+.navIndicator {
+  opacity:
+    1;
+
+  transform:
+    scaleX(1);
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.actions {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  flex: 0 0 auto;
+}
+
+
+/* =========================================================
+   THEME TOGGLE WRAPPER
+========================================================= */
+
+
+
+
+/* =========================================================
+   AUTH ACTIONS
+========================================================= */
+
+.signInLink,
+.dashboardAction,
+.signOutButton {
+  min-height:
+    41px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding-inline:
+    11px;
+
+  border-radius:
+    9px;
+
+  color:
+    var(--nav-secondary);
+
+  background:
+    transparent;
+
+  font-size:
+    11px;
+
+  font-weight:
+    680;
+
+  letter-spacing:
+    -0.01em;
+
+  text-decoration:
+    none;
+
+  transition:
+    color 170ms ease,
+    background-color 170ms ease,
+    transform 170ms ease;
+}
+
+
+.signInLink:hover,
+.dashboardAction:hover,
+.signOutButton:hover {
+  color:
+    var(--nav-text);
+
+  background:
+    var(--nav-hover);
+
+  transform:
+    translateY(-1px);
+}
+
+
+.dashboardAction svg,
+.signOutButton svg {
+  width:
+    15px;
+
+  height:
+    15px;
+}
+
+
+/* =========================================================
+   POST LISTING CTA
+========================================================= */
+
+.primaryAction {
+  min-height:
+    43px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap:
+    7px;
+
+  padding-inline:
+    16px;
+
+  border-radius:
+    9px;
+
+  color:
+    #ffffff;
+
+  background:
+    var(--accent);
+
+  box-shadow:
+    0 7px 20px
+    rgb(31 94 255 / 18%);
+
+  font-size:
+    11px;
+
+  font-weight:
+    720;
+
+  letter-spacing:
+    -0.01em;
+
+  text-decoration:
+    none;
+
+  transition:
+    transform
+      170ms ease,
+    background-color
+      170ms ease,
+    box-shadow
+      170ms ease;
+}
+
+
+.primaryAction:hover {
+  color:
+    #ffffff;
+
+  background:
+    var(--accent-hover);
+
+  box-shadow:
+    0 10px 26px
+    rgb(31 94 255 / 25%);
+
+  transform:
+    translateY(-2px);
+}
+
+
+.primaryAction:active {
+  transform:
+    translateY(0)
+    scale(0.98);
+}
+
+
+.primaryAction svg {
+  width:
+    15px;
+
+  height:
+    15px;
+}
+
+
+/* Home hero CTA becomes white */
+
+.homeHeader:not(.scrolled):not(.menuIsOpen)
+.primaryAction {
+  color:
+    #174ed8;
+
+  background:
+    #ffffff;
+
+  box-shadow:
+    0 8px 28px
+    rgb(0 0 0 / 13%);
+}
+
+
+.homeHeader:not(.scrolled):not(.menuIsOpen)
+.primaryAction:hover {
+  color:
+    #123daf;
+
+  background:
+    #f4f7ff;
+
+  box-shadow:
+    0 12px 32px
+    rgb(0 0 0 / 18%);
+}
+
+
+/* =========================================================
+   AUTH LOADING
+========================================================= */
+
+.authSkeleton {
+  position: relative;
+
+  width:
+    64px;
+
+  height:
+    37px;
+
+  overflow:
+    hidden;
+
+  border-radius:
+    8px;
+
+  background:
+    rgb(127 137 151 / 18%);
+}
+
+
+.authSkeleton::after {
+  content: "";
+
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  background:
+    linear-gradient(
+      105deg,
+      transparent 20%,
+      rgb(255 255 255 / 44%) 45%,
+      transparent 70%
+    );
+
+  transform:
+    translateX(-100%);
+
+  animation:
+    skeletonMove
+    1.2s
+    infinite;
+}
+
+
+/* =========================================================
+   MOBILE MENU BUTTON
+========================================================= */
+
+.menuButton {
+  width:
+    41px;
+
+  height:
+    41px;
+
+  display:
+    none;
+
+  place-items:
+    center;
+
+  padding:
+    0;
+
+  border:
+    1px solid
+    var(--nav-line);
+
+  border-radius:
+    9px;
+
+  color:
+    var(--nav-text);
+
+  background:
+    transparent;
+
+  transition:
+    transform 170ms ease,
+    background-color 170ms ease,
+    border-color 170ms ease;
+}
+
+
+.menuButton:hover {
+  background:
+    var(--nav-hover);
+
+  transform:
+    scale(1.035);
+}
+
+
+.menuButton:active {
+  transform:
+    scale(0.95);
+}
+
+
+.menuButton svg {
+  width:
+    19px;
+
+  height:
+    19px;
+}
+
+
+/* =========================================================
+   MOBILE OVERLAY
+========================================================= */
+
+.backdrop {
+  position:
+    fixed;
+
+  inset:
+    0;
+
+  z-index:
+    1090;
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  padding:
+    0;
+
+  background:
+    rgb(5 12 23 / 56%);
+
+  backdrop-filter:
+    blur(5px);
+
+  animation:
+    backdropReveal
+    180ms ease
+    both;
+}
+
+
+/* =========================================================
+   MOBILE PANEL
+========================================================= */
+
+.mobilePanel {
+  position:
+    fixed;
+
+  top:
+    0;
+
+  right:
+    0;
+
+  z-index:
+    1100;
+
+  width:
+    min(
+      92vw,
+      390px
+    );
+
+  height:
+    100dvh;
+
+  overflow-y:
+    auto;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  padding:
+    22px;
+
+  color:
+    #122033;
+
+  background:
+    #f8f7f3;
+
+  box-shadow:
+    -28px 0 80px
+    rgb(5 12 23 / 24%);
+
+  animation:
+    drawerReveal
+    300ms
+    cubic-bezier(
+      0.22,
+      1,
+      0.36,
+      1
+    )
+    both;
+}
+
+
+/* =========================================================
+   MOBILE TOP
+========================================================= */
+
+.mobileTop {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    20px;
+
+  padding-bottom:
+    22px;
+
+  border-bottom:
+    1px solid
+    #dfddd7;
+}
+
+
+.mobileLogo {
+  filter:
+    none !important;
+}
+
+
+.mobileClose {
+  width:
+    39px;
+
+  height:
+    39px;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  flex:
+    0 0 auto;
+
+  padding:
+    0;
+
+  border:
+    1px solid
+    #dddbd4;
+
+  border-radius:
+    50%;
+
+  color:
+    #122033;
+
+  background:
+    #ffffff;
+
+  transition:
+    transform 170ms ease,
+    background-color 170ms ease;
+}
+
+
+.mobileClose:hover {
+  background:
+    #efede7;
+
+  transform:
+    rotate(4deg);
+}
+
+
+.mobileClose svg {
+  width:
+    17px;
+
+  height:
+    17px;
+}
+
+
+/* =========================================================
+   MOBILE INTRO
+========================================================= */
+
+.mobileIntro {
+  padding:
+    35px
+    3px
+    24px;
+}
+
+
+.mobileIntro > span {
+  color:
+    var(--accent);
+
+  font-size:
+    8px;
+
+  font-weight:
+    750;
+
+  letter-spacing:
+    0.11em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.mobileIntro h2 {
+  max-width:
+    280px;
+
+  margin:
+    7px
+    0
+    0;
+
+  color:
+    #122033;
+
+  font-size:
+    32px;
+
+  line-height:
+    1;
+
+  letter-spacing:
+    -0.055em;
+}
+
+
+/* =========================================================
+   MOBILE NAVIGATION
+========================================================= */
+
+.mobileNavigation {
+  border-top:
+    1px solid
+    #dddbd4;
+}
+
+
+.mobileLink {
+  min-height:
+    68px;
+
+  display:
+    grid;
+
+  grid-template-columns:
+    29px
+    minmax(0, 1fr)
+    auto;
+
+  align-items:
+    center;
+
+  gap:
+    10px;
+
+  padding:
+    8px
+    4px;
+
+  border-bottom:
+    1px solid
+    #dddbd4;
+
+  color:
+    #122033;
+
+  text-decoration:
+    none;
+
+  opacity:
+    0;
+
+  animation:
+    mobileLinkReveal
+    330ms
+    cubic-bezier(
+      0.22,
+      1,
+      0.36,
+      1
+    )
+    forwards;
+
+  transition:
+    padding-left
+      170ms ease,
+    color
+      170ms ease;
+}
+
+
+.mobileLink:hover {
+  padding-left:
+    9px;
+
+  color:
+    var(--accent);
+}
+
+
+.mobileLinkNumber {
+  color:
+    #9197a0;
+
+  font-size:
+    8px;
+
+  font-weight:
+    750;
+}
+
+
+.mobileLink strong {
+  color:
+    inherit;
+
+  font-size:
+    15px;
+
+  font-weight:
+    650;
+}
+
+
+.mobileLink > svg {
+  width:
+    15px;
+
+  height:
+    15px;
+
+  color:
+    #9aa0aa;
+
+  transition:
+    transform 170ms ease;
+}
+
+
+.mobileLink:hover > svg {
+  transform:
+    translateX(3px);
+}
+
+
+.activeMobileLink {
+  color:
+    var(--accent);
+}
+
+
+/* =========================================================
+   MOBILE ACTIONS
+========================================================= */
+
+.mobileActions {
+  display:
+    grid;
+
+  gap:
+    8px;
+
+  margin-top:
+    25px;
+}
+
+
+.mobileSecondaryAction,
+.mobilePrimaryAction,
+.mobileSignOutButton {
+  min-height:
+    48px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    8px;
+
+  border-radius:
+    9px;
+
+  font-size:
+    11px;
+
+  font-weight:
+    720;
+
+  text-decoration:
+    none;
+
+  transition:
+    transform 170ms ease,
+    background-color 170ms ease,
+    border-color 170ms ease;
+}
+
+
+.mobileSecondaryAction,
+.mobileSignOutButton {
+  border:
+    1px solid
+    #d9d7d0;
+
+  color:
+    #122033;
+
+  background:
+    #ffffff;
+}
+
+
+.mobileSecondaryAction:hover,
+.mobileSignOutButton:hover {
+  background:
+    #efede8;
+
+  transform:
+    translateY(-1px);
+}
+
+
+.mobilePrimaryAction {
+  color:
+    #ffffff;
+
+  background:
+    var(--accent);
+
+  box-shadow:
+    0 8px 22px
+    rgb(31 94 255 / 20%);
+}
+
+
+.mobilePrimaryAction:hover {
+  background:
+    var(--accent-hover);
+
+  transform:
+    translateY(-2px);
+}
+
+
+.mobileSecondaryAction svg,
+.mobilePrimaryAction svg,
+.mobileSignOutButton svg {
+  width:
+    16px;
+
+  height:
+    16px;
+}
+
+
+/* =========================================================
+   MOBILE FOOTER
+========================================================= */
+
+.mobileFooter {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    11px;
+
+  margin-top:
+    auto;
+
+  padding-top:
+    30px;
+}
+
+
+.trustIcon {
+  width:
+    37px;
+
+  height:
+    37px;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  flex:
+    0 0 auto;
+
+  border-radius:
+    50%;
+
+  color:
+    var(--accent);
+
+  background:
+    #e8efff;
+}
+
+
+.trustIcon svg {
+  width:
+    16px;
+
+  height:
+    16px;
+}
+
+
+.mobileFooter > div {
+  display:
+    grid;
+
+  gap:
+    3px;
+}
+
+
+.mobileFooter strong {
+  color:
+    #122033;
+
+  font-size:
+    10px;
+}
+
+
+.mobileFooter p {
+  max-width:
+    250px;
+
+  margin:
+    0;
+
+  color:
+    #747d89;
+
+  font-size:
+    9px;
+
+  line-height:
+    1.55;
+}
+
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+@keyframes navReveal {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateY(-10px);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+
+@keyframes backdropReveal {
+  from {
+    opacity:
+      0;
+  }
+
+  to {
+    opacity:
+      1;
+  }
+}
+
+
+@keyframes drawerReveal {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateX(45px);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateX(0);
+  }
+}
+
+
+@keyframes mobileLinkReveal {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateX(13px);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateX(0);
+  }
+}
+
+
+@keyframes skeletonMove {
+  to {
+    transform:
+      translateX(100%);
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE — DESKTOP
+========================================================= */
+
+@media (max-width: 1120px) {
+  .navbar {
+    gap:
+      18px;
+  }
+
+  .desktopNavigation {
+    gap:
+      0;
+  }
+
+  .navLink {
+    padding-inline:
+      10px;
+
+    font-size:
+      11px;
+  }
+
+  .signOutButton {
+    display:
+      none;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE — TABLET / MOBILE NAV
+========================================================= */
+
+@media (max-width: 920px) {
+  .desktopNavigation,
+  .dashboardAction,
+  .signInLink,
+  .signOutButton {
+    display:
+      none;
+  }
+
+  .actions {
+    margin-left:
+      auto;
+  }
+
+  .menuButton {
+    display:
+      grid;
+  }
+
+  .primaryAction {
+    width:
+      41px;
+
+    height:
+      41px;
+
+    min-height:
+      41px;
+
+    padding:
+      0;
+  }
+
+  .primaryAction span {
+    display:
+      none;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE — SMALL MOBILE
+========================================================= */
+
+@media (max-width: 560px) {
+  .navbar {
+    width:
+      calc(
+        100% -
+        30px
+      );
+
+    gap:
+      8px;
+  }
+
+  .logoArea {
+    min-width:
+      0;
+
+    max-width:
+      155px;
+
+    overflow:
+      hidden;
+  }
+
+
+  .mobilePanel {
+    width:
+      min(
+        94vw,
+        370px
+      );
+
+    padding:
+      19px;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 380px) {
+  .logoArea {
+    max-width:
+      130px;
+  }
+
+  .primaryAction {
+    display:
+      none;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .header,
+  .mobilePanel,
+  .backdrop,
+  .mobileLink {
+    animation:
+      none;
+  }
+
+  .brandLogo,
+  .navLink,
+  .primaryAction,
+  .menuButton {
+    transition:
+      none;
+  }
+}

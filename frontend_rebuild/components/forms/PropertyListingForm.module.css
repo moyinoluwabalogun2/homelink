@@ -1,0 +1,221 @@
+.formCard {
+  display: grid;
+  gap: 24px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sectionHeading > span {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.sectionHeading svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.sectionHeading p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.twoColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.twoColumns label {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.twoColumns label > span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.twoColumns small {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.twoColumns input,
+.twoColumns select,
+.twoColumns textarea {
+  width: 100%;
+  min-height: 47px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  background: var(--surface-muted);
+  outline: 0;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.twoColumns textarea {
+  min-height: 120px;
+  padding: 14px;
+  resize: vertical;
+  line-height: 1.65;
+}
+
+.twoColumns input:focus,
+.twoColumns select:focus,
+.twoColumns textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.twoColumns input:disabled,
+.twoColumns select:disabled {
+  opacity: 0.58;
+  cursor: wait;
+}
+
+.checkbox {
+  align-content: end;
+  grid-template-columns: 18px 1fr !important;
+  align-items: center;
+  min-height: 47px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 17px;
+  min-height: 17px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.trustNote {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 19px;
+  border: 1px solid var(--accent-border);
+  border-radius: 17px;
+  background: var(--accent-soft);
+}
+
+.trustNote > svg {
+  width: 21px;
+  height: 21px;
+  margin: 4px auto 0;
+  color: var(--accent);
+}
+
+.trustNote strong {
+  font-size: 13px;
+}
+
+.trustNote p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.submitBar {
+  position: sticky;
+  bottom: 18px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px 19px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--surface) 93%, transparent);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
+}
+
+.submitBar > div {
+  display: grid;
+  gap: 3px;
+}
+
+.submitBar strong {
+  font-size: 13px;
+}
+
+.submitBar span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+@media (max-width: 720px) {
+  .formCard {
+    padding: 20px;
+  }
+
+  .twoColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .full {
+    grid-column: auto;
+  }
+
+  .submitBar {
+    position: static;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .submitBar button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Media Uploads
+========================================================= */
+
+.mediaStack {
+  display: grid;
+  gap: 24px;
+}

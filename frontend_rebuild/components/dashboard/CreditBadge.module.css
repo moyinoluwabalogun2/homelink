@@ -1,0 +1,122 @@
+.badge {
+  min-height: 48px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 7px 13px 7px 8px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  color: var(--text-primary);
+  background: var(--surface);
+
+  text-decoration: none;
+
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.badge:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--primary) 55%,
+      var(--border)
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(--primary) 6%,
+      var(--surface)
+    );
+
+  transform: translateY(-1px);
+}
+
+.icon {
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 auto;
+
+  border-radius: 10px;
+
+  color: var(--primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--primary) 13%,
+      transparent
+    );
+}
+
+.icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.copy {
+  min-width: 0;
+
+  display: grid;
+  gap: 2px;
+
+  line-height: 1.05;
+}
+
+.copy small {
+  color: var(--text-secondary);
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.copy strong {
+  white-space: nowrap;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.loadingIcon {
+  animation:
+    creditBadgeSpin
+    800ms
+    linear
+    infinite;
+}
+
+@keyframes creditBadgeSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .badge {
+    min-height: 42px;
+
+    padding: 5px;
+  }
+
+  .icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .copy {
+    display: none;
+  }
+}

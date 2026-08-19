@@ -1,0 +1,661 @@
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header > div:first-child {
+  max-width: 760px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #1f5eff;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.eyebrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.header h1 {
+  margin: 10px 0 0;
+  color: #122033;
+  font-family: var(--font-heading);
+  font-size: clamp(32px, 4vw, 50px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.header p {
+  max-width: 680px;
+  margin: 16px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.headerActions {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.queueCount {
+  min-width: 100px;
+  display: grid;
+  place-content: center;
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+
+.queueCount span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.queueCount strong {
+  margin-top: 2px;
+  color: #122033;
+  font-size: 21px;
+}
+
+.refreshButton {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #122033;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.refreshButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.refreshButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+
+/* =========================================================
+   REVIEW GUIDE
+========================================================= */
+
+.reviewGuide {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 25px;
+  margin-top: 22px;
+  padding: 17px 19px;
+  border-left: 3px solid #1f5eff;
+  background: #eef3ff;
+}
+
+.reviewGuide strong {
+  color: #163d9f;
+  font-size: 13px;
+}
+
+.reviewGuide span {
+  color: #52627f;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   QUEUE
+========================================================= */
+
+.queue {
+  display: grid;
+  gap: 26px;
+  margin-top: 30px;
+}
+
+.skeleton {
+  min-height: 300px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(
+      90deg,
+      #f0f1f3 0%,
+      #f8f8f9 50%,
+      #f0f1f3 100%
+    );
+}
+
+
+/* =========================================================
+   LISTING CARD
+========================================================= */
+
+.listingCard {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+
+.cover {
+  position: relative;
+  min-height: 330px;
+  overflow: hidden;
+  background: #e9eaed;
+}
+
+.coverImage {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.coverFallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 9px;
+  color: #798493;
+}
+
+.coverFallback svg {
+  width: 30px;
+  height: 30px;
+}
+
+.coverFallback span {
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.queuePosition {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  min-width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: rgba(18, 32, 51, 0.9);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.mediaCount {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  color: #ffffff;
+  background: rgba(18, 32, 51, 0.88);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mediaCount svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+/* =========================================================
+   CARD BODY
+========================================================= */
+
+.cardBody {
+  min-width: 0;
+  padding: 27px 30px;
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.titleBlock > span {
+  display: block;
+  color: #1f5eff;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.titleBlock h2 {
+  margin: 6px 0 0;
+  color: #122033;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.price {
+  display: block;
+  margin-top: 16px;
+  color: #122033;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.primaryMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 19px;
+  margin-top: 18px;
+}
+
+.primaryMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.primaryMeta svg {
+  width: 14px;
+  height: 14px;
+}
+
+.description {
+  display: -webkit-box;
+  max-width: 820px;
+  margin: 20px 0 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.reviewToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+  padding: 0;
+  border: 0;
+  color: #1f5eff;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reviewToggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+
+/* =========================================================
+   EXPANDED REVIEW
+========================================================= */
+
+.expandedReview {
+  display: grid;
+  gap: 0;
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.reviewSection {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.sectionHeading {
+  margin-bottom: 15px;
+}
+
+.sectionHeading span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sectionHeading strong {
+  display: block;
+  margin-top: 3px;
+  color: #122033;
+  font-size: 15px;
+}
+
+.factGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.factGrid > div {
+  min-width: 0;
+  padding: 13px 14px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.factGrid span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.factGrid strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: #122033;
+  font-size: 13px;
+}
+
+.fullDescription {
+  max-width: 850px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.muted {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   MEDIA
+========================================================= */
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mediaItem {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: #f4f4f3;
+}
+
+.mediaImage,
+.mediaItem video {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: block;
+  background: #e8e9eb;
+  object-fit: cover;
+}
+
+.mediaImage {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.mediaMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.mediaMeta span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.mediaMeta strong {
+  color: #1f5eff;
+  font-size: 11px;
+}
+
+.noMedia {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.noMedia svg {
+  width: 18px;
+  height: 18px;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 24px;
+}
+
+.actions button {
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.approveButton {
+  border: 1px solid #122033;
+  color: #ffffff;
+  background: #122033;
+}
+
+.approveButton:hover:not(:disabled) {
+  background: #1c304b;
+}
+
+.rejectButton {
+  border: 1px solid #d7b3aa;
+  color: #973d2d;
+  background: #ffffff;
+}
+
+.rejectButton:hover:not(:disabled) {
+  background: #fbf2f0;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.empty {
+  min-height: 320px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  margin-top: 30px;
+  padding: 40px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  text-align: center;
+}
+
+.empty > span {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #1f5eff;
+  background: #eef3ff;
+}
+
+.empty > span svg {
+  width: 22px;
+  height: 22px;
+}
+
+.empty h2 {
+  margin: 15px 0 0;
+  color: #122033;
+  font-family: var(--font-heading);
+  font-size: 22px;
+}
+
+.empty p {
+  max-width: 380px;
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1050px) {
+  .listingCard {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+
+  .factGrid,
+  .mediaGrid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+@media (max-width: 760px) {
+  .header {
+    display: block;
+  }
+
+  .headerActions {
+    margin-top: 20px;
+  }
+
+  .listingCard {
+    grid-template-columns: 1fr;
+  }
+
+  .cover {
+    min-height: 250px;
+    aspect-ratio: 16 / 9;
+  }
+
+  .reviewGuide {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}
+
+
+@media (max-width: 560px) {
+  .cardBody {
+    padding: 22px 19px;
+  }
+
+  .cardTop {
+    display: grid;
+  }
+
+  .factGrid,
+  .mediaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .primaryMeta {
+    display: grid;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}
+
+
+@media (max-width: 420px) {
+  .headerActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .queueCount {
+    place-content: start;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}

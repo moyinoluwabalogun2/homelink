@@ -1,0 +1,289 @@
+.field {
+  display: grid;
+  gap: 12px;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.heading div {
+  display: grid;
+  gap: 3px;
+}
+
+.heading strong {
+  font-size: 13px;
+}
+
+.heading span,
+.count {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.dropzone {
+  min-height: 150px;
+
+  display: grid;
+  place-items: center;
+  gap: 10px;
+
+  padding: 24px;
+
+  border: 1px dashed var(--border-strong);
+  border-radius: 17px;
+
+  color: var(--text-secondary);
+  background: var(--surface-muted);
+
+  text-align: center;
+  cursor: pointer;
+
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.dropzone:hover,
+.dragging {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dragging {
+  transform: translateY(-1px);
+}
+
+.dropzone:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.dropzone svg {
+  width: 27px;
+  height: 27px;
+
+  color: var(--accent);
+}
+
+.dropzone strong {
+  font-size: 13px;
+}
+
+.dropzone span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.hiddenInput {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+
+  white-space: nowrap;
+}
+
+.progress {
+  display: grid;
+  gap: 7px;
+}
+
+.progressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.progressTrack {
+  height: 7px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: var(--surface-hover);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: var(--accent);
+
+  transition: width 140ms ease;
+}
+
+.notice,
+.error {
+  margin: 0;
+  padding: 11px 13px;
+
+  border-radius: 12px;
+
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.notice {
+  border: 1px solid var(--accent-border);
+
+  color: var(--text-secondary);
+  background: var(--accent-soft);
+}
+
+.error {
+  border: 1px solid var(--danger-border);
+
+  color: var(--danger-text);
+  background: var(--danger-soft);
+}
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+  gap: 10px;
+}
+
+.mediaItem {
+  position: relative;
+
+  min-height: 118px;
+
+  overflow: hidden;
+
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+
+  background: var(--surface-muted);
+}
+
+.preview {
+  width: 100%;
+  height: 118px;
+
+  object-fit: cover;
+}
+
+.videoPreview {
+  min-height: 118px;
+
+  display: grid;
+  place-items: center;
+  gap: 7px;
+
+  padding: 16px;
+
+  color: var(--text-muted);
+
+  text-align: center;
+}
+
+.videoPreview svg {
+  width: 26px;
+  height: 26px;
+
+  color: var(--accent);
+}
+
+.videoPreview span {
+  max-width: 100%;
+
+  overflow: hidden;
+
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeButton {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+
+  width: 31px;
+  height: 31px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgb(255 255 255 / 42%);
+  border-radius: 10px;
+
+  color: #ffffff;
+  background: rgb(17 18 20 / 74%);
+  backdrop-filter: blur(10px);
+
+  cursor: pointer;
+}
+
+.removeButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.manual {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+}
+
+.manual input {
+  min-width: 0;
+  min-height: 43px;
+
+  padding: 0 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 11px;
+
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.manual button {
+  min-height: 43px;
+
+  padding: 0 15px;
+
+  border-radius: 11px;
+
+  color: #ffffff;
+  background: var(--text-primary);
+
+  font-size: 12px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.manual button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 560px) {
+  .heading {
+    display: grid;
+  }
+
+  .manual {
+    grid-template-columns: 1fr;
+  }
+}
