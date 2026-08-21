@@ -156,7 +156,30 @@ export const paymentService = {
 
     return promise;
   },
+async listHistory(
+  options: {
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<Payment[]> {
+  const {
+    limit = 20,
+    offset = 0,
+  } = options;
 
+  const response =
+    await api.get<Payment[]>(
+      "/payments/history",
+      {
+        params: {
+          limit,
+          offset,
+        },
+      },
+    );
+
+  return response.data;
+},
 
   async initialize(
     planCode: string,

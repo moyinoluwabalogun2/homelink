@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from app.api.auth_dependencies import CurrentUser
 from app.api.dependencies import DbSession
@@ -74,6 +74,37 @@ async def complete_mock_payment(
         user=current_user,
     )
     return PaymentRead.model_validate(payment)
+@router.get(
+    "/history",
+    response_model=list[PaymentRead],
+)
+async def payment_history(
+    session: DbSession,
+    current_user: CurrentUser,
+    limit: int = Query(
+        default=20,
+        ge=1,
+        le=50,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+    ),
+) -> list[PaymentRead]:
+    records = await PaymentService(
+        session,
+    ).list_payments(
+        user=current_user,
+        limit=limit,
+        offset=offset,
+    )
+
+    return [
+        PaymentRead.model_validate(
+            item,
+        )
+        for item in records
+    ]
 
 
 @router.post("/{reference}/verify", response_model=PaymentRead)

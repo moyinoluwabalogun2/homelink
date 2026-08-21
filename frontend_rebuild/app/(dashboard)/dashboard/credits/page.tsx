@@ -30,6 +30,7 @@ import {
 
 import type {
   CreditBalance,
+  Payment,
   PaymentPlan,
 } from "@/types/payment";
 
@@ -50,8 +51,20 @@ export default function CreditsPage() {
     useState<PaymentPlan[]>([]);
 
   const [
+    payments,
+    setPayments,
+  ] =
+    useState<Payment[]>([]);
+
+  const [
     loading,
     setLoading,
+  ] =
+    useState(true);
+
+  const [
+    historyLoading,
+    setHistoryLoading,
   ] =
     useState(true);
 
@@ -69,23 +82,32 @@ export default function CreditsPage() {
   ] =
     useState("");
 
+  const [
+    historyError,
+    setHistoryError,
+  ] =
+    useState("");
+
 
   /* =========================================================
-     LOAD BALANCES + PLANS
+     LOAD CREDITS + PAYMENT PLANS
   ========================================================= */
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([
-      paymentService.listCredits(),
-      paymentService.listPlans(),
-    ])
-      .then(
-        ([
-          creditItems,
-          planItems,
-        ]) => {
+    const loadMainData =
+      async () => {
+        try {
+          const [
+            creditItems,
+            planItems,
+          ] =
+            await Promise.all([
+              paymentService.listCredits(),
+              paymentService.listPlans(),
+            ]);
+
           if (!active) {
             return;
           }
@@ -99,12 +121,9 @@ export default function CreditsPage() {
           );
 
           setError("");
-        },
-      )
-      .catch(
-        (
-          reason,
-        ) => {
+        } catch (
+          reason
+        ) {
           if (!active) {
             return;
           }
@@ -115,15 +134,67 @@ export default function CreditsPage() {
               "Credits and payment plans could not be loaded.",
             ),
           );
-        },
-      )
-      .finally(() => {
-        if (active) {
-          setLoading(
-            false,
-          );
+        } finally {
+          if (active) {
+            setLoading(
+              false,
+            );
+          }
         }
-      });
+      };
+
+
+    /* =======================================================
+       LOAD PAYMENT HISTORY INDEPENDENTLY
+
+       History must never block credits or checkout.
+    ======================================================= */
+
+    const loadHistory =
+      async () => {
+        try {
+          const paymentItems =
+            await paymentService.listHistory(
+              {
+                limit: 10,
+              },
+            );
+
+          if (!active) {
+            return;
+          }
+
+          setPayments(
+            paymentItems,
+          );
+
+          setHistoryError("");
+        } catch (
+          reason
+        ) {
+          if (!active) {
+            return;
+          }
+
+          setHistoryError(
+            getApiErrorMessage(
+              reason,
+              "Payment history could not be loaded.",
+            ),
+          );
+        } finally {
+          if (active) {
+            setHistoryLoading(
+              false,
+            );
+          }
+        }
+      };
+
+
+    void loadMainData();
+    void loadHistory();
+
 
     return () => {
       active = false;
@@ -234,7 +305,7 @@ export default function CreditsPage() {
 
 
       {/* =====================================================
-          ERROR
+          MAIN PAYMENT ERROR
       ====================================================== */}
 
       {error ? (
@@ -638,6 +709,176 @@ export default function CreditsPage() {
               Payment plans have
               not been made
               available yet.
+            </span>
+          </div>
+        )}
+      </section>
+
+
+      {/* =====================================================
+          PAYMENT HISTORY
+      ====================================================== */}
+
+      <section
+        className={
+          styles.historySection
+        }
+      >
+        <div
+          className={
+            styles.sectionHeading
+          }
+        >
+          <div>
+            <span>
+              Transaction history
+            </span>
+
+            <h2>
+              Recent payments.
+            </h2>
+          </div>
+
+          <p>
+            Review your recent
+            HomeLink credit
+            purchases and payment
+            status.
+          </p>
+        </div>
+
+
+        {historyError ? (
+          <div
+            className={
+              styles.historyError
+            }
+            role="status"
+          >
+            {historyError}
+          </div>
+        ) : null}
+
+
+        {historyLoading ? (
+          <div
+            className={
+              styles.historySkeleton
+            }
+          />
+        ) : payments.length ? (
+          <div
+            className={
+              styles.historyList
+            }
+          >
+            {payments.map(
+              (
+                payment,
+              ) => (
+                <article
+                  key={
+                    payment.id
+                  }
+                  className={
+                    styles.historyItem
+                  }
+                >
+                  <div
+                    className={
+                      styles.historyMain
+                    }
+                  >
+                    <strong>
+                      {
+                        payment.plan.name
+                      }
+                    </strong>
+
+                    <span>
+                      {new Intl.DateTimeFormat(
+                        "en-NG",
+                        {
+                          dateStyle:
+                            "medium",
+
+                          timeStyle:
+                            "short",
+                        },
+                      ).format(
+                        new Date(
+                          payment.paid_at ??
+                            payment.created_at,
+                        ),
+                      )}
+                    </span>
+                  </div>
+
+
+                  <div
+                    className={
+                      styles.historyMeta
+                    }
+                  >
+                    <span
+                      title={
+                        payment.reference
+                      }
+                    >
+                      {
+                        payment.reference
+                      }
+                    </span>
+
+                    <span>
+                      {titleCase(
+                        payment.provider,
+                      )}
+                    </span>
+                  </div>
+
+
+                  <div
+                    className={
+                      styles.historyAmount
+                    }
+                  >
+                    <strong>
+                      {formatCurrency(
+                        payment.amount_kobo /
+                          100,
+                        payment.currency,
+                      )}
+                    </strong>
+
+                    <span
+                      data-status={
+                        payment.status
+                      }
+                    >
+                      {titleCase(
+                        payment.status,
+                      )}
+                    </span>
+                  </div>
+                </article>
+              ),
+            )}
+          </div>
+        ) : (
+          <div
+            className={
+              styles.emptyPlans
+            }
+          >
+            <strong>
+              No payments yet.
+            </strong>
+
+            <span>
+              Your credit
+              purchases will
+              appear here.
             </span>
           </div>
         )}

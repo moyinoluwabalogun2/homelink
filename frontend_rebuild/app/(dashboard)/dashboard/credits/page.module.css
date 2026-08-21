@@ -829,6 +829,259 @@ button:hover:not(
       );
   }
 }
+/* =========================================================
+   PAYMENT HISTORY
+========================================================= */
+
+.historySection {
+  padding:
+    58px
+    0
+    26px;
+
+  border-top:
+    1px solid
+    #dedcd5;
+}
+
+
+.historyList {
+  border-top:
+    1px solid
+    #dedcd5;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+}
+
+
+.historyItem {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1.4fr)
+    minmax(220px, 1fr)
+    minmax(150px, auto);
+
+  align-items: center;
+
+  gap: 28px;
+
+  padding:
+    22px
+    0;
+
+  border-bottom:
+    1px solid
+    #e6e3dc;
+}
+
+
+.historyItem:last-child {
+  border-bottom: 0;
+}
+
+
+.historyMain {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 6px;
+}
+
+
+.historyMain strong {
+  color: #122033;
+
+  font-family:
+    var(--font-heading);
+
+  font-size: 17px;
+  font-weight: 600;
+
+  line-height: 1.2;
+
+  letter-spacing:
+    -0.025em;
+}
+
+
+.historyMain span {
+  color: #7b8692;
+
+  font-size: 12px;
+}
+
+
+.historyMeta {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 6px;
+}
+
+
+.historyMeta span:first-child {
+  overflow: hidden;
+
+  color: #445165;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+
+  font-size: 11px;
+
+  text-overflow:
+    ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.historyMeta span:last-child {
+  color: #8a949f;
+
+  font-size: 12px;
+}
+
+
+.historyAmount {
+  display: grid;
+
+  justify-items: end;
+
+  gap: 7px;
+}
+
+
+.historyAmount strong {
+  color: #122033;
+
+  font-family:
+    var(--font-heading);
+
+  font-size: 19px;
+  font-weight: 600;
+
+  letter-spacing:
+    -0.03em;
+}
+
+
+.historyAmount > span {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 25px;
+
+  padding:
+    0
+    9px;
+
+  border:
+    1px solid
+    #d8dce2;
+
+  border-radius: 999px;
+
+  color: #66717f;
+
+  background: #f7f8fa;
+
+  font-size: 10px;
+  font-weight: 750;
+
+  letter-spacing:
+    0.055em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.historyAmount
+> span[data-status="success"] {
+  border-color:
+    rgb(
+      31 133 79 /
+      22%
+    );
+
+  color: #187443;
+
+  background: #effaf4;
+}
+
+
+.historyAmount
+> span[data-status="pending"] {
+  border-color:
+    rgb(
+      179 121 17 /
+      24%
+    );
+
+  color: #96640d;
+
+  background: #fff9e9;
+}
+
+
+.historyAmount
+> span[data-status="failed"] {
+  border-color:
+    rgb(
+      180 35 24 /
+      20%
+    );
+
+  color: #9a2c23;
+
+  background: #fff4f3;
+}
+
+
+.historySkeleton {
+  min-height: 220px;
+
+  border-top:
+    1px solid
+    #dedcd5;
+
+  border-bottom:
+    1px solid
+    #dedcd5;
+
+  background:
+    linear-gradient(
+      100deg,
+      transparent 20%,
+      rgb(
+        255 255 255 /
+        60%
+      )
+      50%,
+      transparent 80%
+    ),
+    #ece9e3;
+
+  background-size:
+    200% 100%;
+
+  animation:
+    shimmer
+    1.4s
+    linear
+    infinite;
+}
 
 
 /* =========================================================
@@ -886,6 +1139,19 @@ button:hover:not(
 
   .paymentNote {
     max-width: 620px;
+  }
+    .historyItem {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(150px, auto);
+  }
+
+
+  .historyMeta {
+    grid-column:
+      1 / -1;
+
+    grid-row: 2;
   }
 }
 
@@ -961,6 +1227,42 @@ button:hover:not(
   .planCard button {
     min-height: 50px;
   }
+    .historySection {
+    padding-top: 46px;
+  }
+
+
+  .historyItem {
+    grid-template-columns:
+      1fr;
+
+    gap: 13px;
+
+    padding:
+      20px
+      4px;
+  }
+
+
+  .historyMeta {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+
+  .historyAmount {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    width: 100%;
+
+    padding-top: 13px;
+
+    border-top:
+      1px solid
+      #e6e3dc;
+  }
 }
 
 
@@ -978,7 +1280,8 @@ button:hover:not(
 
 
   .creditSkeleton,
-  .planSkeleton {
-    animation: none;
-  }
+.planSkeleton,
+.historySkeleton {
+  animation: none;
+}
 }

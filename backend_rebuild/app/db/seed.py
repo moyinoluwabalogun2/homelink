@@ -101,15 +101,20 @@ async def seed_locations(
             "slug": "ijebu-igbo",
             "sort_order": 3,
         },
+            {
+        "name": "Oru",
+        "slug": "oru",
+        "sort_order": 4,
+    },
         {
             "name": "Ibogun",
             "slug": "ibogun",
-            "sort_order": 4,
+            "sort_order": 5,
         },
         {
             "name": "Shagamu",
             "slug": "shagamu",
-            "sort_order": 5,
+            "sort_order": 6,
         },
     ]
 
@@ -247,6 +252,18 @@ async def seed_locations(
             "sort_order": 3,
         },
         {
+    "city_slug": "oru",
+    "campus_slug": None,
+    "name": "Oru",
+    "slug": "oru",
+    "description": (
+        "Rentals, properties and "
+        "marketplace listings "
+        "across Oru."
+    ),
+    "sort_order": 4,
+},
+        {
             "city_slug": "ibogun",
             "campus_slug": "ibogun",
             "name": "Ibogun",
@@ -255,7 +272,7 @@ async def seed_locations(
                 "Accommodation around "
                 "OOU's engineering campus."
             ),
-            "sort_order": 4,
+            "sort_order": 5,
         },
         {
             "city_slug": "shagamu",
@@ -267,7 +284,7 @@ async def seed_locations(
                 "OOU's health sciences "
                 "campus."
             ),
-            "sort_order": 5,
+            "sort_order": 6,
         },
     ]
 
