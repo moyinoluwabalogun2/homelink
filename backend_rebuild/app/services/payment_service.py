@@ -37,15 +37,9 @@ class PaymentService:
         session: AsyncSession,
     ) -> None:
         self.session = session
-
-        self.credits = CreditService(
+        self.credits = CreditService(session)
+        self.notifications = NotificationService(
             session,
-        )
-
-        self.notifications = (
-            NotificationService(
-                session,
-            )
         )
 
     async def list_plans(
@@ -64,9 +58,7 @@ class PaymentService:
             )
         )
 
-        return list(
-            result.all(),
-        )
+        return list(result.all())
 
     async def list_credits(
         self,
@@ -92,23 +84,16 @@ class PaymentService:
         result = await self.session.scalars(
             select(Payment)
             .where(
-                Payment.user_id
-                == user.id,
+                Payment.user_id == user.id,
             )
             .order_by(
                 Payment.created_at.desc(),
             )
-            .limit(
-                limit,
-            )
-            .offset(
-                offset,
-            )
+            .limit(limit)
+            .offset(offset)
         )
 
-        return list(
-            result.all(),
-        )
+        return list(result.all())
 
     async def initialize(
         self,
@@ -159,18 +144,12 @@ class PaymentService:
             plan_id=plan.id,
             reference=reference,
             provider=provider,
-            status=(
-                PaymentStatus.PENDING
-            ),
-            amount_kobo=(
-                plan.amount_kobo
-            ),
+            status=PaymentStatus.PENDING,
+            amount_kobo=plan.amount_kobo,
             currency=plan.currency,
         )
 
-        self.session.add(
-            payment,
-        )
+        self.session.add(payment)
 
         await self.session.flush()
 
@@ -200,9 +179,7 @@ class PaymentService:
                 "currency": (
                     plan.currency
                 ),
-                "reference": (
-                    reference
-                ),
+                "reference": reference,
                 "callback_url": (
                     settings
                     .payment_callback_url
@@ -211,9 +188,7 @@ class PaymentService:
                     "payment_id": str(
                         payment.id,
                     ),
-                    "plan_code": (
-                        plan.code
-                    ),
+                    "plan_code": plan.code,
                     "user_id": str(
                         user.id,
                     ),
@@ -343,7 +318,8 @@ class PaymentService:
             )
 
         payment = (
-            await self._get_payment_for_update(
+            await self
+            ._get_payment_for_update(
                 reference,
             )
         )
@@ -382,6 +358,9 @@ class PaymentService:
             user=user,
         )
 
+        # Successful payments are immutable here.
+        # Do not hit Paystack again every time the
+        # user checks an already-fulfilled payment.
         if (
             payment.status
             == PaymentStatus.SUCCESS
@@ -425,66 +404,138 @@ class PaymentService:
                 ),
             ) from exc
 
-        data = (
-            body.get("data")
-            or {}
-        )
+        data = body.get("data") or {}
 
-        if (
-            data.get("status")
-            != "success"
-        ):
-            return payment
+        provider_status = str(
+            data.get(
+                "status",
+                "",
+            ),
+        ).lower()
 
-        if (
-            int(
-                data.get(
-                    "amount",
-                    -1,
-                ),
+        # SUCCESS:
+        # Validate amount/currency first,
+        # then grant credits exactly once.
+        if provider_status == "success":
+            if (
+                int(
+                    data.get(
+                        "amount",
+                        -1,
+                    ),
+                )
+                != payment.amount_kobo
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Payment amount mismatch."
+                    ),
+                )
+
+            if (
+                str(
+                    data.get(
+                        "currency",
+                        "",
+                    ),
+                ).upper()
+                != payment.currency.upper()
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Payment currency mismatch."
+                    ),
+                )
+
+            locked = (
+                await self
+                ._get_payment_for_update(
+                    reference,
+                )
             )
-            != payment.amount_kobo
-        ):
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "Payment amount mismatch."
+
+            await self._fulfil(
+                locked,
+                provider_transaction_id=(
+                    str(
+                        data.get("id"),
+                    )
+                    if data.get("id")
+                    else None
                 ),
+                provider_metadata=body,
             )
 
-        if (
-            str(
-                data.get(
-                    "currency",
-                    "",
-                ),
-            ).upper()
-            != payment.currency.upper()
-        ):
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "Payment currency mismatch."
-                ),
+            await self.session.commit()
+
+            return await self.get_payment(
+                reference=reference,
+                user=user,
+            )
+
+        # All non-success statuses must
+        # NEVER grant posting credits.
+        if provider_status == "abandoned":
+            new_status = (
+                PaymentStatus.ABANDONED
+            )
+
+        elif provider_status == "failed":
+            new_status = (
+                PaymentStatus.FAILED
+            )
+
+        elif provider_status == "reversed":
+            new_status = (
+                PaymentStatus.REFUNDED
+            )
+
+        elif provider_status in {
+            "ongoing",
+            "pending",
+            "processing",
+            "queued",
+        }:
+            new_status = (
+                PaymentStatus.PENDING
+            )
+
+        else:
+            # Unknown/non-final Paystack
+            # state: fail safe by granting
+            # nothing and leaving pending.
+            new_status = (
+                PaymentStatus.PENDING
             )
 
         locked = (
-            await self._get_payment_for_update(
+            await self
+            ._get_payment_for_update(
                 reference,
             )
         )
 
-        await self._fulfil(
-            locked,
-            provider_transaction_id=(
-                str(
-                    data.get("id"),
+        # Do not allow a stale verification
+        # response to overwrite a payment that
+        # a success webhook fulfilled meanwhile.
+        if (
+            locked.status
+            != PaymentStatus.SUCCESS
+        ):
+            locked.status = new_status
+
+            locked.provider_metadata = (
+                body
+            )
+
+            if data.get("id"):
+                locked.provider_transaction_id = (
+                    str(
+                        data.get("id"),
+                    )
                 )
-                if data.get("id")
-                else None
-            ),
-            provider_metadata=body,
-        )
 
         await self.session.commit()
 
@@ -711,6 +762,16 @@ class PaymentService:
                 provider_metadata
             )
 
+        quantity = (
+            payment.plan.credit_quantity
+        )
+
+        credit_word = (
+            "credit"
+            if quantity == 1
+            else "credits"
+        )
+
         self.notifications.create(
             user_id=payment.user_id,
             notification_type=(
@@ -724,8 +785,10 @@ class PaymentService:
                 f"Your payment for "
                 f"{payment.plan.name} "
                 f"was successful. "
-                f"{payment.plan.credit_quantity} "
-                f"posting credits were added."
+                f"{quantity} posting "
+                f"{credit_word} "
+                f"{'was' if quantity == 1 else 'were'} "
+                f"added."
             ),
             data={
                 "payment_reference":

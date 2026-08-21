@@ -1,19 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useRouter,
+} from "next/navigation";
+
 import {
   Image as ImageIcon,
   Store,
 } from "lucide-react";
-import { toast } from "sonner";
+
+import {
+  toast,
+} from "sonner";
 
 import shared from "@/components/dashboard/DashboardPage.module.css";
+
 import MediaUploader from "@/components/media/MediaUploader";
-import { getApiErrorMessage } from "@/lib/api-errors";
-import { titleCase } from "@/lib/formatters";
-import { listingService } from "@/services/listing-service";
-import { locationService } from "@/services/location-service";
+
+import {
+  getApiErrorMessage,
+} from "@/lib/api-errors";
+
+import {
+  titleCase,
+} from "@/lib/formatters";
+
+import {
+  listingService,
+} from "@/services/listing-service";
+
+import {
+  locationService,
+} from "@/services/location-service";
 
 import type {
   ItemCondition,
@@ -25,6 +48,10 @@ import type {
   AreaRead,
   CampusRead,
 } from "@/types/location";
+
+import type {
+  MediaValue,
+} from "@/types/media";
 
 import styles from "./page.module.css";
 
@@ -52,69 +79,107 @@ const conditions: ItemCondition[] = [
 
 
 export default function MarketplaceListingPage() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  const [areas, setAreas] =
-    useState<AreaRead[]>([]);
 
-  const [campuses, setCampuses] =
-    useState<CampusRead[]>([]);
+  const [
+    areas,
+    setAreas,
+  ] =
+    useState<AreaRead[]>(
+      [],
+    );
+
+  const [
+    campuses,
+    setCampuses,
+  ] =
+    useState<CampusRead[]>(
+      [],
+    );
 
   const [
     loadingLocations,
     setLoadingLocations,
-  ] = useState(true);
+  ] =
+    useState(true);
 
   const [
     submitting,
     setSubmitting,
-  ] = useState(false);
+  ] =
+    useState(false);
 
-  const [title, setTitle] =
+
+  const [
+    title,
+    setTitle,
+  ] =
     useState("");
 
   const [
     description,
     setDescription,
-  ] = useState("");
-
-  const [price, setPrice] =
+  ] =
     useState("");
 
-  const [areaId, setAreaId] =
+  const [
+    price,
+    setPrice,
+  ] =
     useState("");
 
-  const [campusId, setCampusId] =
+  const [
+    areaId,
+    setAreaId,
+  ] =
+    useState("");
+
+  const [
+    campusId,
+    setCampusId,
+  ] =
     useState("");
 
   const [
     category,
     setCategory,
-  ] = useState<MarketplaceCategory>(
-    "phones",
-  );
+  ] =
+    useState<MarketplaceCategory>(
+      "phones",
+    );
 
   const [
     condition,
     setCondition,
-  ] = useState<ItemCondition>(
-    "used",
-  );
+  ] =
+    useState<ItemCondition>(
+      "used",
+    );
 
   const [
     negotiable,
     setNegotiable,
-  ] = useState(false);
+  ] =
+    useState(false);
+
 
   const [
-    imageUrls,
-    setImageUrls,
-  ] = useState<string[]>([]);
+    imageMedia,
+    setImageMedia,
+  ] =
+    useState<MediaValue[]>(
+      [],
+    );
 
   const [
-    videoUrls,
-    setVideoUrls,
-  ] = useState<string[]>([]);
+    videoMedia,
+    setVideoMedia,
+  ] =
+    useState<MediaValue[]>(
+      [],
+    );
 
 
   useEffect(() => {
@@ -127,18 +192,31 @@ export default function MarketplaceListingPage() {
           areaItems,
           campusItems,
         ]) => {
-          setAreas(areaItems);
-          setCampuses(campusItems);
+          setAreas(
+            areaItems,
+          );
+
+          setCampuses(
+            campusItems,
+          );
         },
       )
-      .catch((reason) => {
-        toast.error(
-          getApiErrorMessage(reason),
-        );
-      })
-      .finally(() => {
-        setLoadingLocations(false);
-      });
+      .catch(
+        (reason) => {
+          toast.error(
+            getApiErrorMessage(
+              reason,
+            ),
+          );
+        },
+      )
+      .finally(
+        () => {
+          setLoadingLocations(
+            false,
+          );
+        },
+      );
   }, []);
 
 
@@ -146,118 +224,160 @@ export default function MarketplaceListingPage() {
     (): ListingMediaInput[] => {
       const media:
         ListingMediaInput[] =
-        imageUrls.map(
+        imageMedia.map(
           (
-            url,
+            item,
             index,
           ) => ({
-            media_type: "image",
-            url,
-            sort_order: index,
+            media_type:
+              "image",
+
+            url:
+              item.url,
+
+            storage_public_id:
+              item.publicId,
+
+            sort_order:
+              index,
+
             is_cover:
               index === 0,
           }),
         );
 
-      if (videoUrls[0]) {
+
+      if (
+        videoMedia[0]
+      ) {
         media.push({
-          media_type: "video",
-          url: videoUrls[0],
+          media_type:
+            "video",
+
+          url:
+            videoMedia[0]
+              .url,
+
+          storage_public_id:
+            videoMedia[0]
+              .publicId,
+
           sort_order:
             media.length,
-          is_cover: false,
+
+          is_cover:
+            false,
         });
       }
+
 
       return media;
     };
 
 
-  const submit = async () => {
-    const numericPrice =
-      Number(price);
+  const submit =
+    async () => {
+      const numericPrice =
+        Number(price);
 
-    if (
-      title.trim().length < 5 ||
-      description.trim().length < 30 ||
-      !areaId ||
-      !Number.isFinite(
-        numericPrice,
-      ) ||
-      numericPrice < 0
-    ) {
-      toast.error(
-        "Add a title, detailed description, area and valid price.",
+
+      if (
+        title.trim().length <
+          5 ||
+        description.trim()
+          .length < 30 ||
+        !areaId ||
+        !Number.isFinite(
+          numericPrice,
+        ) ||
+        numericPrice < 0
+      ) {
+        toast.error(
+          "Add a title, detailed description, area and valid price.",
+        );
+
+        return;
+      }
+
+
+      if (
+        imageMedia.length ===
+        0
+      ) {
+        toast.error(
+          "Add at least one image before creating the listing.",
+        );
+
+        return;
+      }
+
+
+      setSubmitting(
+        true,
       );
 
-      return;
-    }
+
+      try {
+        await listingService.createMarketplace(
+          {
+            area_id:
+              areaId,
+
+            campus_id:
+              campusId ||
+              null,
+
+            title:
+              title.trim(),
+
+            description:
+              description.trim(),
+
+            price:
+              numericPrice,
+
+            media:
+              buildMedia(),
+
+            category,
+
+            condition,
+
+            is_negotiable:
+              negotiable,
+          },
+        );
 
 
-    if (
-      imageUrls.length === 0
-    ) {
-      toast.error(
-        "Add at least one image before creating the listing.",
-      );
-
-      return;
-    }
+        toast.success(
+          "Marketplace draft created. Review it in My listings before submitting it.",
+        );
 
 
-    setSubmitting(true);
-
-    try {
-      await listingService
-        .createMarketplace({
-          area_id: areaId,
-
-          campus_id:
-            campusId || null,
-
-          title:
-            title.trim(),
-
-          description:
-            description.trim(),
-
-          price:
-            numericPrice,
-
-          media:
-            buildMedia(),
-
-          category,
-
-          condition,
-
-          is_negotiable:
-            negotiable,
-        });
-
-
-      toast.success(
-        "Marketplace draft created. Review it in My listings before submitting it.",
-      );
-
-      router.push(
-        "/dashboard/listings",
-      );
-    } catch (reason) {
-      toast.error(
-        getApiErrorMessage(
-          reason,
-        ),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+        router.push(
+          "/dashboard/listings",
+        );
+      } catch (
+        reason
+      ) {
+        toast.error(
+          getApiErrorMessage(
+            reason,
+          ),
+        );
+      } finally {
+        setSubmitting(
+          false,
+        );
+      }
+    };
 
 
   return (
     <div
-      className={shared.page}
+      className={
+        shared.page
+      }
     >
       <header
         className={
@@ -278,7 +398,8 @@ export default function MarketplaceListingPage() {
           </span>
 
           <h1>
-            Post a student item.
+            Post a student
+            item.
           </h1>
 
           <p>
@@ -303,7 +424,9 @@ export default function MarketplaceListingPage() {
             styles.sectionHeading
           }
         >
-          <span>01</span>
+          <span>
+            01
+          </span>
 
           <div>
             <h2>
@@ -344,7 +467,9 @@ export default function MarketplaceListingPage() {
                 )
               }
               placeholder="e.g. Clean iPhone 12, 128GB"
-              maxLength={220}
+              maxLength={
+                220
+              }
             />
           </label>
 
@@ -355,7 +480,9 @@ export default function MarketplaceListingPage() {
             </span>
 
             <select
-              value={category}
+              value={
+                category
+              }
               onChange={(
                 event,
               ) =>
@@ -368,8 +495,12 @@ export default function MarketplaceListingPage() {
               {categories.map(
                 (item) => (
                   <option
-                    key={item}
-                    value={item}
+                    key={
+                      item
+                    }
+                    value={
+                      item
+                    }
                   >
                     {titleCase(
                       item,
@@ -387,7 +518,9 @@ export default function MarketplaceListingPage() {
             </span>
 
             <select
-              value={condition}
+              value={
+                condition
+              }
               onChange={(
                 event,
               ) =>
@@ -400,8 +533,12 @@ export default function MarketplaceListingPage() {
               {conditions.map(
                 (item) => (
                   <option
-                    key={item}
-                    value={item}
+                    key={
+                      item
+                    }
+                    value={
+                      item
+                    }
                   >
                     {titleCase(
                       item,
@@ -457,7 +594,8 @@ export default function MarketplaceListingPage() {
             />
 
             <span>
-              Price is negotiable
+              Price is
+              negotiable
             </span>
           </label>
 
@@ -512,7 +650,9 @@ export default function MarketplaceListingPage() {
             styles.sectionHeading
           }
         >
-          <span>02</span>
+          <span>
+            02
+          </span>
 
           <div>
             <h2>
@@ -520,8 +660,9 @@ export default function MarketplaceListingPage() {
             </h2>
 
             <p>
-              Help nearby students
-              find the item.
+              Help nearby
+              students find the
+              item.
             </p>
           </div>
         </div>
@@ -538,7 +679,9 @@ export default function MarketplaceListingPage() {
             </span>
 
             <select
-              value={areaId}
+              value={
+                areaId
+              }
               onChange={(
                 event,
               ) =>
@@ -558,12 +701,16 @@ export default function MarketplaceListingPage() {
               {areas.map(
                 (area) => (
                   <option
-                    key={area.id}
+                    key={
+                      area.id
+                    }
                     value={
                       area.id
                     }
                   >
-                    {area.name}
+                    {
+                      area.name
+                    }
                   </option>
                 ),
               )}
@@ -580,7 +727,9 @@ export default function MarketplaceListingPage() {
             </span>
 
             <select
-              value={campusId}
+              value={
+                campusId
+              }
               onChange={(
                 event,
               ) =>
@@ -594,11 +743,14 @@ export default function MarketplaceListingPage() {
               }
             >
               <option value="">
-                No specific campus
+                No specific
+                campus
               </option>
 
               {campuses.map(
-                (campus) => (
+                (
+                  campus,
+                ) => (
                   <option
                     key={
                       campus.id
@@ -641,8 +793,8 @@ export default function MarketplaceListingPage() {
             </h2>
 
             <p>
-              Upload your media
-              directly to
+              Upload media
+              securely to
               HomeLink.
             </p>
           </div>
@@ -658,10 +810,10 @@ export default function MarketplaceListingPage() {
             label="Item images"
             helperText="Add up to five clear photos. The first photo becomes the cover image."
             value={
-              imageUrls
+              imageMedia
             }
             onChange={
-              setImageUrls
+              setImageMedia
             }
             resourceType="image"
             scope="listings"
@@ -680,19 +832,19 @@ export default function MarketplaceListingPage() {
 
           <MediaUploader
             label="Item video"
-            helperText="Optional: one short video, maximum 5 MB."
+            helperText="Optional: one short video, maximum 10 MB."
             value={
-              videoUrls
+              videoMedia
             }
             onChange={
-              setVideoUrls
+              setVideoMedia
             }
             resourceType="video"
             scope="listings"
             accept="video/mp4,video/webm,video/quicktime"
             maxFiles={1}
             maxBytes={
-              5 *
+              10 *
               1024 *
               1024
             }
@@ -715,11 +867,12 @@ export default function MarketplaceListingPage() {
           </strong>
 
           <span>
-            Creating a draft does
-            not spend your listing
-            credit.
+            Creating a draft
+            does not spend your
+            listing credit.
           </span>
         </div>
+
 
         <button
           type="button"

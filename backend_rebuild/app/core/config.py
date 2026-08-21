@@ -53,10 +53,10 @@ class Settings(BaseSettings):
     login_lock_minutes: int = 15
     force_reset_after_failures: int = 10
 
-    terms_version: str = "2026-08-01"
-    privacy_version: str = "2026-08-01"
-    legal_effective_date: str = "2026-08-01"
-    legal_contact_email: str = "privacy@homelink.ng"
+    terms_version: str = "2026-08-21"
+    privacy_version: str = "2026-08-21"
+    legal_effective_date: str = "2026-08-21"
+    legal_contact_email: str = "homelink814@gmail.com"
     company_legal_name: str = "HomeLink"
     legal_documents_are_drafts: bool = True
     frontend_url: str = "http://localhost:3000"

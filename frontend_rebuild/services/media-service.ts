@@ -1,4 +1,6 @@
-import { api } from "@/lib/api";
+import {
+  api,
+} from "@/lib/api";
 
 import type {
   CloudinaryUploadResponse,
@@ -24,6 +26,15 @@ interface UploadOptions {
 }
 
 
+/**
+ * Upload the actual file
+ * directly from the user's
+ * browser to Cloudinary.
+ *
+ * The HomeLink backend is only
+ * responsible for generating
+ * the signed upload parameters.
+ */
 function uploadToCloudinary(
   signature:
     MediaUploadSignature,
@@ -46,19 +57,16 @@ function uploadToCloudinary(
         new FormData();
 
 
-      /* =====================================================
-         FILE
-      ===================================================== */
-
+      /*
+       * These parameters must
+       * match what the backend
+       * included in the
+       * Cloudinary signature.
+       */
       formData.append(
         "file",
         file,
       );
-
-
-      /* =====================================================
-         SIGNED CLOUDINARY PARAMETERS
-      ===================================================== */
 
       formData.append(
         "api_key",
@@ -82,31 +90,10 @@ function uploadToCloudinary(
         signature.folder,
       );
 
-
-      /*
-       * IMPORTANT:
-       *
-       * The backend includes:
-       *
-       *     type=authenticated
-       *
-       * in the signature ONLY for agent verification
-       * documents.
-       *
-       * Therefore the browser must send exactly the same
-       * signed parameter.
-       *
-       * Normal listing/profile uploads remain unchanged.
-       */
-      if (
-        signature.delivery_type ===
-        "authenticated"
-      ) {
-        formData.append(
-          "type",
-          "authenticated",
-        );
-      }
+      formData.append(
+        "allowed_formats",
+        signature.allowed_formats,
+      );
 
 
       request.open(
@@ -115,9 +102,9 @@ function uploadToCloudinary(
       );
 
 
-      /* =====================================================
-         PROGRESS
-      ===================================================== */
+      /* ==============================
+         UPLOAD PROGRESS
+      ============================== */
 
       request.upload.addEventListener(
         "progress",
@@ -130,13 +117,16 @@ function uploadToCloudinary(
             return;
           }
 
+
           const progress =
             Math.round(
               (
                 event.loaded /
                 event.total
-              ) * 100,
+              ) *
+                100,
             );
+
 
           onProgress?.(
             progress,
@@ -145,9 +135,9 @@ function uploadToCloudinary(
       );
 
 
-      /* =====================================================
-         SUCCESS / CLOUDINARY ERROR
-      ===================================================== */
+      /* ==============================
+         CLOUDINARY RESPONSE
+      ============================== */
 
       request.addEventListener(
         "load",
@@ -160,15 +150,22 @@ function uploadToCloudinary(
                 };
               };
 
+
           try {
             response =
               JSON.parse(
                 request.responseText,
-              );
+              ) as
+                | CloudinaryUploadResponse
+                | {
+                    error?: {
+                      message?: string;
+                    };
+                  };
           } catch {
             reject(
               new Error(
-                "Cloudinary returned an invalid response.",
+                "The media service returned an invalid response.",
               ),
             );
 
@@ -176,24 +173,26 @@ function uploadToCloudinary(
           }
 
 
+          /*
+           * Cloudinary may return
+           * a useful error body
+           * even when the HTTP
+           * request itself failed.
+           */
           if (
-            request.status <
-              200 ||
-            request.status >=
-              300
+            request.status < 200 ||
+            request.status >= 300
           ) {
             const message =
-              "error" in
-              response
+              "error" in response
                 ? response.error
                     ?.message
-                : (
-                    "Media upload failed."
-                  );
+                : undefined;
+
 
             reject(
               new Error(
-                message ??
+                message ||
                   "Media upload failed.",
               ),
             );
@@ -202,29 +201,61 @@ function uploadToCloudinary(
           }
 
 
-          resolve(
+          const uploaded =
             response as
-              CloudinaryUploadResponse,
+              CloudinaryUploadResponse;
+
+
+          /*
+           * These fields are
+           * important to both
+           * listing media and
+           * agent-document
+           * verification.
+           */
+          if (
+            !uploaded.secure_url ||
+            !uploaded.public_id ||
+            !uploaded.resource_type ||
+            !uploaded.format ||
+            !uploaded.type
+          ) {
+            reject(
+              new Error(
+                "Cloudinary returned incomplete media information.",
+              ),
+            );
+
+            return;
+          }
+
+
+          resolve(
+            uploaded,
           );
         },
       );
 
 
-      /* =====================================================
-         NETWORK FAILURE
-      ===================================================== */
+      /* ==============================
+         NETWORK ERROR
+      ============================== */
 
       request.addEventListener(
         "error",
         () => {
           reject(
             new Error(
-              "The media upload could not reach Cloudinary.",
+              "The media upload could not be completed.",
             ),
           );
         },
       );
 
+
+      /* ==============================
+         CANCELLED UPLOAD
+      ============================== */
 
       request.addEventListener(
         "abort",
@@ -246,7 +277,17 @@ function uploadToCloudinary(
 }
 
 
+/* =========================================================
+   MEDIA SERVICE
+========================================================= */
+
 export const mediaService = {
+  /**
+   * Ask HomeLink's backend for
+   * a short-lived authenticated
+   * Cloudinary upload
+   * signature.
+   */
   async getUploadSignature(
     resourceType:
       MediaResourceType,
@@ -255,9 +296,7 @@ export const mediaService = {
       MediaScope,
   ): Promise<MediaUploadSignature> {
     const response =
-      await api.post<
-        MediaUploadSignature
-      >(
+      await api.post<MediaUploadSignature>(
         "/media/upload-signature",
         {
           resource_type:
@@ -267,10 +306,19 @@ export const mediaService = {
         },
       );
 
+
     return response.data;
   },
 
 
+  /**
+   * Complete the two-stage
+   * media upload:
+   *
+   * 1. HomeLink backend signs it.
+   * 2. Browser uploads directly
+   *    to Cloudinary.
+   */
   async upload({
     file,
     resourceType,
@@ -302,31 +350,17 @@ export const mediaService = {
       resourceType:
         uploaded.resource_type,
 
-      /*
-       * Use the backend-issued delivery type rather than
-       * trusting anything coming from browser state.
-       */
-      deliveryType:
-        signature.delivery_type,
-
       fileFormat:
-        uploaded.format ??
-        null,
+        uploaded.format,
+
+      deliveryType:
+        uploaded.type,
 
       originalName:
         file.name,
 
       bytes:
         uploaded.bytes,
-
-      width:
-        uploaded.width,
-
-      height:
-        uploaded.height,
-
-      duration:
-        uploaded.duration,
     };
   },
 };

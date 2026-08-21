@@ -1082,6 +1082,91 @@ button:hover:not(
     linear
     infinite;
 }
+.checkStatusButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  min-height: 31px;
+
+  padding:
+    0
+    10px;
+
+  border:
+    1px solid
+    #d8dce2;
+
+  border-radius: 7px;
+
+  color: #344154;
+
+  background: transparent;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+
+.checkStatusButton:hover:not(
+  :disabled
+) {
+  border-color: #1f5eff;
+
+  color: #1f5eff;
+
+  background: #f5f8ff;
+}
+
+
+.checkStatusButton:disabled {
+  opacity: 0.55;
+
+  cursor: wait;
+}
+
+
+.checkStatusButton svg {
+  width: 13px;
+  height: 13px;
+}
+
+
+.historyAmount
+> span[data-status="abandoned"] {
+  border-color:
+    rgb(
+      113 122 134 /
+      24%
+    );
+
+  color: #66717f;
+
+  background: #f5f6f7;
+}
+
+
+.historyAmount
+> span[data-status="refunded"] {
+  border-color:
+    rgb(
+      31 94 255 /
+      18%
+    );
+
+  color: #3158ae;
+
+  background: #f2f6ff;
+}
 
 
 /* =========================================================
@@ -1166,7 +1251,9 @@ button:hover:not(
   .header {
     padding-bottom: 38px;
   }
-
+.historyAmount {
+  flex-wrap: wrap;
+}
 
   .header h1 {
     font-size:

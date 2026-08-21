@@ -17,6 +17,7 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 import { titleCase } from "@/lib/formatters";
 import { listingService } from "@/services/listing-service";
 import { locationService } from "@/services/location-service";
+import type { MediaValue } from "@/types/media";
 import type {
   BuyPropertyCreatePayload,
   ListingMediaInput,
@@ -106,8 +107,8 @@ export default function PropertyListingForm({
   const [landSize, setLandSize] = useState("");
   const [titleDocument, setTitleDocument] = useState("");
 
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [imageMedia, setImageMedia] = useState<MediaValue[]>([]);
+const [videoMedia, setVideoMedia] = useState<MediaValue[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -124,25 +125,28 @@ export default function PropertyListingForm({
       .finally(() => setLoadingLocations(false));
   }, []);
 
-  const buildMedia = (): ListingMediaInput[] => {
-    const media: ListingMediaInput[] = imageUrls.map((url, index) => ({
+const buildMedia = (): ListingMediaInput[] => {
+  const media: ListingMediaInput[] =
+    imageMedia.map((item, index) => ({
       media_type: "image",
-      url,
+      url: item.url,
+      storage_public_id: item.publicId,
       sort_order: index,
       is_cover: index === 0,
     }));
 
-    if (videoUrls[0]) {
-      media.push({
-        media_type: "video",
-        url: videoUrls[0],
-        sort_order: media.length,
-        is_cover: false,
-      });
-    }
+  if (videoMedia[0]) {
+    media.push({
+      media_type: "video",
+      url: videoMedia[0].url,
+      storage_public_id: videoMedia[0].publicId,
+      sort_order: media.length,
+      is_cover: false,
+    });
+  }
 
-    return media;
-  };
+  return media;
+};
 
   const validate = (): boolean => {
     const numericPrice = Number(price);
@@ -541,33 +545,33 @@ export default function PropertyListingForm({
 
         <div className={styles.mediaStack}>
           <MediaUploader
-            label="Property images"
-            helperText={
-              "Add clear exterior, interior and surrounding-area photos. " +
-              "The first image becomes the cover."
-            }
-            value={imageUrls}
-            onChange={setImageUrls}
-            resourceType="image"
-            scope="listings"
-            accept="image/jpeg,image/png,image/webp,image/avif"
-            maxFiles={12}
-            maxBytes={10 * 1024 * 1024}
-            disabled={submitting}
-          />
+  label="Property images"
+  helperText={
+    "Add up to eight clear exterior, interior and surrounding-area photos. " +
+    "The first image becomes the cover."
+  }
+  value={imageMedia}
+  onChange={setImageMedia}
+  resourceType="image"
+  scope="listings"
+  accept="image/jpeg,image/png,image/webp,image/avif"
+  maxFiles={8}
+  maxBytes={5 * 1024 * 1024}
+  disabled={submitting}
+/>
 
-          <MediaUploader
-            label="Property video"
-            helperText="Add one short walkthrough video when available."
-            value={videoUrls}
-            onChange={setVideoUrls}
-            resourceType="video"
-            scope="listings"
-            accept="video/mp4,video/webm,video/quicktime"
-            maxFiles={1}
-            maxBytes={100 * 1024 * 1024}
-            disabled={submitting}
-          />
+<MediaUploader
+  label="Property video"
+  helperText="Optional: one short walkthrough video, maximum 25 MB."
+  value={videoMedia}
+  onChange={setVideoMedia}
+  resourceType="video"
+  scope="listings"
+  accept="video/mp4,video/webm,video/quicktime"
+  maxFiles={1}
+  maxBytes={25 * 1024 * 1024}
+  disabled={submitting}
+/>
         </div>
       </section>
 

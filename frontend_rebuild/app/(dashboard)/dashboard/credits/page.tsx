@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   CreditCard,
   Loader2,
+  RefreshCw,
   ShieldCheck,
 } from "lucide-react";
 
@@ -71,6 +72,14 @@ export default function CreditsPage() {
   const [
     buyingCode,
     setBuyingCode,
+  ] =
+    useState<string | null>(
+      null,
+    );
+
+  const [
+    checkingReference,
+    setCheckingReference,
   ] =
     useState<string | null>(
       null,
@@ -145,9 +154,7 @@ export default function CreditsPage() {
 
 
     /* =======================================================
-       LOAD PAYMENT HISTORY INDEPENDENTLY
-
-       History must never block credits or checkout.
+       HISTORY LOADS INDEPENDENTLY
     ======================================================= */
 
     const loadHistory =
@@ -261,16 +268,115 @@ export default function CreditsPage() {
     };
 
 
+  /* =========================================================
+     CHECK A PENDING PAYMENT
+
+     Manual only. No polling.
+  ========================================================= */
+
+  const checkPayment =
+    async (
+      payment: Payment,
+    ) => {
+      if (
+        checkingReference
+      ) {
+        return;
+      }
+
+      setCheckingReference(
+        payment.reference,
+      );
+
+      try {
+        const updated =
+          await paymentService.verify(
+            payment.reference,
+          );
+
+        setPayments(
+          (
+            current,
+          ) =>
+            current.map(
+              (
+                item,
+              ) =>
+                item.id === updated.id
+                  ? updated
+                  : item,
+            ),
+        );
+
+        if (
+          updated.status ===
+          "success"
+        ) {
+          const refreshedCredits =
+            await paymentService.listCredits(
+              {
+                force: true,
+              },
+            );
+
+          setCredits(
+            refreshedCredits,
+          );
+
+          toast.success(
+            "Payment confirmed and credits updated.",
+          );
+        } else if (
+          updated.status ===
+          "abandoned"
+        ) {
+          toast.info(
+            "This payment was abandoned. No credits were added.",
+          );
+        } else if (
+          updated.status ===
+          "failed"
+        ) {
+          toast.error(
+            "This payment failed. No credits were added.",
+          );
+        } else if (
+          updated.status ===
+          "refunded"
+        ) {
+          toast.info(
+            "This transaction has been reversed.",
+          );
+        } else {
+          toast.info(
+            "This payment is still pending.",
+          );
+        }
+
+        setHistoryError("");
+      } catch (
+        reason
+      ) {
+        toast.error(
+          getApiErrorMessage(
+            reason,
+            "Payment status could not be checked.",
+          ),
+        );
+      } finally {
+        setCheckingReference(
+          null,
+        );
+      }
+    };
+
+
   return (
     <div
       className={
         styles.page
       }
     >
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-
       <header
         className={
           styles.header
@@ -303,10 +409,6 @@ export default function CreditsPage() {
         </div>
       </header>
 
-
-      {/* =====================================================
-          MAIN PAYMENT ERROR
-      ====================================================== */}
 
       {error ? (
         <div
@@ -519,7 +621,6 @@ export default function CreditsPage() {
             </p>
           </div>
 
-
           <div
             className={
               styles.paymentNote
@@ -621,18 +722,15 @@ export default function CreditsPage() {
                       </span>
                     </div>
 
-
                     <h3>
                       {plan.name}
                     </h3>
-
 
                     <p>
                       {
                         plan.description
                       }
                     </p>
-
 
                     <div
                       className={
@@ -652,7 +750,6 @@ export default function CreditsPage() {
                         )}
                       </strong>
                     </div>
-
 
                     <button
                       type="button"
@@ -775,94 +872,140 @@ export default function CreditsPage() {
             {payments.map(
               (
                 payment,
-              ) => (
-                <article
-                  key={
-                    payment.id
-                  }
-                  className={
-                    styles.historyItem
-                  }
-                >
-                  <div
+              ) => {
+                const checking =
+                  checkingReference ===
+                  payment.reference;
+
+                return (
+                  <article
+                    key={
+                      payment.id
+                    }
                     className={
-                      styles.historyMain
+                      styles.historyItem
                     }
                   >
-                    <strong>
-                      {
-                        payment.plan.name
+                    <div
+                      className={
+                        styles.historyMain
                       }
-                    </strong>
-
-                    <span>
-                      {new Intl.DateTimeFormat(
-                        "en-NG",
+                    >
+                      <strong>
                         {
-                          dateStyle:
-                            "medium",
+                          payment.plan.name
+                        }
+                      </strong>
 
-                          timeStyle:
-                            "short",
-                        },
-                      ).format(
-                        new Date(
-                          payment.paid_at ??
-                            payment.created_at,
-                        ),
-                      )}
-                    </span>
-                  </div>
+                      <span>
+                        {new Intl.DateTimeFormat(
+                          "en-NG",
+                          {
+                            dateStyle:
+                              "medium",
+
+                            timeStyle:
+                              "short",
+                          },
+                        ).format(
+                          new Date(
+                            payment.paid_at ??
+                              payment.created_at,
+                          ),
+                        )}
+                      </span>
+                    </div>
 
 
-                  <div
-                    className={
-                      styles.historyMeta
-                    }
-                  >
-                    <span
-                      title={
-                        payment.reference
+                    <div
+                      className={
+                        styles.historyMeta
                       }
                     >
-                      {
-                        payment.reference
-                      }
-                    </span>
+                      <span
+                        title={
+                          payment.reference
+                        }
+                      >
+                        {
+                          payment.reference
+                        }
+                      </span>
 
-                    <span>
-                      {titleCase(
-                        payment.provider,
-                      )}
-                    </span>
-                  </div>
+                      <span>
+                        {titleCase(
+                          payment.provider,
+                        )}
+                      </span>
+                    </div>
 
 
-                  <div
-                    className={
-                      styles.historyAmount
-                    }
-                  >
-                    <strong>
-                      {formatCurrency(
-                        payment.amount_kobo /
-                          100,
-                        payment.currency,
-                      )}
-                    </strong>
-
-                    <span
-                      data-status={
-                        payment.status
+                    <div
+                      className={
+                        styles.historyAmount
                       }
                     >
-                      {titleCase(
-                        payment.status,
-                      )}
-                    </span>
-                  </div>
-                </article>
-              ),
+                      <strong>
+                        {formatCurrency(
+                          payment.amount_kobo /
+                            100,
+                          payment.currency,
+                        )}
+                      </strong>
+
+                      <span
+                        data-status={
+                          payment.status
+                        }
+                      >
+                        {titleCase(
+                          payment.status,
+                        )}
+                      </span>
+
+                      {payment.status ===
+                      "pending" ? (
+                        <button
+                          type="button"
+                          className={
+                            styles.checkStatusButton
+                          }
+                          disabled={
+                            checkingReference !==
+                            null
+                          }
+                          onClick={() =>
+                            void checkPayment(
+                              payment,
+                            )
+                          }
+                        >
+                          {checking ? (
+                            <>
+                              <Loader2
+                                className={
+                                  styles.spinner
+                                }
+                                aria-hidden="true"
+                              />
+
+                              Checking…
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw
+                                aria-hidden="true"
+                              />
+
+                              Check status
+                            </>
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              },
             )}
           </div>
         ) : (

@@ -3,26 +3,18 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-MediaResourceType = Literal[
-    "image",
-    "video",
-]
+MediaResourceType = Literal["image", "video"]
 
-MediaUploadScope = Literal[
+MediaScope = Literal[
     "listings",
     "agent-documents",
     "profiles",
 ]
 
-MediaDeliveryType = Literal[
-    "upload",
-    "authenticated",
-]
-
 
 class MediaUploadSignatureRequest(BaseModel):
     resource_type: MediaResourceType
-    scope: MediaUploadScope
+    scope: MediaScope
 
 
 class MediaUploadSignatureResponse(BaseModel):
@@ -32,5 +24,5 @@ class MediaUploadSignatureResponse(BaseModel):
     signature: str
     folder: str
     resource_type: MediaResourceType
-    delivery_type: MediaDeliveryType
+    allowed_formats: str
     upload_url: str

@@ -6,13 +6,19 @@ from fastapi import HTTPException
 
 from app.core.config import get_settings
 from app.schemas.media import (
-    MediaDeliveryType,
     MediaResourceType,
+    MediaScope,
     MediaUploadSignatureResponse,
 )
 
 
 settings = get_settings()
+
+
+ALLOWED_FORMATS: dict[MediaResourceType, str] = {
+    "image": "jpg,jpeg,png,webp,avif",
+    "video": "mp4,webm,mov",
+}
 
 
 class MediaService:
@@ -21,53 +27,40 @@ class MediaService:
         *,
         user_id: UUID,
         resource_type: MediaResourceType,
-        scope: str,
+        scope: MediaScope,
     ) -> MediaUploadSignatureResponse:
         if not settings.cloudinary_enabled:
             raise HTTPException(
                 status_code=503,
-                detail=(
-                    "Cloudinary uploads are "
-                    "not configured yet."
-                ),
+                detail="Media uploads are not configured yet.",
             )
 
         if (
-            scope == "agent-documents"
-            and resource_type != "image"
+            not settings.cloudinary_cloud_name
+            or not settings.cloudinary_api_key
+            or not settings.cloudinary_api_secret
         ):
             raise HTTPException(
-                status_code=422,
-                detail=(
-                    "Agent verification "
-                    "documents must be images."
-                ),
+                status_code=503,
+                detail="Media storage configuration is incomplete.",
             )
 
-        delivery_type: MediaDeliveryType = (
-            "authenticated"
-            if scope == "agent-documents"
-            else "upload"
+        timestamp = int(time.time())
+
+        base_folder = (
+            settings.cloudinary_upload_folder.strip().strip("/")
+            or "homelink"
         )
 
-        timestamp = int(
-            time.time()
-        )
+        folder = f"{base_folder}/{scope}/{user_id}"
 
-        folder = (
-            f"{settings.cloudinary_upload_folder}"
-            f"/{scope}/{user_id}"
-        )
+        allowed_formats = ALLOWED_FORMATS[resource_type]
 
-        # These are the parameters the browser will send
-        # to Cloudinary, so they must be part of the signature.
-        parameters: dict[str, str | int] = {
+        parameters = {
+            "allowed_formats": allowed_formats,
             "folder": folder,
             "timestamp": timestamp,
         }
-
-        if delivery_type == "authenticated":
-            parameters["type"] = "authenticated"
 
         serialized = "&".join(
             f"{key}={parameters[key]}"
@@ -81,27 +74,17 @@ class MediaService:
             ).encode("utf-8")
         ).hexdigest()
 
-        # Upload API endpoint remains /<resource_type>/upload.
-        upload_url = (
-            "https://api.cloudinary.com/"
-            "v1_1/"
-            f"{settings.cloudinary_cloud_name}/"
-            f"{resource_type}/upload"
-        )
-
         return MediaUploadSignatureResponse(
-            cloud_name=(
-                settings.cloudinary_cloud_name
-                or ""
-            ),
-            api_key=(
-                settings.cloudinary_api_key
-                or ""
-            ),
+            cloud_name=settings.cloudinary_cloud_name,
+            api_key=settings.cloudinary_api_key,
             timestamp=timestamp,
             signature=signature,
             folder=folder,
             resource_type=resource_type,
-            delivery_type=delivery_type,
-            upload_url=upload_url,
+            allowed_formats=allowed_formats,
+            upload_url=(
+                "https://api.cloudinary.com/v1_1/"
+                f"{settings.cloudinary_cloud_name}/"
+                f"{resource_type}/upload"
+            ),
         )

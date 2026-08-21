@@ -41,10 +41,10 @@ def slugify(value: str) -> str:
 
 class ListingService:
     MEDIA_LIMITS = {
-        ListingType.RENTAL: (15, 2),
-        ListingType.BUY_PROPERTY: (20, 3),
-        ListingType.MARKETPLACE: (5, 1),
-    }
+    ListingType.RENTAL: (8, 1),
+    ListingType.BUY_PROPERTY: (8, 1),
+    ListingType.MARKETPLACE: (5, 1),
+}
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
