@@ -23,12 +23,16 @@ export interface LiveMessageCreatedData {
   inquiry_id: string;
   listing_id: string;
   listing_title: string;
+
   status:
     | "open"
     | "responded"
     | "closed";
 
-  message: LiveMessagePayload;
+  message:
+    LiveMessagePayload;
+
+  became_unread?: boolean;
 }
 
 
@@ -40,8 +44,11 @@ export interface LiveEvent {
 
 export interface MessageCreatedEvent
   extends LiveEvent {
-  type: "message.created";
-  data: LiveMessageCreatedData;
+  type:
+    "message.created";
+
+  data:
+    LiveMessageCreatedData;
 }
 
 
@@ -61,26 +68,66 @@ export const LIVE_STATUS_EVENT =
   "homelink:live-status";
 
 
+/*
+ * Small grace period before closing the stream.
+ *
+ * This is useful in React development mode where a component
+ * may briefly unsubscribe and immediately subscribe again.
+ *
+ * Without this grace period HomeLink can unnecessarily do:
+ *
+ * connect
+ * disconnect
+ * connect
+ *
+ * within a fraction of a second.
+ */
+const STOP_GRACE_MS =
+  500;
+
+
 /* =========================================================
    SINGLETON STATE
 
-   All subscribers share ONE SSE connection.
+   Every dashboard subscriber shares ONE network stream.
 ========================================================= */
 
 const listeners =
-  new Set<LiveEventListener>();
+  new Set<
+    LiveEventListener
+  >();
+
 
 let controller:
   | AbortController
   | null = null;
 
-let running = false;
 
-let reconnectAttempt = 0;
+let running =
+  false;
+
+
+let reconnectAttempt =
+  0;
+
+
+/*
+ * Identifies the currently active connection loop.
+ *
+ * This prevents an OLD loop's cleanup from accidentally
+ * clearing the controller belonging to a NEW loop.
+ */
+let connectionGeneration =
+  0;
+
+
+let stopTimer:
+  | number
+  | null = null;
 
 
 /* =========================================================
-   HELPERS
+   STATUS / EVENT HELPERS
 ========================================================= */
 
 function emitStatus(
@@ -117,12 +164,17 @@ function emitEvent(
     of listeners
   ) {
     try {
-      listener(event);
+      listener(
+        event,
+      );
     } catch {
-      // One UI listener must never
-      // break delivery to others.
+      /*
+       * One broken UI subscriber must never
+       * interrupt the global live-event service.
+       */
     }
   }
+
 
   if (
     typeof window !==
@@ -132,7 +184,8 @@ function emitEvent(
       new CustomEvent(
         LIVE_EVENT,
         {
-          detail: event,
+          detail:
+            event,
         },
       ),
     );
@@ -140,16 +193,25 @@ function emitEvent(
 }
 
 
+/* =========================================================
+   ERROR HELPERS
+========================================================= */
+
 function isAbortError(
   error: unknown,
 ): boolean {
   return (
-    error instanceof DOMException &&
+    error instanceof
+      DOMException &&
     error.name ===
       "AbortError"
   );
 }
 
+
+/* =========================================================
+   SLEEP WITH ABORT SUPPORT
+========================================================= */
 
 function sleep(
   milliseconds: number,
@@ -214,7 +276,8 @@ function sleep(
         "abort",
         onAbort,
         {
-          once: true,
+          once:
+            true,
         },
       );
     },
@@ -223,7 +286,88 @@ function sleep(
 
 
 /* =========================================================
-   AUTHENTICATED REQUEST
+   WAIT UNTIL BROWSER IS ONLINE
+
+   If the device genuinely loses internet, do NOT keep
+   attempting to reconnect to HomeLink every few seconds.
+========================================================= */
+
+function waitUntilOnline(
+  signal: AbortSignal,
+): Promise<void> {
+  if (
+    typeof window ===
+      "undefined" ||
+    navigator.onLine
+  ) {
+    return Promise.resolve();
+  }
+
+
+  return new Promise(
+    (
+      resolve,
+      reject,
+    ) => {
+      const handleOnline =
+        () => {
+          cleanup();
+          resolve();
+        };
+
+
+      const handleAbort =
+        () => {
+          cleanup();
+
+          reject(
+            new DOMException(
+              "Aborted",
+              "AbortError",
+            ),
+          );
+        };
+
+
+      const cleanup =
+        () => {
+          window.removeEventListener(
+            "online",
+            handleOnline,
+          );
+
+          signal.removeEventListener(
+            "abort",
+            handleAbort,
+          );
+        };
+
+
+      window.addEventListener(
+        "online",
+        handleOnline,
+        {
+          once:
+            true,
+        },
+      );
+
+
+      signal.addEventListener(
+        "abort",
+        handleAbort,
+        {
+          once:
+            true,
+        },
+      );
+    },
+  );
+}
+
+
+/* =========================================================
+   AUTHENTICATED STREAM REQUEST
 ========================================================= */
 
 async function openAuthenticatedStream(
@@ -234,9 +378,13 @@ async function openAuthenticatedStream(
 
 
   /*
-   * A hard browser refresh clears the in-memory access token.
-   * If Dashboard auth has not restored it yet, use the existing
-   * refresh-cookie flow once.
+   * Hard refresh clears the in-memory access token.
+   *
+   * Restore the session once using the refresh cookie.
+   *
+   * refreshAccessToken() itself is deduplicated in api.ts,
+   * so multiple components cannot create multiple refresh
+   * calls simultaneously.
    */
   if (!token) {
     const refreshed =
@@ -249,23 +397,28 @@ async function openAuthenticatedStream(
 
   const request =
     (
-      accessToken: string,
+      accessToken:
+        string,
     ) =>
       fetch(
         `${API_BASE_URL}/events/stream`,
         {
-          method: "GET",
+          method:
+            "GET",
 
-         headers: {
-  Accept:
-    "text/event-stream",
+          headers: {
+            Accept:
+              "text/event-stream",
 
-  Authorization:
-    `Bearer ${accessToken}`,
-},
+            Authorization:
+              `Bearer ${accessToken}`,
+          },
 
-credentials:
-  "include",
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
 
           signal,
         },
@@ -279,8 +432,8 @@ credentials:
 
 
   /*
-   * Access token may expire while the app is open.
-   * Refresh ONCE and reconnect with the new token.
+   * The access token could expire while HomeLink remains
+   * open. Refresh exactly once and reconnect.
    */
   if (
     response.status ===
@@ -311,10 +464,14 @@ function parseBlock(
   data: string;
 } | null {
   const lines =
-    block.split("\n");
+    block.split(
+      "\n",
+    );
+
 
   let eventName =
     "message";
+
 
   const dataLines:
     string[] = [];
@@ -330,7 +487,9 @@ function parseBlock(
 
     if (
       !line ||
-      line.startsWith(":")
+      line.startsWith(
+        ":",
+      )
     ) {
       continue;
     }
@@ -343,7 +502,9 @@ function parseBlock(
     ) {
       eventName =
         line
-          .slice(6)
+          .slice(
+            6,
+          )
           .trim();
 
       continue;
@@ -357,7 +518,9 @@ function parseBlock(
     ) {
       dataLines.push(
         line
-          .slice(5)
+          .slice(
+            5,
+          )
           .trimStart(),
       );
     }
@@ -374,6 +537,7 @@ function parseBlock(
 
   return {
     eventName,
+
     data:
       dataLines.join(
         "\n",
@@ -381,6 +545,10 @@ function parseBlock(
   };
 }
 
+
+/* =========================================================
+   HANDLE ONE SSE EVENT
+========================================================= */
 
 function handleBlock(
   block: string,
@@ -421,16 +589,20 @@ function handleBlock(
     emitEvent(
       payload,
     );
+
   } catch {
-    // Ignore malformed stream events.
-    // A single bad event should not terminate
-    // the persistent connection.
+    /*
+     * Ignore one malformed event.
+     *
+     * Do not terminate the entire connection because of
+     * one malformed payload.
+     */
   }
 }
 
 
 /* =========================================================
-   READ ONE STREAM
+   CONSUME ONE STREAM CONNECTION
 ========================================================= */
 
 async function consumeStream(
@@ -468,10 +640,13 @@ async function consumeStream(
   const reader =
     response.body.getReader();
 
+
   const decoder =
     new TextDecoder();
 
-  let buffer = "";
+
+  let buffer =
+    "";
 
 
   try {
@@ -495,7 +670,8 @@ async function consumeStream(
           .decode(
             value,
             {
-              stream: true,
+              stream:
+                true,
             },
           )
           .replace(
@@ -520,6 +696,7 @@ async function consumeStream(
             separatorIndex,
           );
 
+
         buffer =
           buffer.slice(
             separatorIndex +
@@ -538,14 +715,24 @@ async function consumeStream(
           );
       }
     }
+
   } finally {
     try {
       await reader.cancel();
     } catch {
-      // Ignore cleanup errors.
+      /*
+       * Ignore cleanup errors.
+       */
     }
 
-    reader.releaseLock();
+
+    try {
+      reader.releaseLock();
+    } catch {
+      /*
+       * Ignore cleanup errors.
+       */
+    }
   }
 }
 
@@ -553,19 +740,47 @@ async function consumeStream(
 /* =========================================================
    CONNECTION LOOP
 
-   Reconnects only when the persistent stream actually dies.
    This is NOT polling.
+
+   While connected:
+       ONE HTTP stream remains open.
+
+   If it dies:
+       reconnect with exponential backoff.
 ========================================================= */
 
 async function connectionLoop(
   signal: AbortSignal,
+  generation: number,
 ): Promise<void> {
   while (
     running &&
-    listeners.size > 0 &&
-    !signal.aborted
+    listeners.size >
+      0 &&
+    !signal.aborted &&
+    generation ===
+      connectionGeneration
   ) {
     try {
+      /*
+       * If the user's internet is genuinely offline,
+       * wait for the browser online event instead of
+       * making useless HTTP requests.
+       */
+      await waitUntilOnline(
+        signal,
+      );
+
+
+      if (
+        signal.aborted ||
+        generation !==
+          connectionGeneration
+      ) {
+        return;
+      }
+
+
       await consumeStream(
         signal,
       );
@@ -573,7 +788,9 @@ async function connectionLoop(
 
       if (
         signal.aborted ||
-        !running
+        !running ||
+        generation !==
+          connectionGeneration
       ) {
         return;
       }
@@ -582,11 +799,14 @@ async function connectionLoop(
       emitStatus(
         "disconnected",
       );
+
     } catch (
       error
     ) {
       if (
         signal.aborted ||
+        generation !==
+          connectionGeneration ||
         isAbortError(
           error,
         )
@@ -606,14 +826,20 @@ async function connectionLoop(
 
 
     /*
-     * 1s → 2s → 4s → 8s → max 15s.
+     * Reconnect delays:
      *
-     * This only runs after a broken connection,
-     * not continuously during normal operation.
+     * 1 sec
+     * 2 sec
+     * 4 sec
+     * 8 sec
+     * 15 sec maximum
+     *
+     * This only happens after a broken stream.
      */
     const delay =
       Math.min(
         15_000,
+
         1_000 *
           2 **
             Math.min(
@@ -629,6 +855,7 @@ async function connectionLoop(
         delay,
         signal,
       );
+
     } catch (
       error
     ) {
@@ -640,6 +867,7 @@ async function connectionLoop(
         return;
       }
 
+
       throw error;
     }
   }
@@ -647,13 +875,47 @@ async function connectionLoop(
 
 
 /* =========================================================
-   START / STOP
+   STOP TIMER
 ========================================================= */
 
-function start(): void {
+function cancelScheduledStop():
+  void {
+  if (
+    stopTimer ===
+    null
+  ) {
+    return;
+  }
+
+
+  window.clearTimeout(
+    stopTimer,
+  );
+
+
+  stopTimer =
+    null;
+}
+
+
+/* =========================================================
+   START CONNECTION
+========================================================= */
+
+function start():
+  void {
   if (
     typeof window ===
-      "undefined" ||
+    "undefined"
+  ) {
+    return;
+  }
+
+
+  cancelScheduledStop();
+
+
+  if (
     running ||
     listeners.size ===
       0
@@ -662,39 +924,148 @@ function start(): void {
   }
 
 
-  running = true;
-
-  controller =
-    new AbortController();
-
-
-  void connectionLoop(
-    controller.signal,
-  ).finally(() => {
-    running =
-      false;
-
-    controller =
-      null;
-  });
-}
-
-
-function stop(): void {
   running =
-    false;
+    true;
 
-  controller?.abort();
-
-  controller =
-    null;
 
   reconnectAttempt =
     0;
 
+
+  connectionGeneration +=
+    1;
+
+
+  const generation =
+    connectionGeneration;
+
+
+  const activeController =
+    new AbortController();
+
+
+  controller =
+    activeController;
+
+
+  void connectionLoop(
+    activeController.signal,
+    generation,
+  ).finally(
+    () => {
+      /*
+       * VERY IMPORTANT:
+       *
+       * An old connection may finish AFTER a new connection
+       * has already started.
+       *
+       * Never allow old cleanup to reset new state.
+       */
+      if (
+        generation !==
+        connectionGeneration
+      ) {
+        return;
+      }
+
+
+      if (
+        controller ===
+        activeController
+      ) {
+        controller =
+          null;
+      }
+
+
+      running =
+        false;
+    },
+  );
+}
+
+
+/* =========================================================
+   STOP CONNECTION IMMEDIATELY
+========================================================= */
+
+function stopNow():
+  void {
+  cancelScheduledStop();
+
+
+  /*
+   * Invalidate the current generation before aborting it.
+   */
+  connectionGeneration +=
+    1;
+
+
+  running =
+    false;
+
+
+  const activeController =
+    controller;
+
+
+  controller =
+    null;
+
+
+  activeController?.abort();
+
+
+  reconnectAttempt =
+    0;
+
+
   emitStatus(
     "disconnected",
   );
+}
+
+
+/* =========================================================
+   SCHEDULE STOP
+
+   React Strict Mode can briefly:
+       subscribe
+       unsubscribe
+       subscribe
+
+   Waiting 500ms prevents pointless connection churn.
+========================================================= */
+
+function scheduleStop():
+  void {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
+
+
+  cancelScheduledStop();
+
+
+  stopTimer =
+    window.setTimeout(
+      () => {
+        stopTimer =
+          null;
+
+
+        if (
+          listeners.size ===
+          0
+        ) {
+          stopNow();
+        }
+      },
+      STOP_GRACE_MS,
+    );
 }
 
 
@@ -704,31 +1075,50 @@ function stop(): void {
 
 export const liveEventsService = {
   subscribe(
-    listener: LiveEventListener,
+    listener:
+      LiveEventListener,
   ): () => void {
     listeners.add(
       listener,
     );
 
 
+    /*
+     * If React remounted immediately, cancel the pending
+     * disconnect and keep the existing stream alive.
+     */
+    cancelScheduledStop();
+
+
     start();
 
 
+    let subscribed =
+      true;
+
+
     return () => {
+      if (
+        !subscribed
+      ) {
+        return;
+      }
+
+
+      subscribed =
+        false;
+
+
       listeners.delete(
         listener,
       );
 
 
-      /*
-       * No subscribers = no reason to keep an open
-       * network connection.
-       */
       if (
         listeners.size ===
         0
       ) {
-        stop();
+        scheduleStop();
       }
     };
   },
@@ -737,7 +1127,7 @@ export const liveEventsService = {
   stop(): void {
     listeners.clear();
 
-    stop();
+    stopNow();
   },
 };
 
@@ -762,14 +1152,18 @@ export function isMessageCreatedEvent(
 
   const data =
     event.data as
-      Partial<LiveMessageCreatedData>;
+      Partial<
+        LiveMessageCreatedData
+      >;
 
 
   return (
     typeof data.inquiry_id ===
       "string" &&
+
     typeof data.message ===
       "object" &&
+
     data.message !==
       null
   );

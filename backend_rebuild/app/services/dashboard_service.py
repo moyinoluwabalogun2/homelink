@@ -223,14 +223,11 @@ class DashboardService:
         #
         # CreditService read path no longer uses FOR UPDATE.
         # --------------------------------------------------------
-
         balances = await CreditService(
             self.session
         ).list_balances(
             user.id
         )
-
-        await self.session.commit()
 
         return UserDashboardSummary(
             saved_listings=int(

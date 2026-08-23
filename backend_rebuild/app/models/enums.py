@@ -167,6 +167,7 @@ class CreditSource(StrEnum):
 class PaymentProvider(StrEnum):
     MOCK = "mock"
     PAYSTACK = "paystack"
+    FLUTTERWAVE = "flutterwave"
 
 
 class PaymentStatus(StrEnum):

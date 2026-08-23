@@ -1,8 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import axios from "axios";
+
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import {
+  useSearchParams,
+} from "next/navigation";
+
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,134 +21,373 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-import { getApiErrorMessage } from "@/lib/api-errors";
-import { formatCurrency } from "@/lib/formatters";
-import { paymentService } from "@/services/payment-service";
-import type { Payment } from "@/types/payment";
+import {
+  getApiErrorMessage,
+} from "@/lib/api-errors";
+
+import {
+  formatCurrency,
+} from "@/lib/formatters";
+
+import {
+  paymentService,
+} from "@/services/payment-service";
+
+import type {
+  Payment,
+} from "@/types/payment";
 
 import styles from "./PaymentCallbackClient.module.css";
 
-type CallbackState = "checking" | "success" | "pending" | "error";
+
+type CallbackState =
+  | "checking"
+  | "success"
+  | "pending"
+  | "error";
+
+
+function isTemporaryNetworkProblem(
+  reason: unknown,
+): boolean {
+  if (
+    !axios.isAxiosError(
+      reason,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    reason.code ===
+      "ECONNABORTED" ||
+    reason.code ===
+      "ETIMEDOUT" ||
+    reason.code ===
+      "ERR_NETWORK"
+  ) {
+    return true;
+  }
+
+  if (!reason.response) {
+    return true;
+  }
+
+  return [
+    502,
+    503,
+    504,
+  ].includes(
+    reason.response.status,
+  );
+}
+
 
 export default function PaymentCallbackClient() {
-  const searchParams = useSearchParams();
+  const searchParams =
+    useSearchParams();
+
   const reference =
-    searchParams.get("reference") ?? searchParams.get("trxref") ?? "";
+    searchParams.get(
+      "reference",
+    ) ??
+    searchParams.get(
+      "trxref",
+    ) ??
+    searchParams.get(
+      "tx_ref",
+    ) ??
+    "";
 
-  const [state, setState] = useState<CallbackState>("checking");
-  const [payment, setPayment] = useState<Payment | null>(null);
-  const [error, setError] = useState("");
+  const [
+    state,
+    setState,
+  ] =
+    useState<CallbackState>(
+      "checking",
+    );
 
-  const verify = useCallback(async () => {
-    if (!reference) {
-      setState("error");
-      setError("The payment reference is missing from this callback URL.");
-      return;
-    }
+  const [
+    payment,
+    setPayment,
+  ] =
+    useState<Payment | null>(
+      null,
+    );
 
-    setState("checking");
-    setError("");
+  const [
+    message,
+    setMessage,
+  ] =
+    useState("");
 
-    try {
-      const verified = await paymentService.verify(reference);
-      setPayment(verified);
+  const verify =
+    useCallback(
+      async () => {
+        if (!reference) {
+          setState(
+            "error",
+          );
 
-      if (verified.status === "success") {
-        setState("success");
-      } else {
-        setState("pending");
-      }
-    } catch (reason) {
-      setState("error");
-      setError(
-        getApiErrorMessage(
-          reason,
-          "The payment could not be verified right now.",
-        ),
-      );
-    }
-  }, [reference]);
+          setMessage(
+            "The payment reference is missing from this callback URL.",
+          );
+
+          return;
+        }
+
+        setState(
+          "checking",
+        );
+
+        setMessage(
+          "",
+        );
+
+        try {
+          const verified =
+            await paymentService.verify(
+              reference,
+            );
+
+          setPayment(
+            verified,
+          );
+
+          if (
+            verified.status ===
+            "success"
+          ) {
+            setState(
+              "success",
+            );
+
+            return;
+          }
+
+          setState(
+            "pending",
+          );
+
+          setMessage(
+            "The payment has not been confirmed yet. "
+            + "You can retry this check safely without creating another charge.",
+          );
+        } catch (
+          reason
+        ) {
+          if (
+            isTemporaryNetworkProblem(
+              reason,
+            )
+          ) {
+            setState(
+              "pending",
+            );
+
+            setMessage(
+              "The connection was interrupted while HomeLink was confirming "
+              + "the payment. The transaction may still have completed. "
+              + "Retry verification safely — do not start a new payment.",
+            );
+
+            return;
+          }
+
+          setState(
+            "error",
+          );
+
+          setMessage(
+            getApiErrorMessage(
+              reason,
+              "The payment could not be verified right now.",
+            ),
+          );
+        }
+      },
+      [
+        reference,
+      ],
+    );
 
   useEffect(() => {
+    // One automatic attempt.
+    // paymentService also deduplicates the request,
+    // which protects against React development remounts.
     void verify();
-  }, [verify]);
+  }, [
+    verify,
+  ]);
 
   const icon =
-    state === "success" ? (
-      <CheckCircle2 aria-hidden="true" />
-    ) : state === "error" ? (
-      <AlertCircle aria-hidden="true" />
-    ) : state === "checking" ? (
-      <Loader2 className={styles.spinner} aria-hidden="true" />
+    state ===
+      "success" ? (
+      <CheckCircle2
+        aria-hidden="true"
+      />
+    ) :
+    state ===
+      "error" ? (
+      <AlertCircle
+        aria-hidden="true"
+      />
+    ) :
+    state ===
+      "checking" ? (
+      <Loader2
+        className={
+          styles.spinner
+        }
+        aria-hidden="true"
+      />
     ) : (
-      <CreditCard aria-hidden="true" />
+      <CreditCard
+        aria-hidden="true"
+      />
     );
 
   const tone =
-    state === "success" ? "success" : state === "error" ? "danger" : "info";
+    state === "success"
+      ? "success"
+      : state === "error"
+        ? "danger"
+        : "info";
 
   return (
-    <div className={styles.wrap}>
-      <section className={styles.card}>
-        <span className={styles.icon} data-tone={tone}>
+    <div
+      className={
+        styles.wrap
+      }
+    >
+      <section
+        className={
+          styles.card
+        }
+      >
+        <span
+          className={
+            styles.icon
+          }
+          data-tone={
+            tone
+          }
+        >
           {icon}
         </span>
 
-        <span className={styles.eyebrow}>Payment verification</span>
+        <span
+          className={
+            styles.eyebrow
+          }
+        >
+          Payment verification
+        </span>
 
         <h1>
-          {state === "checking"
+          {state ===
+          "checking"
             ? "Confirming your payment."
-            : state === "success"
+            : state ===
+                "success"
               ? "Payment confirmed."
-              : state === "pending"
-                ? "Payment is still pending."
+              : state ===
+                  "pending"
+                ? "Confirmation is still pending."
                 : "Verification needs attention."}
         </h1>
 
         <p>
-          {state === "checking"
-            ? "HomeLink is checking the transaction securely with the payment provider."
-            : state === "success"
-              ? `${payment?.plan.credit_quantity ?? 0} posting credits have ` +
-                "been added to your account."
-              : state === "pending"
-                ? "The provider has not marked this transaction as successful " +
-                  "yet. You can retry verification safely."
-                : error}
+          {state ===
+          "checking"
+            ? "HomeLink is securely confirming this existing transaction with the payment provider."
+            : state ===
+                "success"
+              ? `${payment?.plan.credit_quantity ?? 0} posting ${
+                  payment?.plan.credit_quantity === 1
+                    ? "credit has"
+                    : "credits have"
+                } been added to your account.`
+              : message}
         </p>
 
-        <div className={styles.reference}>
-          <span>Reference</span>
-          <strong>{reference || "Missing reference"}</strong>
+        <div
+          className={
+            styles.reference
+          }
+        >
+          <span>
+            Reference
+          </span>
+
+          <strong>
+            {reference ||
+              "Missing reference"}
+          </strong>
         </div>
 
         {payment ? (
-          <div className={styles.reference}>
-            <span>Amount</span>
+          <div
+            className={
+              styles.reference
+            }
+          >
+            <span>
+              Amount
+            </span>
+
             <strong>
-              {formatCurrency(payment.amount_kobo / 100, payment.currency)}
+              {formatCurrency(
+                payment.amount_kobo /
+                  100,
+                payment.currency,
+              )}
             </strong>
           </div>
         ) : null}
 
-        <div className={styles.actions}>
-          <Link href="/dashboard/credits" className={styles.primary}>
+        <div
+          className={
+            styles.actions
+          }
+        >
+          <Link
+            href="/dashboard/credits"
+            className={
+              styles.primary
+            }
+          >
             View credits
           </Link>
 
-          {state !== "success" ? (
+          {state !==
+          "success" ? (
             <button
               type="button"
-              className={styles.secondary}
-              onClick={() => void verify()}
-              disabled={state === "checking"}
+              className={
+                styles.secondary
+              }
+              onClick={() =>
+                void verify()
+              }
+              disabled={
+                state ===
+                "checking"
+              }
             >
-              <RefreshCw aria-hidden="true" />
+              <RefreshCw
+                aria-hidden="true"
+              />
+
               Retry verification
             </button>
           ) : (
-            <Link href="/dashboard" className={styles.secondary}>
+            <Link
+              href="/dashboard"
+              className={
+                styles.secondary
+              }
+            >
               Return to dashboard
             </Link>
           )}

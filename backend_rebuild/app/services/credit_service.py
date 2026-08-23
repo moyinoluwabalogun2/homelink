@@ -61,6 +61,67 @@ class CreditService:
                 settings.free_buy_property_listings,
         }[credit_type]
 
+    # =========================================================
+    # INITIALIZE ALL CREDIT BALANCES
+    #
+    # Called when an account is created and by the one-time
+    # legacy-account backfill.
+    #
+    # Safe to call repeatedly because of ON CONFLICT.
+    # Does NOT commit. The caller owns the transaction.
+    # =========================================================
+
+    async def initialize_balances(
+        self,
+        *,
+        user_id: UUID,
+    ) -> None:
+        credit_types = list(
+            CreditType,
+        )
+
+        await self.session.execute(
+            insert(
+                ListingCreditBalance,
+            )
+            .values(
+                [
+                    {
+                        "user_id":
+                            user_id,
+
+                        "credit_type":
+                            credit_type,
+
+                        "free_remaining":
+                            self.default_free_amount(
+                                credit_type,
+                            ),
+
+                        "paid_remaining":
+                            0,
+                    }
+                    for credit_type
+                    in credit_types
+                ]
+            )
+            .on_conflict_do_nothing(
+                index_elements=[
+                    "user_id",
+                    "credit_type",
+                ],
+            )
+        )
+
+    # =========================================================
+    # GET ONE BALANCE FOR A MUTATION
+    #
+    # This remains defensive.
+    #
+    # Posting/payment operations may create a missing balance,
+    # but ordinary dashboard reads never do.
+    # =========================================================
+
     async def ensure_balance(
         self,
         *,
@@ -68,16 +129,21 @@ class CreditService:
         credit_type: CreditType,
         for_update: bool = False,
     ) -> ListingCreditBalance:
-        create_statement = (
-            insert(ListingCreditBalance)
+        await self.session.execute(
+            insert(
+                ListingCreditBalance,
+            )
             .values(
                 user_id=user_id,
-                credit_type=credit_type,
-                free_remaining=(
+
+                credit_type=
+                    credit_type,
+
+                free_remaining=
                     self.default_free_amount(
                         credit_type,
-                    )
-                ),
+                    ),
+
                 paid_remaining=0,
             )
             .on_conflict_do_nothing(
@@ -88,11 +154,7 @@ class CreditService:
             )
         )
 
-        await self.session.execute(
-            create_statement,
-        )
-
-        balance_statement = (
+        statement = (
             select(
                 ListingCreditBalance,
             )
@@ -105,51 +167,83 @@ class CreditService:
             )
         )
 
-        # Only lock the row when we are about to
-        # change the balance.
-        #
-        # Read-only dashboard/credit requests must
-        # not hold row locks.
         if for_update:
-            balance_statement = (
-                balance_statement.with_for_update(
+            statement = (
+                statement.with_for_update(
                     of=ListingCreditBalance,
                 )
             )
 
         balance = await self.session.scalar(
-            balance_statement,
+            statement,
         )
 
         if balance is None:
             raise RuntimeError(
-                "Credit balance could not be created.",
+                "Credit balance could not be created."
             )
 
         return balance
+
+    # =========================================================
+    # READ ALL BALANCES
+    #
+    # IMPORTANT:
+    # Pure SELECT.
+    #
+    # Dashboard and Credits page do NOT insert, lock or commit.
+    # =========================================================
 
     async def list_balances(
         self,
         user_id: UUID,
     ) -> list[ListingCreditBalance]:
-        balances: list[
-            ListingCreditBalance
-        ] = []
+        result = await self.session.scalars(
+            select(
+                ListingCreditBalance,
+            )
+            .where(
+                ListingCreditBalance.user_id
+                == user_id,
+            )
+        )
 
-        for credit_type in CreditType:
-            balance = await self.ensure_balance(
-                user_id=user_id,
-                credit_type=credit_type,
-                for_update=False,
+        balances = list(
+            result.all(),
+        )
+
+        by_type = {
+            balance.credit_type:
+                balance
+            for balance
+            in balances
+        }
+
+        missing = [
+            credit_type
+            for credit_type
+            in CreditType
+            if credit_type
+            not in by_type
+        ]
+
+        if missing:
+            raise RuntimeError(
+                "Credit balances are not fully "
+                "initialized for this account."
             )
 
-            balances.append(
-                balance,
-            )
+        return [
+            by_type[
+                credit_type
+            ]
+            for credit_type
+            in CreditType
+        ]
 
-        await self.session.flush()
-
-        return balances
+    # =========================================================
+    # CONSUME CREDIT FOR LISTING
+    # =========================================================
 
     async def consume_for_listing(
         self,
@@ -163,9 +257,14 @@ class CreditService:
         ):
             return
 
-        if user.role == UserRole.ADMIN:
+        if (
+            user.role
+            == UserRole.ADMIN
+        ):
             listing.posting_credit_charged_at = (
-                datetime.now(UTC)
+                datetime.now(
+                    UTC,
+                )
             )
 
             listing.posting_credit_source = (
@@ -180,22 +279,31 @@ class CreditService:
             )
         )
 
-        # Lock here because we are decrementing.
         balance = await self.ensure_balance(
             user_id=user.id,
             credit_type=credit_type,
             for_update=True,
         )
 
-        if balance.free_remaining > 0:
+        if (
+            balance.free_remaining
+            > 0
+        ):
             balance.free_remaining -= 1
 
-            source = CreditSource.FREE
+            source = (
+                CreditSource.FREE
+            )
 
-        elif balance.paid_remaining > 0:
+        elif (
+            balance.paid_remaining
+            > 0
+        ):
             balance.paid_remaining -= 1
 
-            source = CreditSource.PAID
+            source = (
+                CreditSource.PAID
+            )
 
         else:
             raise HTTPException(
@@ -208,12 +316,18 @@ class CreditService:
             )
 
         listing.posting_credit_charged_at = (
-            datetime.now(UTC)
+            datetime.now(
+                UTC,
+            )
         )
 
         listing.posting_credit_source = (
             source
         )
+
+    # =========================================================
+    # GRANT PAID CREDITS
+    # =========================================================
 
     async def grant_paid_credits(
         self,
@@ -221,7 +335,6 @@ class CreditService:
         user_id: UUID,
         plan: PaymentPlan,
     ) -> ListingCreditBalance:
-        # Lock here because we are incrementing.
         balance = await self.ensure_balance(
             user_id=user_id,
             credit_type=plan.credit_type,

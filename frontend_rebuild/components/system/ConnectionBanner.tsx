@@ -1,72 +1,209 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { CloudOff, WifiOff } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
-import { API_BASE_URL } from "@/lib/api";
+import {
+  CloudOff,
+  WifiOff,
+} from "lucide-react";
+
+import {
+  API_BASE_URL,
+} from "@/lib/api";
 
 import styles from "./ConnectionBanner.module.css";
 
-type ConnectionState = "online" | "offline" | "backend-unavailable";
+
+type ConnectionState =
+  | "online"
+  | "offline"
+  | "backend-unavailable";
+
 
 export default function ConnectionBanner() {
-  const [state, setState] = useState<ConnectionState>("online");
-  const [checking, setChecking] = useState(false);
+  const [
+    state,
+    setState,
+  ] = useState<ConnectionState>(
+    "online",
+  );
 
-  const checkConnection = useCallback(async () => {
-    if (!navigator.onLine) {
-      setState("offline");
-      return;
-    }
+  const [
+    checking,
+    setChecking,
+  ] = useState(false);
 
-    setChecking(true);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/health/ready`, {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      });
+  const checkConnection =
+    useCallback(
+      async () => {
+        if (
+          !navigator.onLine
+        ) {
+          setState(
+            "offline",
+          );
 
-      setState(response.ok ? "online" : "backend-unavailable");
-    } catch {
-      setState("backend-unavailable");
-    } finally {
-      setChecking(false);
-    }
-  }, []);
+          return;
+        }
+
+        setChecking(
+          true,
+        );
+
+        const controller =
+          new AbortController();
+
+        const timeout =
+          window.setTimeout(
+            () => {
+              controller.abort();
+            },
+            5_000,
+          );
+
+        try {
+          /*
+           * IMPORTANT:
+           *
+           * Use /health/live here.
+           *
+           * /health/live only confirms the FastAPI
+           * application is reachable.
+           *
+           * Do NOT use /health/ready from the browser
+           * because readiness checks PostgreSQL + Redis.
+           */
+          const response =
+            await fetch(
+              `${API_BASE_URL}/health/live`,
+              {
+                method:
+                  "GET",
+
+                credentials:
+                  "include",
+
+                cache:
+                  "no-store",
+
+                signal:
+                  controller.signal,
+              },
+            );
+
+          setState(
+            response.ok
+              ? "online"
+              : "backend-unavailable",
+          );
+
+        } catch {
+          setState(
+            navigator.onLine
+              ? "backend-unavailable"
+              : "offline",
+          );
+
+        } finally {
+          window.clearTimeout(
+            timeout,
+          );
+
+          setChecking(
+            false,
+          );
+        }
+      },
+      [],
+    );
+
 
   useEffect(() => {
-    const handleOnline = () => void checkConnection();
-    const handleOffline = () => setState("offline");
+    const handleOnline =
+      () => {
+        void checkConnection();
+      };
 
+    const handleOffline =
+      () => {
+        setState(
+          "offline",
+        );
+      };
+
+
+    /*
+     * One check when this provider mounts.
+     *
+     * There is intentionally NO interval.
+     */
     void checkConnection();
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
 
-    const interval = window.setInterval(() => {
-      void checkConnection();
-    }, 60_000);
+    window.addEventListener(
+      "online",
+      handleOnline,
+    );
+
+    window.addEventListener(
+      "offline",
+      handleOffline,
+    );
+
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-      window.clearInterval(interval);
+      window.removeEventListener(
+        "online",
+        handleOnline,
+      );
+
+      window.removeEventListener(
+        "offline",
+        handleOffline,
+      );
     };
-  }, [checkConnection]);
+  }, [
+    checkConnection,
+  ]);
 
-  if (state === "online") return null;
 
-  const offline = state === "offline";
+  if (
+    state === "online"
+  ) {
+    return null;
+  }
+
+
+  const offline =
+    state === "offline";
+
 
   return (
-    <aside className={styles.banner} role="status" aria-live="polite">
-      <div className={styles.message}>
+    <aside
+      className={
+        styles.banner
+      }
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className={
+          styles.message
+        }
+      >
         {offline ? (
-          <WifiOff aria-hidden="true" />
+          <WifiOff
+            aria-hidden="true"
+          />
         ) : (
-          <CloudOff aria-hidden="true" />
+          <CloudOff
+            aria-hidden="true"
+          />
         )}
 
         <div>
@@ -79,17 +216,23 @@ export default function ConnectionBanner() {
           <span>
             {offline
               ? "Reconnect to continue using live listings and account features."
-              : "The interface is available, but requests may fail until the backend reconnects."}
+              : "HomeLink could not be reached. Your existing account data remains safe while the connection recovers."}
           </span>
         </div>
       </div>
 
       <button
         type="button"
-        disabled={checking}
-        onClick={() => void checkConnection()}
+        disabled={
+          checking
+        }
+        onClick={() =>
+          void checkConnection()
+        }
       >
-        {checking ? "Checking…" : "Check again"}
+        {checking
+          ? "Checking…"
+          : "Check again"}
       </button>
     </aside>
   );

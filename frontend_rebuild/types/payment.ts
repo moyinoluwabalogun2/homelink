@@ -1,5 +1,5 @@
 export type CreditType = "marketplace" | "rental" | "buy_property";
-export type PaymentProvider = "mock" | "paystack";
+export type PaymentProvider = "mock" | "paystack"| "flutterwave";
 export type PaymentStatus =
   | "pending"
   | "success"
