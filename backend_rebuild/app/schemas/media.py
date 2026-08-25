@@ -20,16 +20,12 @@ MediaDeliveryType = Literal[
 ]
 
 
-class MediaUploadSignatureRequest(
-    BaseModel
-):
+class MediaUploadSignatureRequest(BaseModel):
     resource_type: MediaResourceType
     scope: MediaScope
 
 
-class MediaUploadSignatureResponse(
-    BaseModel
-):
+class MediaUploadSignatureResponse(BaseModel):
     cloud_name: str
     api_key: str
     timestamp: int
@@ -37,9 +33,7 @@ class MediaUploadSignatureResponse(
     folder: str
 
     resource_type: MediaResourceType
-
     delivery_type: MediaDeliveryType
 
     allowed_formats: str
-
     upload_url: str

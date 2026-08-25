@@ -1,11 +1,10 @@
-from hashlib import sha1
 import time
 from uuid import UUID
 
+from cloudinary.utils import api_sign_request
 from fastapi import HTTPException
 
 from app.core.config import get_settings
-
 from app.schemas.media import (
     MediaDeliveryType,
     MediaResourceType,
@@ -17,16 +16,18 @@ from app.schemas.media import (
 settings = get_settings()
 
 
-ALLOWED_FORMATS: dict[
+GENERAL_ALLOWED_FORMATS: dict[
     MediaResourceType,
     str,
 ] = {
-    "image":
-        "jpg,jpeg,png,webp,avif",
-
-    "video":
-        "mp4,webm,mov",
+    "image": "jpg,jpeg,png,webp,avif",
+    "video": "mp4,webm,mov",
 }
+
+
+AGENT_DOCUMENT_ALLOWED_FORMATS = (
+    "jpg,jpeg,png,webp"
+)
 
 
 class MediaService:
@@ -34,10 +35,8 @@ class MediaService:
         self,
         *,
         user_id: UUID,
-        resource_type:
-            MediaResourceType,
-        scope:
-            MediaScope,
+        resource_type: MediaResourceType,
+        scope: MediaScope,
     ) -> MediaUploadSignatureResponse:
 
         # ========================================================
@@ -48,8 +47,7 @@ class MediaService:
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Media uploads are "
-                    "not configured yet."
+                    "Media uploads are not configured yet."
                 ),
             )
 
@@ -61,50 +59,44 @@ class MediaService:
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Media storage "
-                    "configuration is incomplete."
+                    "Media storage configuration is incomplete."
                 ),
             )
 
         # ========================================================
-        # SCOPE RULES
+        # SCOPE POLICY
         # ========================================================
-
-        # Agent verification documents are deliberately restricted
-        # to protected images.
-        #
-        # Cloudinary `authenticated` delivery prevents direct public
-        # access to both the original file and derived assets.
-        if (
-            scope == "agent-documents"
-            and resource_type != "image"
-        ):
-            raise HTTPException(
-                status_code=422,
-                detail=(
-                    "Agent verification documents "
-                    "must be image files."
-                ),
-            )
-
-        delivery_type: MediaDeliveryType
 
         if scope == "agent-documents":
-            delivery_type = (
+            if resource_type != "image":
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Agent verification documents "
+                        "must be image files."
+                    ),
+                )
+
+            delivery_type: MediaDeliveryType = (
                 "authenticated"
             )
+
+            allowed_formats = (
+                AGENT_DOCUMENT_ALLOWED_FORMATS
+            )
+
         else:
-            delivery_type = (
-                "upload"
+            delivery_type = "upload"
+
+            allowed_formats = (
+                GENERAL_ALLOWED_FORMATS[
+                    resource_type
+                ]
             )
 
         # ========================================================
-        # UPLOAD PARAMETERS
+        # FOLDER
         # ========================================================
-
-        timestamp = int(
-            time.time()
-        )
 
         base_folder = (
             settings
@@ -120,24 +112,30 @@ class MediaService:
             f"{user_id}"
         )
 
-        allowed_formats = (
-            ALLOWED_FORMATS[
-                resource_type
-            ]
+        timestamp = int(
+            time.time()
         )
 
+        # ========================================================
+        # CLOUDINARY SIGNATURE
+        #
         # IMPORTANT:
         #
-        # Every Cloudinary upload option sent by the browser that
-        # participates in authentication must also be included in
-        # the signature.
+        # The browser MUST submit these exact same signed
+        # parameters:
         #
-        # `type` is what changes agent documents from the default
-        # public `upload` delivery type to `authenticated`.
-        parameters: dict[
-            str,
-            str | int,
-        ] = {
+        # - allowed_formats
+        # - folder
+        # - timestamp
+        # - type
+        #
+        # file and api_key are NOT included in the signature.
+        #
+        # We use Cloudinary's own signature helper instead of
+        # maintaining our own SHA implementation.
+        # ========================================================
+
+        parameters_to_sign = {
             "allowed_formats":
                 allowed_formats,
 
@@ -151,67 +149,37 @@ class MediaService:
                 delivery_type,
         }
 
-        serialized = "&".join(
-            f"{key}={parameters[key]}"
-            for key
-            in sorted(
-                parameters
-            )
+        signature = api_sign_request(
+            parameters_to_sign,
+            settings.cloudinary_api_secret,
         )
 
-        signature = sha1(
-            (
-                serialized
-                + settings
-                .cloudinary_api_secret
-            ).encode(
-                "utf-8"
-            )
-        ).hexdigest()
+        # ========================================================
+        # UPLOAD ENDPOINT
+        #
+        # The upload operation itself continues to use Cloudinary's
+        # standard Upload API endpoint.
+        # ========================================================
 
-        # ========================================================
-        # RESPONSE
-        # ========================================================
+        upload_url = (
+            "https://api.cloudinary.com/"
+            "v1_1/"
+            f"{settings.cloudinary_cloud_name}/"
+            f"{resource_type}/upload"
+        )
 
         return MediaUploadSignatureResponse(
             cloud_name=(
-                settings
-                .cloudinary_cloud_name
+                settings.cloudinary_cloud_name
             ),
-
             api_key=(
-                settings
-                .cloudinary_api_key
+                settings.cloudinary_api_key
             ),
-
             timestamp=timestamp,
-
             signature=signature,
-
             folder=folder,
-
-            resource_type=(
-                resource_type
-            ),
-
-            delivery_type=(
-                delivery_type
-            ),
-
-            allowed_formats=(
-                allowed_formats
-            ),
-
-            # Cloudinary's standard REST Upload API endpoint stays
-            # `/resource_type/upload`.
-            #
-            # The actual delivery type is supplied by the signed
-            # `type` upload parameter.
-            upload_url=(
-                "https://api.cloudinary.com/"
-                "v1_1/"
-                f"{settings.cloudinary_cloud_name}/"
-                f"{resource_type}/"
-                "upload"
-            ),
+            resource_type=resource_type,
+            delivery_type=delivery_type,
+            allowed_formats=allowed_formats,
+            upload_url=upload_url,
         )

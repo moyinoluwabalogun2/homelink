@@ -45,23 +45,10 @@ export interface CloudinaryUploadResponse {
   resource_type:
     MediaResourceType;
 
-  /**
-   * Actual Cloudinary format,
-   * e.g. jpg, png, webp,
-   * mp4.
-   */
   format: string;
 
-  /**
-   * Cloudinary delivery type.
-   *
-   * Normal media:
-   *   upload
-   *
-   * Agent verification:
-   *   authenticated
-   */
-  type: MediaDeliveryType;
+  type:
+    MediaDeliveryType;
 
   bytes: number;
 
@@ -73,10 +60,6 @@ export interface CloudinaryUploadResponse {
 }
 
 
-/**
- * Returned after the browser has
- * completed the Cloudinary upload.
- */
 export interface UploadedMedia {
   url: string;
 
@@ -96,10 +79,6 @@ export interface UploadedMedia {
 }
 
 
-/**
- * Media state used while a listing
- * form is being edited.
- */
 export interface MediaValue {
   url: string;
 
