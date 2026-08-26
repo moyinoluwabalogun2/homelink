@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 
 from app.api.auth_dependencies import CurrentUser
 from app.api.dependencies import DbSession
@@ -96,16 +96,16 @@ async def remove_saved_listing(
 
 @router.post(
     "/listings/{listing_id}/inquiries",
-    response_model=InquiryRead,
     status_code=201,
+    response_model=None,
 )
 async def create_inquiry(
     listing_id: UUID,
     payload: InquiryCreate,
     session: DbSession,
     current_user: CurrentUser,
-) -> InquiryRead:
-    inquiry = await EngagementService(
+) -> Response:
+    await EngagementService(
         session
     ).create_inquiry(
         user=current_user,
@@ -113,8 +113,8 @@ async def create_inquiry(
         payload=payload,
     )
 
-    return InquiryRead.model_validate(
-        inquiry
+    return Response(
+        status_code=201
     )
 
 

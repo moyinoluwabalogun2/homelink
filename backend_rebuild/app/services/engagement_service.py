@@ -146,7 +146,6 @@ class EngagementService:
         return list(
             result.unique().all()
         )
-
     # ============================================================
     # CREATE INQUIRY / START CONVERSATION
     # ============================================================
@@ -157,12 +156,15 @@ class EngagementService:
         user: User,
         listing_id: UUID,
         payload: InquiryCreate,
-    ) -> Inquiry:
+    ) -> None:
         """
         Start a conversation from a published listing.
 
-        Only the columns needed to create the inquiry are loaded,
-        avoiding heavyweight Listing relationships.
+        This write path deliberately returns no ORM graph.
+
+        Once the transaction commits, the conversation already
+        exists. Reloading Inquiry here is unnecessary and expensive
+        because several Inquiry relationships use lazy="joined".
         """
 
         listing_row = (
@@ -210,7 +212,7 @@ class EngagementService:
 
         self.session.add(inquiry)
 
-        # Needed so inquiry.id exists before creating its first message.
+        # Flush so inquiry.id exists before creating the first message.
         await self.session.flush()
 
         first_message = InquiryMessage(
@@ -221,14 +223,17 @@ class EngagementService:
 
         self.session.add(first_message)
 
-        # Atomic counter update without loading the entire listing.
+        # Increment the listing contact counter without loading
+        # the complete Listing ORM object.
         await self.session.execute(
             update(Listing)
             .where(
                 Listing.id == listing_row["id"]
             )
             .values(
-                contact_count=Listing.contact_count + 1
+                contact_count=(
+                    Listing.contact_count + 1
+                )
             )
         )
 
@@ -237,7 +242,7 @@ class EngagementService:
             notification_type=NotificationType.NEW_INQUIRY,
             title="New listing inquiry",
             message=(
-                f'You received a new inquiry about '
+                "You received a new inquiry about "
                 f'"{listing_row["title"]}".'
             ),
             data={
@@ -252,9 +257,16 @@ class EngagementService:
 
         await self.session.commit()
 
-        return await self._get_inquiry(
-            inquiry.id
-        )
+        # Deliberately return nothing.
+        #
+        # The listing details page does not use the returned
+        # Inquiry object. Avoiding _get_inquiry() here removes an
+        # unnecessary post-commit query and joined ORM graph.
+        return None
+
+    # ============================================================
+    # MESSAGE INBOX
+    # ============================================================
 
     # ============================================================
     # MESSAGE INBOX

@@ -273,6 +273,9 @@ export default function ListingDetailsClient({
       event: FormEvent,
     ) => {
       event.preventDefault();
+      if (sending) {
+      return;
+    }
 
       if (
         status !==

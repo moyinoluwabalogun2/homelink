@@ -127,20 +127,15 @@ export const engagementService = {
      CREATE CONVERSATION
   ======================================================= */
 
-  async createInquiry(
-    listingId: string,
-    payload: InquiryCreatePayload,
-  ): Promise<Inquiry> {
-    const response =
-      await api.post<
-        Inquiry
-      >(
-        `/listings/${listingId}/inquiries`,
-        payload,
-      );
-
-    return response.data;
-  },
+ async createInquiry(
+  listingId: string,
+  payload: InquiryCreatePayload,
+): Promise<void> {
+  await api.post(
+    `/listings/${listingId}/inquiries`,
+    payload,
+  );
+},
 
 
   /* =======================================================
