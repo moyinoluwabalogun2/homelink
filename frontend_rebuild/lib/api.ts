@@ -12,9 +12,29 @@ import type {
    API CONFIGURATION
 ========================================================= */
 
+/*
+ * Normal API traffic continues directly to FastAPI.
+ *
+ * This is especially important for HomeLink's long-lived
+ * live-events/SSE connection.
+ */
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   "http://localhost:8001/api/v1";
+
+
+/*
+ * Authentication traffic deliberately goes through the
+ * Next.js same-origin proxy.
+ *
+ * Browser:
+ *   /api/v1/auth/*
+ *
+ * Next rewrite:
+ *   Render /api/v1/auth/*
+ */
+export const AUTH_API_BASE_URL =
+  "/api/v1";
 
 
 export const API_STATUS_EVENT =
@@ -32,6 +52,7 @@ const SESSION_MARKER =
 let accessToken:
   | string
   | null = null;
+
 
 let refreshPromise:
   | Promise<AuthResponse>
@@ -77,7 +98,16 @@ function emitApiStatus(
 }
 
 
-function isDefinitiveAuthFailure(
+/*
+ * Exported because AuthContext must distinguish:
+ *
+ * 401 / 403
+ *   real authentication rejection
+ *
+ * timeout / ERR_NETWORK / 5xx
+ *   temporary service problem
+ */
+export function isDefinitiveAuthFailure(
   error: unknown,
 ): boolean {
   if (
@@ -101,7 +131,8 @@ function isDefinitiveAuthFailure(
    SESSION MARKER
 ========================================================= */
 
-export function hasSessionMarker(): boolean {
+export function hasSessionMarker():
+  boolean {
   if (
     typeof window ===
     "undefined"
@@ -117,7 +148,8 @@ export function hasSessionMarker(): boolean {
 }
 
 
-function storeSessionMarker(): void {
+function storeSessionMarker():
+  void {
   if (
     typeof window ===
     "undefined"
@@ -132,7 +164,8 @@ function storeSessionMarker(): void {
 }
 
 
-function removeSessionMarker(): void {
+function removeSessionMarker():
+  void {
   if (
     typeof window ===
     "undefined"
@@ -170,7 +203,8 @@ export function getAccessToken():
 }
 
 
-export function clearAccessToken(): void {
+export function clearAccessToken():
+  void {
   accessToken =
     null;
 
@@ -204,11 +238,29 @@ export const api =
 
 
 /* =========================================================
-   REFRESH ACCESS TOKEN
+   AUTH ROUTE DETECTION
+========================================================= */
 
-   IMPORTANT:
-   A temporary network outage must NOT destroy the user's
-   session marker or behave like a logout.
+function isAuthRoute(
+  url:
+    | string
+    | undefined,
+): boolean {
+  if (!url) {
+    return false;
+  }
+
+  return (
+    url === "/auth" ||
+    url.startsWith(
+      "/auth/",
+    )
+  );
+}
+
+
+/* =========================================================
+   REFRESH ACCESS TOKEN
 ========================================================= */
 
 export function refreshAccessToken():
@@ -217,7 +269,7 @@ export function refreshAccessToken():
     refreshPromise =
       axios
         .post<AuthResponse>(
-          `${API_BASE_URL}/auth/refresh`,
+          `${AUTH_API_BASE_URL}/auth/refresh`,
           {},
           {
             timeout:
@@ -236,7 +288,9 @@ export function refreshAccessToken():
           },
         )
         .then(
-          (response) => {
+          (
+            response,
+          ) => {
             setAccessToken(
               response.data
                 .access_token,
@@ -254,11 +308,9 @@ export function refreshAccessToken():
             error: unknown,
           ) => {
             /*
-             * Only remove the session when the server
-             * definitively rejects it.
-             *
-             * ERR_NETWORK / timeout should NOT log out
-             * the user.
+             * Only destroy the browser's session state when the
+             * authentication server definitively rejects the
+             * refresh token.
              */
             if (
               isDefinitiveAuthFailure(
@@ -266,6 +318,7 @@ export function refreshAccessToken():
               )
             ) {
               clearAccessToken();
+
             } else if (
               axios.isAxiosError(
                 error,
@@ -280,10 +333,12 @@ export function refreshAccessToken():
             throw error;
           },
         )
-        .finally(() => {
-          refreshPromise =
-            null;
-        });
+        .finally(
+          () => {
+            refreshPromise =
+              null;
+          },
+        );
   }
 
   return refreshPromise;
@@ -298,6 +353,23 @@ api.interceptors.request.use(
   (
     config,
   ) => {
+    /*
+     * Authentication endpoints must use the same-origin
+     * Next.js proxy so the refresh cookie belongs to the
+     * frontend site.
+     *
+     * All other API calls remain direct to Render.
+     */
+    if (
+      isAuthRoute(
+        config.url,
+      )
+    ) {
+      config.baseURL =
+        AUTH_API_BASE_URL;
+    }
+
+
     const token =
       getAccessToken();
 
@@ -340,10 +412,14 @@ api.interceptors.response.use(
     error: AxiosError,
   ) => {
     /*
-     * No HTTP response generally means the browser
-     * could not reach HomeLink at all:
-     * network failure, CORS/network interruption,
-     * connection timeout, etc.
+     * No HTTP response generally means:
+     *
+     * - network interruption
+     * - timeout
+     * - browser connectivity issue
+     * - unreachable backend
+     *
+     * None of those should automatically log the user out.
      */
     if (
       !error.response
@@ -353,31 +429,23 @@ api.interceptors.response.use(
       );
     }
 
+
     const originalRequest =
       error.config as
         | RetryableRequestConfig
         | undefined;
 
+
     const requestUrl =
       originalRequest?.url ??
       "";
 
+
     const isAuthenticationRequest =
-      requestUrl.includes(
-        "/auth/login",
-      ) ||
-      requestUrl.includes(
-        "/auth/register",
-      ) ||
-      requestUrl.includes(
-        "/auth/refresh",
-      ) ||
-      requestUrl.includes(
-        "/auth/forgot-password",
-      ) ||
-      requestUrl.includes(
-        "/auth/reset-password",
+      isAuthRoute(
+        requestUrl,
       );
+
 
     const shouldAttemptRefresh =
       error.response?.status ===
@@ -388,6 +456,7 @@ api.interceptors.response.use(
         ._homelinkRetry &&
       !isAuthenticationRequest;
 
+
     if (
       !shouldAttemptRefresh
     ) {
@@ -396,30 +465,36 @@ api.interceptors.response.use(
       );
     }
 
+
     originalRequest
       ._homelinkRetry =
       true;
 
+
     try {
       const refreshedSession =
         await refreshAccessToken();
+
 
       originalRequest.headers.set(
         "Authorization",
         `Bearer ${refreshedSession.access_token}`,
       );
 
+
       return api(
         originalRequest,
       );
+
     } catch (
       refreshError
     ) {
       /*
-       * Only force logout when the refresh token
-       * itself was rejected.
+       * Only force logout when the refresh session itself was
+       * rejected.
        *
-       * A temporary network outage is NOT logout.
+       * Network errors and temporary backend problems are NOT
+       * equivalent to logout.
        */
       if (
         isDefinitiveAuthFailure(
@@ -439,6 +514,7 @@ api.interceptors.response.use(
           );
         }
       }
+
 
       return Promise.reject(
         refreshError,
