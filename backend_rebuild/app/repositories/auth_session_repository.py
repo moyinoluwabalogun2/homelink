@@ -1,15 +1,29 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy import (
+    select,
+    update,
+)
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+)
+from sqlalchemy.orm import (
+    noload,
+    selectinload,
+)
 
-from app.models.auth_session import AuthSession
+from app.models.auth_session import (
+    AuthSession,
+)
+from app.models.user import User
 
 
 class AuthSessionRepository:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+    ) -> None:
         self.session = session
 
     async def get_by_id(
@@ -17,25 +31,50 @@ class AuthSessionRepository:
         session_id: UUID,
     ) -> AuthSession | None:
         statement = (
-            select(AuthSession)
+            select(
+                AuthSession
+            )
             .options(
-                selectinload(AuthSession.user),
+                selectinload(
+                    AuthSession.user
+                ).options(
+                    noload(
+                        User.auth_sessions
+                    ),
+                    noload(
+                        User.password_reset_tokens
+                    ),
+                    noload(
+                        User.email_verification_tokens
+                    ),
+                    noload(
+                        User.agent_profile
+                    ),
+                    noload(
+                        User.listings
+                    ),
+                )
             )
             .where(
-                AuthSession.id == session_id,
+                AuthSession.id
+                == session_id
             )
             .with_for_update(
                 of=AuthSession,
             )
         )
 
-        return await self.session.scalar(statement)
+        return await self.session.scalar(
+            statement
+        )
 
     def add(
         self,
         auth_session: AuthSession,
     ) -> None:
-        self.session.add(auth_session)
+        self.session.add(
+            auth_session
+        )
 
     async def revoke_all_for_user(
         self,
@@ -44,14 +83,21 @@ class AuthSessionRepository:
         revoked_at: datetime,
     ) -> int:
         result = await self.session.execute(
-            update(AuthSession)
+            update(
+                AuthSession
+            )
             .where(
-                AuthSession.user_id == user_id,
-                AuthSession.revoked_at.is_(None),
+                AuthSession.user_id
+                == user_id,
+                AuthSession.revoked_at
+                .is_(None),
             )
             .values(
                 revoked_at=revoked_at,
             )
         )
 
-        return int(result.rowcount or 0)
+        return int(
+            result.rowcount
+            or 0
+        )

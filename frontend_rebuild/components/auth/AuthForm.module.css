@@ -1034,3 +1034,671 @@
     transition: none;
   }
 }
+
+
+
+/* =========================================================
+   PASSWORD RECOVERY PAGES
+========================================================= */
+
+.recoveryPage {
+  min-height:
+    calc(
+      100vh -
+      var(--nav-height)
+    );
+
+  display: grid;
+  place-items: center;
+
+  padding:
+    56px
+    24px
+    72px;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgb(31 94 255 / 7%),
+      transparent 35%
+    ),
+    #f7f5f0;
+}
+
+
+.recoveryShell {
+  width:
+    min(
+      100%,
+      540px
+    );
+}
+
+
+/* =========================================================
+   RECOVERY BRAND
+========================================================= */
+
+.recoveryBrand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 18px;
+}
+
+
+.recoveryBrand > a {
+  color: #122033;
+
+  font-family:
+    var(--font-heading);
+
+  font-size: 21px;
+  font-weight: 700;
+
+  letter-spacing:
+    -0.04em;
+
+  text-decoration: none;
+}
+
+
+.recoveryBrand > span {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color: #7a8490;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing:
+    0.05em;
+
+  text-transform: uppercase;
+}
+
+
+.recoveryBrand svg {
+  width: 15px;
+  height: 15px;
+
+  color: #1f5eff;
+}
+
+
+/* =========================================================
+   RECOVERY CARD
+========================================================= */
+
+.recoveryCard {
+  padding:
+    clamp(
+      30px,
+      5vw,
+      48px
+    );
+
+  border:
+    1px solid
+    #e0ded8;
+
+  border-radius: 18px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 24px 70px
+    rgb(
+      18 32 51 /
+      8%
+    );
+}
+
+
+/* =========================================================
+   BACK LINK
+========================================================= */
+
+.recoveryBack {
+  width: fit-content;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  margin-bottom: 32px;
+
+  color: #647080;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  transition:
+    color 170ms ease;
+}
+
+
+.recoveryBack:hover {
+  color: #1f5eff;
+}
+
+
+.recoveryBack svg {
+  width: 15px;
+  height: 15px;
+}
+
+
+/* =========================================================
+   RECOVERY ICON
+========================================================= */
+
+.recoveryStatusIcon,
+.recoveryWarningIcon {
+  width: 52px;
+  height: 52px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 22px;
+
+  border-radius: 15px;
+}
+
+
+.recoveryStatusIcon {
+  color: #1f5eff;
+
+  background:
+    rgb(
+      31 94 255 /
+      9%
+    );
+}
+
+
+.recoveryWarningIcon {
+  color: #b54708;
+
+  background: #fff7ed;
+}
+
+
+.recoveryStatusIcon svg,
+.recoveryWarningIcon svg {
+  width: 23px;
+  height: 23px;
+}
+
+
+/* =========================================================
+   RECOVERY HEADER
+========================================================= */
+
+.recoveryHeader {
+  margin-bottom: 30px;
+}
+
+
+.recoveryHeader h1 {
+  margin: 0;
+
+  color: #122033;
+
+  font-family:
+    var(--font-heading);
+
+  font-size:
+    clamp(
+      34px,
+      7vw,
+      46px
+    );
+
+  font-weight: 600;
+
+  line-height: 1.02;
+
+  letter-spacing:
+    -0.055em;
+}
+
+
+.recoveryHeader p {
+  margin:
+    15px
+    0
+    0;
+
+  color: #687482;
+
+  font-size: 14px;
+
+  line-height: 1.7;
+}
+
+
+/* =========================================================
+   RECOVERY NOTICE
+========================================================= */
+
+.recoveryNotice {
+  display: grid;
+
+  grid-template-columns:
+    38px
+    minmax(
+      0,
+      1fr
+    );
+
+  gap: 13px;
+
+  align-items: start;
+
+  margin-bottom: 18px;
+
+  padding: 17px;
+
+  border:
+    1px solid
+    #e2e5ea;
+
+  border-radius: 11px;
+
+  background: #fafafa;
+}
+
+
+.recoveryNotice > svg {
+  width: 19px;
+  height: 19px;
+
+  margin-top: 2px;
+
+  color: #1f5eff;
+}
+
+
+.recoveryNotice strong {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: #253247;
+
+  font-size: 13px;
+}
+
+
+.recoveryNotice p {
+  margin: 0;
+
+  color: #747f8d;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+
+  overflow-wrap: anywhere;
+}
+
+
+.recoveryNotice p span {
+  color: #344154;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   SECURITY COPY
+========================================================= */
+
+.recoverySecurityText {
+  margin:
+    0
+    0
+    22px;
+
+  color: #828b96;
+
+  font-size: 11px;
+
+  line-height: 1.65;
+}
+
+
+/* =========================================================
+   PASSWORD REQUIREMENTS
+========================================================= */
+
+.passwordRequirements {
+  padding: 16px;
+
+  border:
+    1px solid
+    #e3e4e6;
+
+  border-radius: 10px;
+
+  background: #faf9f6;
+}
+
+
+.passwordRequirements > strong {
+  display: block;
+
+  margin-bottom: 11px;
+
+  color: #475366;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing:
+    0.04em;
+
+  text-transform: uppercase;
+}
+
+
+.passwordRequirements > div {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    8px
+    12px;
+}
+
+
+.passwordRequirements span {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color: #8a939d;
+
+  font-size: 11px;
+
+  line-height: 1.4;
+
+  transition:
+    color 170ms ease;
+}
+
+
+.passwordRequirements span svg {
+  width: 13px;
+  height: 13px;
+
+  flex: 0 0 auto;
+
+  opacity: 0.45;
+}
+
+
+.passwordRequirements
+.requirementPassed {
+  color: #067647;
+
+  font-weight: 650;
+}
+
+
+.passwordRequirements
+.requirementPassed svg {
+  opacity: 1;
+}
+
+
+/* =========================================================
+   RECOVERY BUTTONS
+========================================================= */
+
+.primaryLinkButton,
+.secondaryButton {
+  width: 100%;
+
+  min-height: 54px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding:
+    0
+    20px;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    transform 170ms ease,
+    background-color 170ms ease,
+    border-color 170ms ease,
+    opacity 170ms ease;
+}
+
+
+.primaryLinkButton {
+  border:
+    1px solid
+    #1f5eff;
+
+  color: #ffffff;
+
+  background: #1f5eff;
+}
+
+
+.primaryLinkButton:hover {
+  background: #174ed8;
+
+  transform:
+    translateY(
+      -1px
+    );
+}
+
+
+.secondaryButton {
+  margin-bottom: 10px;
+
+  border:
+    1px solid
+    #d7d9dd;
+
+  color: #344154;
+
+  background: #ffffff;
+}
+
+
+.secondaryButton:hover:not(
+  :disabled
+) {
+  border-color: #bec3ca;
+
+  background: #f8f7f4;
+}
+
+
+.secondaryButton:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.6;
+}
+
+
+.secondaryButton svg,
+.primaryLinkButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+
+/* =========================================================
+   RECOVERY FOOTER
+========================================================= */
+
+.recoveryFooter {
+  margin:
+    20px
+    0
+    0;
+
+  color: #737e8b;
+
+  font-size: 12px;
+
+  text-align: center;
+
+  line-height: 1.6;
+}
+
+
+.recoveryFooter a {
+  color: #1f5eff;
+
+  font-weight: 700;
+
+  text-decoration: none;
+}
+
+
+.recoveryFooter a:hover {
+  text-decoration: underline;
+
+  text-underline-offset: 3px;
+}
+
+
+/* =========================================================
+   RECOVERY LOADING
+========================================================= */
+
+.recoveryLoading {
+  min-height: 160px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  color: #687482;
+
+  font-size: 13px;
+}
+
+
+.recoveryLoading svg {
+  width: 19px;
+  height: 19px;
+
+  color: #1f5eff;
+}
+
+
+/* =========================================================
+   RECOVERY MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+  .recoveryPage {
+    align-items: start;
+
+    padding:
+      28px
+      14px
+      48px;
+  }
+
+
+  .recoveryBrand {
+    margin-bottom: 14px;
+  }
+
+
+  .recoveryBrand > span {
+    font-size: 10px;
+  }
+
+
+  .recoveryCard {
+    padding:
+      28px
+      20px
+      30px;
+
+    border-radius: 14px;
+  }
+
+
+  .recoveryBack {
+    margin-bottom: 27px;
+  }
+
+
+  .recoveryHeader {
+    margin-bottom: 26px;
+  }
+
+
+  .recoveryHeader h1 {
+    font-size: 36px;
+  }
+
+
+  .passwordRequirements
+  > div {
+    grid-template-columns:
+      1fr;
+  }
+}
+
+
+/* =========================================================
+   RECOVERY REDUCED MOTION
+========================================================= */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .recoveryBack,
+  .primaryLinkButton,
+  .secondaryButton,
+  .passwordRequirements span {
+    transition: none;
+  }
+}

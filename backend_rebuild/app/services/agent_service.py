@@ -18,7 +18,9 @@ from app.models.enums import (
 )
 from app.models.location import Area
 from app.models.user import User
-from app.repositories.agent_repository import AgentRepository
+from app.repositories.agent_repository import (
+    AgentRepository,
+)
 from app.schemas.agent import (
     AgentApplyRequest,
     AgentDocumentCreate,
@@ -43,8 +45,10 @@ class AgentService:
             session
         )
 
-        self.notifications = NotificationService(
-            session
+        self.notifications = (
+            NotificationService(
+                session
+            )
         )
 
         self.cloudinary_assets = (
@@ -133,11 +137,15 @@ class AgentService:
         else:
             profile = AgentProfile(
                 user_id=user.id,
-                agent_type=payload.agent_type,
+                agent_type=(
+                    payload.agent_type
+                ),
                 business_name=(
                     payload.business_name
                 ),
-                bio=payload.bio,
+                bio=(
+                    payload.bio
+                ),
                 years_experience=(
                     payload.years_experience
                 ),
@@ -159,7 +167,9 @@ class AgentService:
                     agent_profile_id=(
                         profile.id
                     ),
-                    area_id=area.id,
+                    area_id=(
+                        area.id
+                    ),
                 )
             )
 
@@ -237,7 +247,8 @@ class AgentService:
         # --------------------------------------------------------
 
         asset = (
-            await self.cloudinary_assets.verify_agent_document(
+            await self.cloudinary_assets
+            .verify_agent_document(
                 user_id=user.id,
                 public_id=(
                     payload.storage_public_id
@@ -260,14 +271,18 @@ class AgentService:
                 ).where(
                     AgentVerificationDocument.storage_public_id
                     == asset.public_id,
-                    AgentVerificationDocument.purged_at.is_(
+                    AgentVerificationDocument.purged_at
+                    .is_(
                         None
                     ),
                 )
             )
         )
 
-        if existing_document_id is not None:
+        if (
+            existing_document_id
+            is not None
+        ):
             raise HTTPException(
                 status_code=409,
                 detail=(
@@ -276,35 +291,39 @@ class AgentService:
                 ),
             )
 
-        document = AgentVerificationDocument(
-            agent_profile_id=profile.id,
-            document_type=(
-                payload.document_type
-            ),
+        document = (
+            AgentVerificationDocument(
+                agent_profile_id=(
+                    profile.id
+                ),
+                document_type=(
+                    payload.document_type
+                ),
 
-            # Authoritative values from Cloudinary only.
-            file_url=(
-                asset.secure_url
-            ),
-            storage_public_id=(
-                asset.public_id
-            ),
-            file_format=(
-                asset.file_format
-            ),
-            storage_resource_type=(
-                asset.resource_type
-            ),
-            storage_delivery_type=(
-                asset.delivery_type
-            ),
+                # Authoritative values from Cloudinary only.
+                file_url=(
+                    asset.secure_url
+                ),
+                storage_public_id=(
+                    asset.public_id
+                ),
+                file_format=(
+                    asset.file_format
+                ),
+                storage_resource_type=(
+                    asset.resource_type
+                ),
+                storage_delivery_type=(
+                    asset.delivery_type
+                ),
 
-            status=(
-                VerificationDocumentStatus.PENDING
-            ),
-            rejection_reason=None,
-            reviewed_at=None,
-            purged_at=None,
+                status=(
+                    VerificationDocumentStatus.PENDING
+                ),
+                rejection_reason=None,
+                reviewed_at=None,
+                purged_at=None,
+            )
         )
 
         self.session.add(
@@ -352,8 +371,14 @@ class AgentService:
         profile_id: UUID,
         admin: User,
     ) -> AgentProfile:
+        # Lock the application row before checking its state.
+        #
+        # If two administrators try to approve/reject the same
+        # application simultaneously, the second transaction waits
+        # for the first and then observes the new committed state.
         profile = (
-            await self.repository.get_by_id(
+            await self.repository
+            .get_by_id_for_update(
                 profile_id
             )
         )
@@ -398,7 +423,8 @@ class AgentService:
             if (
                 document.status
                 == VerificationDocumentStatus.PENDING
-                and document.purged_at is None
+                and document.purged_at
+                is None
                 and document.storage_public_id
                 is not None
             )
@@ -451,7 +477,9 @@ class AgentService:
             document.reviewed_at = now
 
         self.notifications.create(
-            user_id=profile.user_id,
+            user_id=(
+                profile.user_id
+            ),
             notification_type=(
                 NotificationType.AGENT_APPROVED
             ),
@@ -486,8 +514,11 @@ class AgentService:
         admin: User,
         payload: AgentRejectRequest,
     ) -> AgentProfile:
+        # Use the same row lock as approval so conflicting admin
+        # decisions cannot race against the same PENDING state.
         profile = (
-            await self.repository.get_by_id(
+            await self.repository
+            .get_by_id_for_update(
                 profile_id
             )
         )
@@ -579,7 +610,9 @@ class AgentService:
             )
 
         self.notifications.create(
-            user_id=profile.user_id,
+            user_id=(
+                profile.user_id
+            ),
             notification_type=(
                 NotificationType.AGENT_REJECTED
             ),
@@ -594,7 +627,9 @@ class AgentService:
                 "agent_profile_id": str(
                     profile.id
                 ),
-                "reason": reason,
+                "reason": (
+                    reason
+                ),
             },
         )
 
@@ -636,8 +671,12 @@ class AgentService:
         )
 
         if (
-            len(areas)
-            != len(unique_ids)
+            len(
+                areas
+            )
+            != len(
+                unique_ids
+            )
         ):
             raise HTTPException(
                 status_code=422,

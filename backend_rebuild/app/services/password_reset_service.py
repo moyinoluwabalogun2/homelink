@@ -1,9 +1,9 @@
 from datetime import UTC, datetime, timedelta
+import logging
 from uuid import uuid4
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
 from app.core.config import get_settings
 from app.core.security import (
@@ -16,12 +16,21 @@ from app.core.security import (
 )
 from app.models.enums import AccountStatus
 from app.models.password_reset import PasswordResetToken
-from app.repositories.auth_session_repository import AuthSessionRepository
-from app.repositories.user_repository import UserRepository
-from app.services.email_service import EmailService
+from app.repositories.auth_session_repository import (
+    AuthSessionRepository,
+)
+from app.repositories.user_repository import (
+    UserRepository,
+)
+from app.services.email_service import (
+    EmailDeliveryError,
+    EmailService,
+)
 
 
 settings = get_settings()
+
+logger = logging.getLogger(__name__)
 
 
 class PasswordResetError(Exception):
@@ -29,11 +38,27 @@ class PasswordResetError(Exception):
 
 
 class PasswordResetService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+    ) -> None:
         self.session = session
-        self.users = UserRepository(session)
-        self.auth_sessions = AuthSessionRepository(session)
+
+        self.users = UserRepository(
+            session,
+        )
+
+        self.auth_sessions = (
+            AuthSessionRepository(
+                session,
+            )
+        )
+
         self.email_service = EmailService()
+
+    # =========================================================
+    # REQUEST PASSWORD RESET
+    # =========================================================
 
     async def request_reset(
         self,
@@ -41,38 +66,103 @@ class PasswordResetService:
         email: str,
         requested_ip: str | None,
     ) -> None:
-        user = await self.users.get_by_email(email)
+        user = await self.users.get_by_email(
+            email,
+        )
 
-        if user is None or user.deleted_at is not None or user.status != AccountStatus.ACTIVE:
+        # Deliberately return silently.
+        #
+        # The API gives the same response for:
+        # - nonexistent accounts
+        # - deleted accounts
+        # - unavailable accounts
+        #
+        # This prevents account enumeration.
+        if (
+            user is None
+            or user.deleted_at is not None
+            or user.status
+            != AccountStatus.ACTIVE
+        ):
             return
 
-        now = datetime.now(UTC)
+        now = datetime.now(
+            UTC,
+        )
+
+        # Invalidate any existing unused reset links.
         await self.session.execute(
-            update(PasswordResetToken)
-            .where(
-                PasswordResetToken.user_id == user.id,
-                PasswordResetToken.used_at.is_(None),
+            update(
+                PasswordResetToken,
             )
-            .values(used_at=now)
+            .where(
+                PasswordResetToken.user_id
+                == user.id,
+                PasswordResetToken.used_at
+                .is_(None),
+            )
+            .values(
+                used_at=now,
+            )
         )
 
         token_id = uuid4()
-        raw_token = create_compound_token(token_id)
+
+        raw_token = create_compound_token(
+            token_id,
+        )
+
         self.session.add(
             PasswordResetToken(
                 id=token_id,
                 user_id=user.id,
-                token_hash=hash_compound_token(raw_token),
-                expires_at=now + timedelta(minutes=settings.password_reset_expire_minutes),
-                requested_ip=requested_ip[:45] if requested_ip else None,
+                token_hash=(
+                    hash_compound_token(
+                        raw_token,
+                    )
+                ),
+                expires_at=(
+                    now
+                    + timedelta(
+                        minutes=(
+                            settings
+                            .password_reset_expire_minutes
+                        )
+                    )
+                ),
+                requested_ip=(
+                    requested_ip[:45]
+                    if requested_ip
+                    else None
+                ),
             )
         )
+
+        # Persist only the token hash.
+        # The raw token exists only for delivery to the user.
         await self.session.commit()
-        await self.email_service.send_password_reset(
-            recipient_email=user.email,
-            recipient_name=user.full_name,
-            raw_token=raw_token,
-        )
+
+        try:
+            await self.email_service.send_password_reset(
+                recipient_email=user.email,
+                recipient_name=user.full_name,
+                raw_token=raw_token,
+            )
+
+        except EmailDeliveryError:
+            # Do not leak delivery failure through the public
+            # forgot-password response.
+            #
+            # Also never log raw_token or the reset URL.
+            logger.exception(
+                "Password reset email delivery failed "
+                "for user_id=%s.",
+                user.id,
+            )
+
+    # =========================================================
+    # RESET PASSWORD
+    # =========================================================
 
     async def reset_password(
         self,
@@ -80,48 +170,143 @@ class PasswordResetService:
         raw_token: str,
         new_password: str,
     ) -> None:
+        # -----------------------------------------------------
+        # PARSE TOKEN
+        # -----------------------------------------------------
+
         try:
-            token_id = parse_compound_token(raw_token)
+            token_id = parse_compound_token(
+                raw_token,
+            )
+
         except CompoundTokenError as exc:
-            raise PasswordResetError("Reset link is invalid or expired.") from exc
+            raise PasswordResetError(
+                "Reset link is invalid or expired."
+            ) from exc
+
+        # -----------------------------------------------------
+        # LOCK RESET TOKEN ONLY
+        #
+        # IMPORTANT:
+        #
+        # Do NOT joinedload(User) here.
+        #
+        # PostgreSQL does not allow FOR UPDATE to lock the
+        # nullable side of the LEFT OUTER JOIN generated by
+        # joined eager loading.
+        #
+        # Lock the password reset token first, then fetch and
+        # lock the user separately.
+        # -----------------------------------------------------
 
         token = await self.session.scalar(
-            select(PasswordResetToken)
-            .options(joinedload(PasswordResetToken.user))
-            .where(PasswordResetToken.id == token_id)
+            select(
+                PasswordResetToken,
+            )
+            .where(
+                PasswordResetToken.id
+                == token_id,
+            )
             .with_for_update()
         )
-        now = datetime.now(UTC)
+
+        now = datetime.now(
+            UTC,
+        )
+
+        # -----------------------------------------------------
+        # VALIDATE TOKEN
+        # -----------------------------------------------------
 
         if (
             token is None
             or token.used_at is not None
             or token.expires_at <= now
-            or not compound_token_matches(raw_token, token.token_hash)
+            or not compound_token_matches(
+                raw_token,
+                token.token_hash,
+            )
         ):
-            raise PasswordResetError("Reset link is invalid or expired.")
+            raise PasswordResetError(
+                "Reset link is invalid or expired."
+            )
 
-        user = token.user
-        if user.deleted_at is not None or user.status != AccountStatus.ACTIVE:
-            raise PasswordResetError("Account is unavailable.")
+        # -----------------------------------------------------
+        # LOCK USER SEPARATELY
+        # -----------------------------------------------------
 
-        user.password_hash = hash_password(new_password)
+        user = (
+            await self.users.get_by_id_for_update(
+                token.user_id,
+            )
+        )
+
+        if (
+            user is None
+            or user.deleted_at is not None
+            or user.status
+            != AccountStatus.ACTIVE
+        ):
+            raise PasswordResetError(
+                "Account is unavailable."
+            )
+
+        # -----------------------------------------------------
+        # UPDATE PASSWORD
+        # -----------------------------------------------------
+
+        user.password_hash = hash_password(
+            new_password,
+        )
+
         user.password_changed_at = now
+
+        # Existing access tokens carry auth_version.
+        # Incrementing this invalidates them.
         user.auth_version += 1
+
+        # Clear failed-login / forced-reset state.
         user.failed_login_attempts = 0
         user.locked_until = None
         user.requires_password_reset = False
         user.last_failed_login_at = None
+
+        # -----------------------------------------------------
+        # MAKE CURRENT TOKEN SINGLE USE
+        # -----------------------------------------------------
+
         token.used_at = now
 
+        # -----------------------------------------------------
+        # INVALIDATE ALL OTHER RESET TOKENS
+        # -----------------------------------------------------
+
         await self.session.execute(
-            update(PasswordResetToken)
-            .where(
-                PasswordResetToken.user_id == user.id,
-                PasswordResetToken.id != token.id,
-                PasswordResetToken.used_at.is_(None),
+            update(
+                PasswordResetToken,
             )
-            .values(used_at=now)
+            .where(
+                PasswordResetToken.user_id
+                == user.id,
+                PasswordResetToken.id
+                != token.id,
+                PasswordResetToken.used_at
+                .is_(None),
+            )
+            .values(
+                used_at=now,
+            )
         )
-        await self.auth_sessions.revoke_all_for_user(user_id=user.id, revoked_at=now)
+
+        # -----------------------------------------------------
+        # REVOKE ALL EXISTING LOGIN SESSIONS
+        # -----------------------------------------------------
+
+        await self.auth_sessions.revoke_all_for_user(
+            user_id=user.id,
+            revoked_at=now,
+        )
+
+        # Password update + token consumption + session
+        # revocation happen atomically.
         await self.session.commit()

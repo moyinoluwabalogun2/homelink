@@ -52,14 +52,26 @@ router = APIRouter(
 settings = get_settings()
 
 
+# ============================================================
+# CLIENT METADATA
+# ============================================================
+
 def get_client_metadata(
     request: Request,
 ) -> tuple[str | None, str]:
     return (
-        request.headers.get("user-agent"),
-        get_client_ip(request),
+        request.headers.get(
+            "user-agent"
+        ),
+        get_client_ip(
+            request
+        ),
     )
 
+
+# ============================================================
+# RATE LIMITING
+# ============================================================
 
 async def apply_limit(
     redis: RedisClient,
@@ -75,23 +87,39 @@ async def apply_limit(
             limit=limit,
             window_seconds=window_seconds,
         )
+
     except RateLimitExceeded as exc:
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many requests. Please try again later.",
+            status_code=(
+                status.HTTP_429_TOO_MANY_REQUESTS
+            ),
+            detail=(
+                "Too many requests. "
+                "Please try again later."
+            ),
             headers={
-                "Retry-After": str(exc.retry_after),
+                "Retry-After":
+                    str(
+                        exc.retry_after
+                    ),
             },
         ) from exc
+
     except RateLimiterUnavailable as exc:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=(
+                status.HTTP_503_SERVICE_UNAVAILABLE
+            ),
             detail=(
-                "Authentication protection is temporarily "
-                "unavailable."
+                "Authentication protection "
+                "is temporarily unavailable."
             ),
         ) from exc
 
+
+# ============================================================
+# REFRESH COOKIE
+# ============================================================
 
 def set_refresh_cookie(
     response: Response,
@@ -127,25 +155,45 @@ def clear_refresh_cookie(
     )
 
 
+# ============================================================
+# AUTH RESPONSE
+#
+# Keep this refresh.
+#
+# Auth operations can update DB-managed values such as
+# updated_at. Refreshing while we are still inside SQLAlchemy's
+# async context prevents Pydantic from trying to lazy-load an
+# expired attribute during serialization.
+# ============================================================
+
 async def build_auth_response(
     result: AuthResult,
     session: AsyncSession,
 ) -> AuthResponse:
     await session.refresh(
-        result.user,
+        result.user
     )
 
     return AuthResponse(
-        access_token=result.access_token,
+        access_token=(
+            result.access_token
+        ),
         expires_in=(
-            settings.access_token_expire_minutes
+            settings
+            .access_token_expire_minutes
             * 60
         ),
-        user=UserRead.model_validate(
-            result.user,
+        user=(
+            UserRead.model_validate(
+                result.user
+            )
         ),
     )
 
+
+# ============================================================
+# REGISTER
+# ============================================================
 
 @router.post(
     "/register",
@@ -159,14 +207,17 @@ async def register(
     session: DbSession,
     redis: RedisClient,
 ) -> AuthResponse:
-    user_agent, ip_address = get_client_metadata(
-        request,
+    (
+        user_agent,
+        ip_address,
+    ) = get_client_metadata(
+        request
     )
 
     await apply_limit(
         redis,
         key=(
-            f"register:ip:"
+            "register:ip:"
             f"{fingerprint(ip_address)}"
         ),
         limit=5,
@@ -175,16 +226,21 @@ async def register(
 
     try:
         result = await AuthService(
-            session,
+            session
         ).register(
             payload,
             user_agent=user_agent,
             ip_address=ip_address,
         )
+
     except DuplicateAccountError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
+            status_code=(
+                status.HTTP_409_CONFLICT
+            ),
+            detail=str(
+                exc
+            ),
         ) from exc
 
     set_refresh_cookie(
@@ -197,6 +253,10 @@ async def register(
         session,
     )
 
+
+# ============================================================
+# LOGIN
+# ============================================================
 
 @router.post(
     "/login",
@@ -209,14 +269,17 @@ async def login(
     session: DbSession,
     redis: RedisClient,
 ) -> AuthResponse:
-    user_agent, ip_address = get_client_metadata(
-        request,
+    (
+        user_agent,
+        ip_address,
+    ) = get_client_metadata(
+        request
     )
 
     await apply_limit(
         redis,
         key=(
-            f"login:ip:"
+            "login:ip:"
             f"{fingerprint(ip_address)}"
         ),
         limit=20,
@@ -226,7 +289,7 @@ async def login(
     await apply_limit(
         redis,
         key=(
-            f"login:account:"
+            "login:account:"
             f"{fingerprint(str(payload.email))}"
         ),
         limit=5,
@@ -235,34 +298,58 @@ async def login(
 
     try:
         result = await AuthService(
-            session,
+            session
         ).login(
             payload,
             user_agent=user_agent,
             ip_address=ip_address,
         )
+
     except InvalidCredentialsError as exc:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.",
+            status_code=(
+                status.HTTP_401_UNAUTHORIZED
+            ),
+            detail=(
+                "Incorrect email "
+                "or password."
+            ),
         ) from exc
+
     except AccountLockedError as exc:
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=str(exc),
+            status_code=(
+                status.HTTP_429_TOO_MANY_REQUESTS
+            ),
+            detail=str(
+                exc
+            ),
             headers={
-                "Retry-After": str(exc.retry_after),
+                "Retry-After":
+                    str(
+                        exc.retry_after
+                    ),
             },
         ) from exc
+
     except PasswordResetRequiredError as exc:
         raise HTTPException(
-            status_code=status.HTTP_423_LOCKED,
-            detail=str(exc),
+            status_code=(
+                status.HTTP_423_LOCKED
+            ),
+            detail=str(
+                exc
+            ),
         ) from exc
+
     except AccountUnavailableError as exc:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc),
+            status_code=(
+                status.HTTP_403_FORBIDDEN
+            ),
+            detail=str(
+                exc
+            ),
         ) from exc
 
     set_refresh_cookie(
@@ -275,6 +362,10 @@ async def login(
         session,
     )
 
+
+# ============================================================
+# REFRESH ACCESS TOKEN
+# ============================================================
 
 @router.post(
     "/refresh",
@@ -287,55 +378,69 @@ async def refresh_access_token(
     redis: RedisClient,
 ) -> AuthResponse:
     ip_address = get_client_ip(
-        request,
+        request
     )
 
     await apply_limit(
         redis,
         key=(
-            f"refresh:ip:"
+            "refresh:ip:"
             f"{fingerprint(ip_address)}"
         ),
         limit=60,
         window_seconds=3600,
     )
 
-    refresh_token = request.cookies.get(
-        settings.refresh_cookie_name,
+    refresh_token = (
+        request.cookies.get(
+            settings.refresh_cookie_name
+        )
     )
 
     if not refresh_token:
         clear_refresh_cookie(
-            response,
+            response
         )
 
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token is missing.",
+            status_code=(
+                status.HTTP_401_UNAUTHORIZED
+            ),
+            detail=(
+                "Refresh token "
+                "is missing."
+            ),
         )
 
     try:
         result = await AuthService(
-            session,
+            session
         ).refresh(
             refresh_token,
-            user_agent=request.headers.get(
-                "user-agent",
+            user_agent=(
+                request.headers.get(
+                    "user-agent"
+                )
             ),
             ip_address=ip_address,
         )
+
     except (
         InvalidRefreshTokenError,
         AccountUnavailableError,
         PasswordResetRequiredError,
     ) as exc:
         clear_refresh_cookie(
-            response,
+            response
         )
 
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(exc),
+            status_code=(
+                status.HTTP_401_UNAUTHORIZED
+            ),
+            detail=str(
+                exc
+            ),
         ) from exc
 
     set_refresh_cookie(
@@ -349,29 +454,41 @@ async def refresh_access_token(
     )
 
 
+# ============================================================
+# LOGOUT
+# ============================================================
+
 @router.post(
     "/logout",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=(
+        status.HTTP_204_NO_CONTENT
+    ),
 )
 async def logout(
     request: Request,
     response: Response,
     session: DbSession,
 ) -> None:
-    refresh_token = request.cookies.get(
-        settings.refresh_cookie_name,
+    refresh_token = (
+        request.cookies.get(
+            settings.refresh_cookie_name
+        )
     )
 
     await AuthService(
-        session,
+        session
     ).logout(
-        refresh_token,
+        refresh_token
     )
 
     clear_refresh_cookie(
-        response,
+        response
     )
 
+
+# ============================================================
+# LOGOUT ALL
+# ============================================================
 
 @router.post(
     "/logout-all",
@@ -383,13 +500,13 @@ async def logout_all(
     current_user: CurrentUser,
 ) -> MessageResponse:
     await AuthService(
-        session,
+        session
     ).logout_all(
-        current_user,
+        current_user
     )
 
     clear_refresh_cookie(
-        response,
+        response
     )
 
     return MessageResponse(
@@ -399,6 +516,10 @@ async def logout_all(
         ),
     )
 
+
+# ============================================================
+# FORGOT PASSWORD
+# ============================================================
 
 @router.post(
     "/forgot-password",
@@ -411,13 +532,13 @@ async def forgot_password(
     redis: RedisClient,
 ) -> MessageResponse:
     ip_address = get_client_ip(
-        request,
+        request
     )
 
     await apply_limit(
         redis,
         key=(
-            f"forgot-password:ip:"
+            "forgot-password:ip:"
             f"{fingerprint(ip_address)}"
         ),
         limit=5,
@@ -427,7 +548,7 @@ async def forgot_password(
     await apply_limit(
         redis,
         key=(
-            f"forgot-password:account:"
+            "forgot-password:account:"
             f"{fingerprint(str(payload.email))}"
         ),
         limit=3,
@@ -435,9 +556,11 @@ async def forgot_password(
     )
 
     await PasswordResetService(
-        session,
+        session
     ).request_reset(
-        email=str(payload.email),
+        email=str(
+            payload.email
+        ),
         requested_ip=ip_address,
     )
 
@@ -448,6 +571,10 @@ async def forgot_password(
         ),
     )
 
+
+# ============================================================
+# RESET PASSWORD
+# ============================================================
 
 @router.post(
     "/reset-password",
@@ -460,13 +587,13 @@ async def reset_password(
     redis: RedisClient,
 ) -> MessageResponse:
     ip_address = get_client_ip(
-        request,
+        request
     )
 
     await apply_limit(
         redis,
         key=(
-            f"reset-password:ip:"
+            "reset-password:ip:"
             f"{fingerprint(ip_address)}"
         ),
         limit=10,
@@ -475,15 +602,22 @@ async def reset_password(
 
     try:
         await PasswordResetService(
-            session,
+            session
         ).reset_password(
             raw_token=payload.token,
-            new_password=payload.new_password,
+            new_password=(
+                payload.new_password
+            ),
         )
+
     except PasswordResetError as exc:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=str(
+                exc
+            ),
         ) from exc
 
     return MessageResponse(
@@ -493,6 +627,10 @@ async def reset_password(
         ),
     )
 
+
+# ============================================================
+# CHANGE PASSWORD
+# ============================================================
 
 @router.post(
     "/change-password",
@@ -508,7 +646,7 @@ async def change_password(
     await apply_limit(
         redis,
         key=(
-            f"change-password:user:"
+            "change-password:user:"
             f"{current_user.id}"
         ),
         limit=10,
@@ -517,19 +655,24 @@ async def change_password(
 
     try:
         await AuthService(
-            session,
+            session
         ).change_password(
             user_id=current_user.id,
             payload=payload,
         )
+
     except InvalidCurrentPasswordError as exc:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=str(
+                exc
+            ),
         ) from exc
 
     clear_refresh_cookie(
-        response,
+        response
     )
 
     return MessageResponse(
