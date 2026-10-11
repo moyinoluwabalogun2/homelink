@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -13,6 +14,7 @@ import {
   FileCheck2,
   FileImage,
   Loader2,
+  RefreshCw,
   RotateCcw,
   ShieldCheck,
   UploadCloud,
@@ -23,12 +25,25 @@ import { toast } from "sonner";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import shared from "@/components/dashboard/DashboardPage.module.css";
 
-import { getApiErrorMessage } from "@/lib/api-errors";
-import { titleCase } from "@/lib/formatters";
+import {
+  getApiErrorMessage,
+} from "@/lib/api-errors";
 
-import { agentService } from "@/services/agent-service";
-import { locationService } from "@/services/location-service";
-import { mediaService } from "@/services/media-service";
+import {
+  titleCase,
+} from "@/lib/formatters";
+
+import {
+  agentService,
+} from "@/services/agent-service";
+
+import {
+  locationService,
+} from "@/services/location-service";
+
+import {
+  mediaService,
+} from "@/services/media-service";
 
 import type {
   AgentApplicationProfile,
@@ -37,7 +52,9 @@ import type {
   VerificationDocumentType,
 } from "@/types/agent";
 
-import type { AreaRead } from "@/types/location";
+import type {
+  AreaRead,
+} from "@/types/location";
 
 import styles from "./page.module.css";
 
@@ -75,11 +92,33 @@ function documentLabel(
 }
 
 
+function clampProgress(
+  value: number,
+): number {
+  if (
+    !Number.isFinite(value)
+  ) {
+    return 0;
+  }
+
+  return Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(value),
+    ),
+  );
+}
+
+
 export default function AgentApplicationPage() {
   const fileInputRef =
     useRef<HTMLInputElement | null>(
       null,
     );
+
+  const requestVersionRef =
+    useRef(0);
 
   const [
     profile,
@@ -102,6 +141,12 @@ export default function AgentApplicationPage() {
     setLoading,
   ] =
     useState(true);
+
+  const [
+    loadError,
+    setLoadError,
+  ] =
+    useState("");
 
   const [
     applicationBusy,
@@ -172,97 +217,162 @@ export default function AgentApplicationPage() {
     );
 
 
-  /* =========================================================
-     INITIAL LOAD
-  ========================================================= */
+  const populateApplication =
+    useCallback(
+      (
+        application:
+          AgentApplicationProfile,
+      ) => {
+        setAgentType(
+          application.agent_type,
+        );
 
-  useEffect(() => {
-    Promise.all([
-      agentService.getMine(),
-      locationService.listAreas(),
-    ])
-      .then(
-        ([
-          mine,
-          areaItems,
-        ]) => {
+        setBusinessName(
+          application.business_name ??
+            "",
+        );
+
+        setBio(
+          application.bio,
+        );
+
+        setYears(
+          String(
+            application
+              .years_experience,
+          ),
+        );
+
+        setAreaIds(
+          application
+            .coverage_areas
+            .map(
+              (coverage) =>
+                coverage.area.id,
+            ),
+        );
+      },
+      [],
+    );
+
+
+  const loadPage =
+    useCallback(
+      async () => {
+        const requestVersion =
+          ++requestVersionRef.current;
+
+        setLoading(true);
+        setLoadError("");
+
+        const [
+          profileResult,
+          areaResult,
+        ] =
+          await Promise.allSettled([
+            agentService.getMine(),
+            locationService.listAreas(),
+          ]);
+
+        if (
+          requestVersion !==
+          requestVersionRef.current
+        ) {
+          return;
+        }
+
+        if (
+          profileResult.status ===
+          "fulfilled"
+        ) {
           setProfile(
-            mine,
+            profileResult.value,
           );
 
-          setAreas(
-            areaItems,
-          );
-
-          if (mine) {
-            setAgentType(
-              mine.agent_type,
-            );
-
-            setBusinessName(
-              mine.business_name ?? "",
-            );
-
-            setBio(
-              mine.bio,
-            );
-
-            setYears(
-              String(
-                mine.years_experience,
-              ),
-            );
-
-            setAreaIds(
-              mine.coverage_areas.map(
-                (coverage) =>
-                  coverage.area.id,
-              ),
+          if (
+            profileResult.value
+          ) {
+            populateApplication(
+              profileResult.value,
             );
           }
-        },
-      )
-      .catch(
-        (reason) => {
-          toast.error(
+        }
+
+        if (
+          areaResult.status ===
+          "fulfilled"
+        ) {
+          setAreas(
+            areaResult.value,
+          );
+        }
+
+        const failures = [
+          profileResult,
+          areaResult,
+        ].filter(
+          (result) =>
+            result.status ===
+            "rejected",
+        );
+
+        if (
+          failures.length > 0
+        ) {
+          const firstFailure =
+            failures[
+              0
+            ] as PromiseRejectedResult;
+
+          setLoadError(
             getApiErrorMessage(
-              reason,
+              firstFailure.reason,
+              "Your application information could not be fully loaded.",
             ),
           );
-        },
-      )
-      .finally(
-        () => {
-          setLoading(
-            false,
-          );
-        },
-      );
-  }, []);
+        }
+
+        setLoading(false);
+      },
+      [
+        populateApplication,
+      ],
+    );
 
 
-  /* =========================================================
-     DOCUMENT COUNTS
-  ========================================================= */
+  useEffect(() => {
+    void loadPage();
+
+    return () => {
+      requestVersionRef.current +=
+        1;
+    };
+  }, [
+    loadPage,
+  ]);
+
 
   const currentDocuments =
     useMemo(
       () =>
         profile?.documents.filter(
           (document) =>
-            document.purged_at === null,
+            document.purged_at ===
+            null,
         ) ?? [],
       [
         profile,
       ],
     );
 
+
   const pendingDocuments =
     useMemo(
       () =>
         currentDocuments.filter(
           (document) =>
-            document.status === "pending",
+            document.status ===
+            "pending",
         ),
       [
         currentDocuments,
@@ -270,13 +380,27 @@ export default function AgentApplicationPage() {
     );
 
 
-  /* =========================================================
-     APPLICATION
-  ========================================================= */
+  const selectedAreas =
+    useMemo(
+      () =>
+        new Set(
+          areaIds,
+        ),
+      [
+        areaIds,
+      ],
+    );
+
 
   const toggleArea = (
     areaId: string,
   ) => {
+    if (
+      applicationBusy
+    ) {
+      return;
+    }
+
     setAreaIds(
       (current) =>
         current.includes(
@@ -298,20 +422,52 @@ export default function AgentApplicationPage() {
     async (
       resubmission: boolean,
     ) => {
+      if (
+        applicationBusy ||
+        uploading
+      ) {
+        return;
+      }
+
       const numericYears =
-        Number(
-          years,
-        );
+        Number(years);
 
       if (
-        !Number.isFinite(
+        !Number.isInteger(
           numericYears,
         ) ||
         numericYears < 0 ||
         numericYears > 80
       ) {
         toast.error(
-          "Enter a valid number of years of experience.",
+          "Enter a whole number between 0 and 80 for years of experience.",
+        );
+
+        return;
+      }
+
+      const normalizedBio =
+        bio.trim();
+
+      const normalizedBusinessName =
+        businessName.trim();
+
+      if (
+        normalizedBio.length <
+        40
+      ) {
+        toast.error(
+          "Your professional bio must be at least 40 characters.",
+        );
+
+        return;
+      }
+
+      if (
+        areaIds.length === 0
+      ) {
+        toast.error(
+          "Choose at least one coverage area.",
         );
 
         return;
@@ -323,39 +479,22 @@ export default function AgentApplicationPage() {
             agentType,
 
           business_name:
-            businessName.trim() ||
+            normalizedBusinessName ||
             null,
 
           bio:
-            bio.trim(),
+            normalizedBio,
 
           years_experience:
             numericYears,
 
           area_ids:
-            areaIds,
+            Array.from(
+              new Set(
+                areaIds,
+              ),
+            ),
         };
-
-      if (
-        payload.bio.length < 40
-      ) {
-        toast.error(
-          "Your professional bio must be at least 40 characters.",
-        );
-
-        return;
-      }
-
-      if (
-        payload.area_ids.length ===
-        0
-      ) {
-        toast.error(
-          "Choose at least one coverage area.",
-        );
-
-        return;
-      }
 
       setApplicationBusy(
         true,
@@ -371,17 +510,20 @@ export default function AgentApplicationPage() {
           updated,
         );
 
+        populateApplication(
+          updated,
+        );
+
         toast.success(
           resubmission
             ? "Application resubmitted. Add a current verification document."
             : "Application submitted. Add a verification document next.",
         );
-      } catch (
-        reason
-      ) {
+      } catch (reason) {
         toast.error(
           getApiErrorMessage(
             reason,
+            "Your application could not be submitted.",
           ),
         );
       } finally {
@@ -392,18 +534,30 @@ export default function AgentApplicationPage() {
     };
 
 
-  /* =========================================================
-     FILE SELECTION
-  ========================================================= */
+  const clearSelectedFile =
+    () => {
+      setSelectedFile(
+        null,
+      );
+
+      setUploadProgress(
+        0,
+      );
+
+      if (
+        fileInputRef.current
+      ) {
+        fileInputRef.current.value =
+          "";
+      }
+    };
+
 
   const selectDocument = (
     file: File | null,
   ) => {
     if (!file) {
-      setSelectedFile(
-        null,
-      );
-
+      clearSelectedFile();
       return;
     }
 
@@ -412,16 +566,11 @@ export default function AgentApplicationPage() {
         file.type,
       )
     ) {
+      clearSelectedFile();
+
       toast.error(
         "Use a JPG, PNG or WebP image.",
       );
-
-      if (
-        fileInputRef.current
-      ) {
-        fileInputRef.current.value =
-          "";
-      }
 
       return;
     }
@@ -430,16 +579,11 @@ export default function AgentApplicationPage() {
       file.size >
       MAX_DOCUMENT_BYTES
     ) {
+      clearSelectedFile();
+
       toast.error(
         "Verification images must be 10 MB or smaller.",
       );
-
-      if (
-        fileInputRef.current
-      ) {
-        fileInputRef.current.value =
-          "";
-      }
 
       return;
     }
@@ -454,10 +598,6 @@ export default function AgentApplicationPage() {
   };
 
 
-  /* =========================================================
-     PROTECTED DOCUMENT UPLOAD
-  ========================================================= */
-
   const uploadDocument =
     async () => {
       if (
@@ -465,7 +605,8 @@ export default function AgentApplicationPage() {
         profile.status !==
           "pending" ||
         !selectedFile ||
-        uploading
+        uploading ||
+        applicationBusy
       ) {
         return;
       }
@@ -494,15 +635,17 @@ export default function AgentApplicationPage() {
               onProgress:
                 (progress) => {
                   setUploadProgress(
-                    progress,
+                    clampProgress(
+                      progress,
+                    ),
                   );
                 },
             },
           );
 
         const updated =
-          await agentService.addDocument(
-            {
+          await agentService
+            .addDocument({
               document_type:
                 documentType,
 
@@ -520,34 +663,18 @@ export default function AgentApplicationPage() {
 
               storage_delivery_type:
                 uploaded.deliveryType,
-            },
-          );
+            });
 
         setProfile(
           updated,
         );
 
-        setSelectedFile(
-          null,
-        );
-
-        setUploadProgress(
-          0,
-        );
-
-        if (
-          fileInputRef.current
-        ) {
-          fileInputRef.current.value =
-            "";
-        }
+        clearSelectedFile();
 
         toast.success(
           "Verification document uploaded securely.",
         );
-      } catch (
-        reason
-      ) {
+      } catch (reason) {
         toast.error(
           getApiErrorMessage(
             reason,
@@ -562,210 +689,214 @@ export default function AgentApplicationPage() {
     };
 
 
-  /* =========================================================
-     APPLICATION FORM
-  ========================================================= */
-
   const renderApplicationForm = (
     isResubmission: boolean,
-  ) => {
-    return (
-      <section
+  ) => (
+    <section
+      className={
+        styles.applicationCard
+      }
+      aria-labelledby={
+        isResubmission
+          ? "resubmit-title"
+          : "application-title"
+      }
+    >
+      <div
         className={
-          styles.applicationCard
+          styles.sectionHeading
         }
       >
-        <div
-          className={
-            styles.sectionHeading
-          }
-        >
-          <span>
-            {isResubmission ? (
-              <RotateCcw
-                aria-hidden="true"
-              />
-            ) : (
-              <ShieldCheck
-                aria-hidden="true"
-              />
-            )}
-          </span>
-
-          <div>
-            <h2>
-              {isResubmission
-                ? "Update and resubmit"
-                : "Apply for verification"}
-            </h2>
-
-            <p>
-              {isResubmission
-                ? "Correct your application details, resubmit, then upload a current verification document."
-                : "Tell HomeLink about your work before uploading your verification document."}
-            </p>
-          </div>
-        </div>
-
-
-        <div
-          className={
-            styles.formGrid
-          }
-        >
-          <label>
-            <span>
-              Application type
-            </span>
-
-            <select
-              value={
-                agentType
-              }
-              disabled={
-                applicationBusy
-              }
-              onChange={
-                (event) => {
-                  setAgentType(
-                    event.target
-                      .value as AgentType,
-                  );
-                }
-              }
-            >
-              <option
-                value="agent"
-              >
-                Agent
-              </option>
-
-              <option
-                value="landlord"
-              >
-                Landlord
-              </option>
-            </select>
-          </label>
-
-
-          <label>
-            <span>
-              Business name
-              <small>
-                Optional
-              </small>
-            </span>
-
-            <input
-              value={
-                businessName
-              }
-              maxLength={
-                180
-              }
-              disabled={
-                applicationBusy
-              }
-              onChange={
-                (event) => {
-                  setBusinessName(
-                    event.target
-                      .value,
-                  );
-                }
-              }
+        <span>
+          {isResubmission ? (
+            <RotateCcw
+              aria-hidden="true"
             />
-          </label>
-
-
-          <label>
-            <span>
-              Years of experience
-            </span>
-
-            <input
-              type="number"
-              min="0"
-              max="80"
-              value={
-                years
-              }
-              disabled={
-                applicationBusy
-              }
-              onChange={
-                (event) => {
-                  setYears(
-                    event.target
-                      .value,
-                  );
-                }
-              }
+          ) : (
+            <ShieldCheck
+              aria-hidden="true"
             />
-          </label>
-        </div>
+          )}
+        </span>
 
-
-        <label
-          className={
-            styles.bio
-          }
-        >
-          <span>
-            Professional bio
-          </span>
-
-          <textarea
-            rows={
-              6
+        <div>
+          <h2
+            id={
+              isResubmission
+                ? "resubmit-title"
+                : "application-title"
             }
+          >
+            {isResubmission
+              ? "Update and resubmit"
+              : "Apply for verification"}
+          </h2>
+
+          <p>
+            {isResubmission
+              ? "Correct your application details, resubmit, then upload a current verification document."
+              : "Tell HomeLink about your work before uploading your verification document."}
+          </p>
+        </div>
+      </div>
+
+      <div
+        className={
+          styles.formGrid
+        }
+      >
+        <label>
+          <span>
+            Application type
+          </span>
+
+          <select
             value={
-              bio
-            }
-            maxLength={
-              3000
+              agentType
             }
             disabled={
               applicationBusy
             }
             onChange={
               (event) => {
-                setBio(
+                setAgentType(
                   event.target
-                    .value,
+                    .value as AgentType,
                 );
               }
             }
-            placeholder="Describe your experience, the properties you manage and how you support clients."
-          />
+          >
+            <option value="agent">
+              Agent
+            </option>
 
-          <small>
-            {bio.length}
-            /3000 · minimum 40
-            characters
-          </small>
+            <option value="landlord">
+              Landlord
+            </option>
+          </select>
         </label>
 
+        <label>
+          <span>
+            Business name
 
-        <fieldset
+            <small>
+              Optional
+            </small>
+          </span>
+
+          <input
+            type="text"
+            value={
+              businessName
+            }
+            maxLength={
+              180
+            }
+            autoComplete="organization"
+            disabled={
+              applicationBusy
+            }
+            placeholder="Business or agency name"
+            onChange={
+              (event) => {
+                setBusinessName(
+                  event.target.value,
+                );
+              }
+            }
+          />
+        </label>
+
+        <label>
+          <span>
+            Years of experience
+          </span>
+
+          <input
+            type="number"
+            min="0"
+            max="80"
+            step="1"
+            inputMode="numeric"
+            value={
+              years
+            }
+            disabled={
+              applicationBusy
+            }
+            onChange={
+              (event) => {
+                setYears(
+                  event.target.value,
+                );
+              }
+            }
+          />
+        </label>
+      </div>
+
+      <label
+        className={
+          styles.bio
+        }
+      >
+        <span>
+          Professional bio
+        </span>
+
+        <textarea
+          rows={
+            6
+          }
+          value={
+            bio
+          }
+          minLength={
+            40
+          }
+          maxLength={
+            3000
+          }
           disabled={
             applicationBusy
           }
-        >
-          <legend>
-            Coverage areas
-          </legend>
-
-          <p
-            className={
-              styles.fieldHint
+          onChange={
+            (event) => {
+              setBio(
+                event.target.value,
+              );
             }
-          >
-            Choose the areas where
-            you actively work.
-          </p>
+          }
+          placeholder="Describe your experience, the properties you manage and how you support clients."
+        />
 
+        <small>
+          {bio.length}
+          /3000 · minimum 40
+          characters
+        </small>
+      </label>
+
+      <fieldset
+        disabled={
+          applicationBusy
+        }
+      >
+        <legend>
+          Coverage areas
+        </legend>
+
+        <p
+          className={
+            styles.fieldHint
+          }
+        >
+          Choose the areas where
+          you actively work.
+        </p>
+
+        {areas.length > 0 ? (
           <div
             className={
               styles.areaGrid
@@ -781,7 +912,7 @@ export default function AgentApplicationPage() {
                   <input
                     type="checkbox"
                     checked={
-                      areaIds.includes(
+                      selectedAreas.has(
                         area.id,
                       )
                     }
@@ -801,60 +932,77 @@ export default function AgentApplicationPage() {
               ),
             )}
           </div>
-        </fieldset>
-
-
-        <button
-          type="button"
-          className={
-            styles.submitButton
-          }
-          disabled={
-            applicationBusy
-          }
-          onClick={
-            () => {
-              void submitApplication(
-                isResubmission,
-              );
+        ) : (
+          <p
+            className={
+              styles.fieldHint
             }
+          >
+            Coverage areas are
+            temporarily unavailable.
+            Try loading the page
+            again.
+          </p>
+        )}
+      </fieldset>
+
+      <button
+        type="button"
+        className={
+          styles.submitButton
+        }
+        disabled={
+          applicationBusy ||
+          uploading ||
+          areas.length === 0
+        }
+        onClick={
+          () => {
+            void submitApplication(
+              isResubmission,
+            );
           }
-        >
-          {applicationBusy ? (
-            <Loader2
-              aria-hidden="true"
-            />
-          ) : isResubmission ? (
-            <RotateCcw
-              aria-hidden="true"
-            />
-          ) : (
-            <ShieldCheck
-              aria-hidden="true"
-            />
-          )}
+        }
+      >
+        {applicationBusy ? (
+          <Loader2
+            className={
+              styles.spinner
+            }
+            aria-hidden="true"
+          />
+        ) : isResubmission ? (
+          <RotateCcw
+            aria-hidden="true"
+          />
+        ) : (
+          <ShieldCheck
+            aria-hidden="true"
+          />
+        )}
 
-          {applicationBusy
-            ? "Submitting…"
-            : isResubmission
-              ? "Resubmit application"
-              : "Submit application"}
-        </button>
-      </section>
-    );
-  };
+        {applicationBusy
+          ? "Submitting…"
+          : isResubmission
+            ? "Resubmit application"
+            : "Submit application"}
+      </button>
+    </section>
+  );
 
 
-  /* =========================================================
-     LOADING
-  ========================================================= */
-
-  if (loading) {
+  if (
+    loading &&
+    !profile
+  ) {
     return (
       <div
         className={
           shared.loadingGrid
         }
+        aria-label="Loading agent application"
+        aria-live="polite"
+        aria-busy="true"
       >
         {Array.from(
           {
@@ -871,6 +1019,7 @@ export default function AgentApplicationPage() {
               className={
                 shared.skeleton
               }
+              aria-hidden="true"
             />
           ),
         )}
@@ -878,10 +1027,6 @@ export default function AgentApplicationPage() {
     );
   }
 
-
-  /* =========================================================
-     PAGE
-  ========================================================= */
 
   return (
     <div
@@ -908,17 +1053,63 @@ export default function AgentApplicationPage() {
           </span>
 
           <h1>
-            Agent or landlord profile.
+            Agent or landlord
+            profile.
           </h1>
 
           <p>
-            Verify your identity before
-            publishing rental or
-            property-for-sale listings.
+            Verify your identity
+            before publishing rental
+            or property-for-sale
+            listings.
           </p>
         </div>
       </header>
 
+      {loadError ? (
+        <div
+          className={
+            styles.loadError
+          }
+          role="alert"
+        >
+          <div>
+            <strong>
+              Application information
+              could not be fully loaded.
+            </strong>
+
+            <span>
+              {loadError}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={
+              loading
+            }
+            onClick={
+              () => {
+                void loadPage();
+              }
+            }
+          >
+            <RefreshCw
+              className={
+                loading
+                  ? styles.spinner
+                  : undefined
+              }
+              aria-hidden="true"
+            />
+
+            {loading
+              ? "Trying again…"
+              : "Try again"}
+          </button>
+        </div>
+      ) : null}
 
       {!profile ? (
         renderApplicationForm(
@@ -969,13 +1160,13 @@ export default function AgentApplicationPage() {
             />
           </section>
 
-
           {profile.status ===
           "pending" ? (
             <div
               className={
                 styles.statusNotice
               }
+              role="status"
             >
               <span>
                 <FileCheck2
@@ -985,26 +1176,27 @@ export default function AgentApplicationPage() {
 
               <div>
                 <strong>
-                  Application under review
+                  Application under
+                  review
                 </strong>
 
                 <p>
                   Add at least one
                   current verification
-                  document. HomeLink admins
-                  will review the protected
-                  file before approving your
-                  profile.
+                  document. HomeLink
+                  admins will review the
+                  protected file before
+                  approving your profile.
                 </p>
               </div>
             </div>
           ) : null}
 
-
           {profile.status ===
           "approved" ? (
             <div
               className={`${styles.statusNotice} ${styles.approvedNotice}`}
+              role="status"
             >
               <span>
                 <CheckCircle2
@@ -1019,21 +1211,21 @@ export default function AgentApplicationPage() {
 
                 <p>
                   Your agent or landlord
-                  profile has been approved.
-                  Verification files are
-                  retained only for the
-                  configured retention
-                  period.
+                  profile has been
+                  approved. Verification
+                  files are retained only
+                  for the configured
+                  retention period.
                 </p>
               </div>
             </div>
           ) : null}
 
-
           {profile.status ===
           "rejected" ? (
             <div
               className={`${styles.statusNotice} ${styles.rejectedNotice}`}
+              role="alert"
             >
               <span>
                 <AlertTriangle
@@ -1043,22 +1235,24 @@ export default function AgentApplicationPage() {
 
               <div>
                 <strong>
-                  Application needs attention
+                  Application needs
+                  attention
                 </strong>
 
                 <p>
-                  {profile.rejection_reason ||
+                  {profile
+                    .rejection_reason ||
                     "Review your details and submit the application again."}
                 </p>
               </div>
             </div>
           ) : null}
 
-
           <section
             className={
               styles.detailsGrid
             }
+            aria-label="Application summary"
           >
             <article>
               <span>
@@ -1067,9 +1261,11 @@ export default function AgentApplicationPage() {
 
               <strong>
                 {
-                  profile.years_experience
+                  profile
+                    .years_experience
                 }{" "}
-                {profile.years_experience ===
+                {profile
+                  .years_experience ===
                 1
                   ? "year"
                   : "years"}
@@ -1083,7 +1279,8 @@ export default function AgentApplicationPage() {
 
               <strong>
                 {
-                  profile.coverage_areas
+                  profile
+                    .coverage_areas
                     .length
                 }
               </strong>
@@ -1096,12 +1293,12 @@ export default function AgentApplicationPage() {
 
               <strong>
                 {
-                  currentDocuments.length
+                  currentDocuments
+                    .length
                 }
               </strong>
             </article>
           </section>
-
 
           {profile.status ===
           "rejected"
@@ -1110,13 +1307,13 @@ export default function AgentApplicationPage() {
               )
             : null}
 
-
           {profile.status ===
           "pending" ? (
             <section
               className={
                 styles.documentPanel
               }
+              aria-labelledby="documents-title"
             >
               <div
                 className={
@@ -1130,20 +1327,23 @@ export default function AgentApplicationPage() {
                 </span>
 
                 <div>
-                  <h2>
-                    Verification documents
+                  <h2
+                    id="documents-title"
+                  >
+                    Verification
+                    documents
                   </h2>
 
                   <p>
-                    Upload a clear photo.
-                    Verification files are
-                    stored as protected assets
-                    and are never exposed on
-                    your public agent profile.
+                    Upload a clear
+                    photo. Verification
+                    files are stored as
+                    protected assets and
+                    are never exposed on
+                    your public profile.
                   </p>
                 </div>
               </div>
-
 
               <div
                 className={
@@ -1175,38 +1375,27 @@ export default function AgentApplicationPage() {
                       }
                     }
                   >
-                    <option
-                      value="national_id"
-                    >
+                    <option value="national_id">
                       National ID
                     </option>
 
-                    <option
-                      value="cac"
-                    >
+                    <option value="cac">
                       CAC document
                     </option>
 
-                    <option
-                      value="proof_of_address"
-                    >
+                    <option value="proof_of_address">
                       Proof of address
                     </option>
 
-                    <option
-                      value="property_ownership"
-                    >
+                    <option value="property_ownership">
                       Property ownership
                     </option>
 
-                    <option
-                      value="other"
-                    >
+                    <option value="other">
                       Other
                     </option>
                   </select>
                 </label>
-
 
                 <label
                   className={
@@ -1226,7 +1415,9 @@ export default function AgentApplicationPage() {
                       (event) => {
                         selectDocument(
                           event.target
-                            .files?.[0] ??
+                            .files?.[
+                              0
+                            ] ??
                             null,
                         );
                       }
@@ -1251,19 +1442,20 @@ export default function AgentApplicationPage() {
                     </strong>
 
                     <span>
-                      JPG, PNG or WebP ·
-                      maximum 10 MB
+                      JPG, PNG or WebP
+                      · maximum 10 MB
                     </span>
                   </div>
                 </label>
               </div>
-
 
               {uploading ? (
                 <div
                   className={
                     styles.progressArea
                   }
+                  role="status"
+                  aria-live="polite"
                 >
                   <div>
                     <span>
@@ -1286,7 +1478,6 @@ export default function AgentApplicationPage() {
                 </div>
               ) : null}
 
-
               <button
                 type="button"
                 className={
@@ -1294,6 +1485,7 @@ export default function AgentApplicationPage() {
                 }
                 disabled={
                   uploading ||
+                  applicationBusy ||
                   !selectedFile
                 }
                 onClick={
@@ -1304,6 +1496,9 @@ export default function AgentApplicationPage() {
               >
                 {uploading ? (
                   <Loader2
+                    className={
+                      styles.spinner
+                    }
                     aria-hidden="true"
                   />
                 ) : (
@@ -1316,7 +1511,6 @@ export default function AgentApplicationPage() {
                   ? "Uploading…"
                   : "Upload document"}
               </button>
-
 
               {pendingDocuments.length ===
               0 ? (
@@ -1331,13 +1525,15 @@ export default function AgentApplicationPage() {
 
                   <div>
                     <strong>
-                      No current verification
-                      file yet
+                      No current
+                      verification file
+                      yet
                     </strong>
 
                     <p>
-                      Upload at least one
-                      document before an admin
+                      Upload at least
+                      one document
+                      before an admin
                       can approve the
                       application.
                     </p>
@@ -1347,13 +1543,13 @@ export default function AgentApplicationPage() {
             </section>
           ) : null}
 
-
           {profile.documents.length >
           0 ? (
             <section
               className={
                 styles.documentHistory
               }
+              aria-labelledby="document-history-title"
             >
               <div
                 className={
@@ -1365,7 +1561,9 @@ export default function AgentApplicationPage() {
                     Verification history
                   </span>
 
-                  <h2>
+                  <h2
+                    id="document-history-title"
+                  >
                     Submitted documents
                   </h2>
                 </div>
@@ -1377,7 +1575,6 @@ export default function AgentApplicationPage() {
                   }
                 </strong>
               </div>
-
 
               <div
                 className={
@@ -1391,12 +1588,14 @@ export default function AgentApplicationPage() {
                         document.id
                       }
                       className={
-                        styles.documentRow
+                        styles
+                          .documentRow
                       }
                     >
                       <span
                         className={
-                          styles.documentRowIcon
+                          styles
+                            .documentRowIcon
                         }
                       >
                         <FileImage
@@ -1406,12 +1605,14 @@ export default function AgentApplicationPage() {
 
                       <div
                         className={
-                          styles.documentInfo
+                          styles
+                            .documentInfo
                         }
                       >
                         <strong>
                           {documentLabel(
-                            document.document_type,
+                            document
+                              .document_type,
                           )}
                         </strong>
 
@@ -1424,10 +1625,12 @@ export default function AgentApplicationPage() {
                               : "Review completed"}
                         </span>
 
-                        {document.rejection_reason ? (
+                        {document
+                          .rejection_reason ? (
                           <small>
                             {
-                              document.rejection_reason
+                              document
+                                .rejection_reason
                             }
                           </small>
                         ) : null}

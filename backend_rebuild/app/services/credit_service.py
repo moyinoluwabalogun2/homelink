@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
 from app.core.config import get_settings
 from app.models.enums import (
@@ -116,8 +117,6 @@ class CreditService:
     # =========================================================
     # GET ONE BALANCE FOR A MUTATION
     #
-    # This remains defensive.
-    #
     # Posting/payment operations may create a missing balance,
     # but ordinary dashboard reads never do.
     # =========================================================
@@ -136,13 +135,15 @@ class CreditService:
             .values(
                 user_id=user_id,
 
-                credit_type=
-                    credit_type,
+                credit_type=(
+                    credit_type
+                ),
 
-                free_remaining=
+                free_remaining=(
                     self.default_free_amount(
                         credit_type,
-                    ),
+                    )
+                ),
 
                 paid_remaining=0,
             )
@@ -157,6 +158,11 @@ class CreditService:
         statement = (
             select(
                 ListingCreditBalance,
+            )
+            .options(
+                noload(
+                    ListingCreditBalance.user,
+                ),
             )
             .where(
                 ListingCreditBalance.user_id
@@ -201,6 +207,11 @@ class CreditService:
         result = await self.session.scalars(
             select(
                 ListingCreditBalance,
+            )
+            .options(
+                noload(
+                    ListingCreditBalance.user,
+                ),
             )
             .where(
                 ListingCreditBalance.user_id

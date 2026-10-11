@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -22,35 +23,61 @@ import {
   useRouter,
 } from "next/navigation";
 
-import { toast } from "sonner";
+import {
+  toast,
+} from "sonner";
 
-import HomeLinkLogo from
-  "@/components/brand/HomeLinkLogo";
-
+import HomeLinkLogo from "@/components/brand/HomeLinkLogo";
 
 import {
   useAuth,
 } from "@/context/AuthContext";
+
+import {
+  useDialogAccessibility,
+} from "@/hooks/use-dialog-accessibility";
 
 import styles from "./Navbar.module.css";
 
 
 const navigation = [
   {
-    label: "Rentals",
-    href: "/rentals",
+    label:
+      "Rentals",
+
+    href:
+      "/rentals",
+  },
+
+  {
+    label:
+      "Buy property",
+
+    href:
+      "/buy-property",
+  },
+
+  {
+    label:
+      "Marketplace",
+
+    href:
+      "/marketplace",
+  },
+
+  {
+    label:
+      "Agents",
+
+    href:
+      "/agents",
   },
   {
-    label: "Buy property",
-    href: "/buy-property",
-  },
-  {
-    label: "Marketplace",
-    href: "/marketplace",
-  },
-  {
-    label: "Agents",
-    href: "/agents",
+  label:
+      "Advertise",
+
+    href:
+      "/advertise",
   },
 ] as const;
 
@@ -62,22 +89,43 @@ export default function Navbar() {
   const router =
     useRouter();
 
+
   const {
     user,
     status,
     logout,
-  } = useAuth();
+  } =
+    useAuth();
 
 
   const [
     menuOpen,
     setMenuOpen,
-  ] = useState(false);
+  ] =
+    useState(
+      false,
+    );
+
 
   const [
     scrolled,
     setScrolled,
-  ] = useState(false);
+  ] =
+    useState(
+      false,
+    );
+
+
+  const mobilePanelRef =
+    useRef<HTMLElement>(
+      null,
+    );
+
+
+  const mobileCloseRef =
+    useRef<HTMLButtonElement>(
+      null,
+    );
 
 
   const isHome =
@@ -89,8 +137,12 @@ export default function Navbar() {
   ========================================================= */
 
   useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+    setMenuOpen(
+      false,
+    );
+  }, [
+    pathname,
+  ]);
 
 
   /* =========================================================
@@ -98,21 +150,27 @@ export default function Navbar() {
   ========================================================= */
 
   useEffect(() => {
-    const updateScrollState = () => {
-      setScrolled(
-        window.scrollY > 28,
-      );
-    };
+    const updateScrollState =
+      () => {
+        setScrolled(
+          window.scrollY
+          > 28,
+        );
+      };
+
 
     updateScrollState();
+
 
     window.addEventListener(
       "scroll",
       updateScrollState,
       {
-        passive: true,
+        passive:
+          true,
       },
     );
+
 
     return () => {
       window.removeEventListener(
@@ -124,51 +182,33 @@ export default function Navbar() {
 
 
   /* =========================================================
-     MOBILE BODY LOCK
+     ACCESSIBLE MOBILE DRAWER
   ========================================================= */
 
-  useEffect(() => {
-    if (!menuOpen) {
-      return;
-    }
+  useDialogAccessibility({
+    open:
+      menuOpen,
 
-    const previousOverflow =
-      document.body.style.overflow;
+    containerRef:
+      mobilePanelRef,
 
-    document.body.style.overflow =
-      "hidden";
+    initialFocusRef:
+      mobileCloseRef,
 
-    const closeOnEscape = (
-      event: KeyboardEvent,
-    ) => {
-      if (
-        event.key === "Escape"
-      ) {
-        setMenuOpen(false);
-      }
-    };
-
-    window.addEventListener(
-      "keydown",
-      closeOnEscape,
-    );
-
-    return () => {
-      document.body.style.overflow =
-        previousOverflow;
-
-      window.removeEventListener(
-        "keydown",
-        closeOnEscape,
-      );
-    };
-  }, [menuOpen]);
+    onClose:
+      () => {
+        setMenuOpen(
+          false,
+        );
+      },
+  });
 
 
   const isActive = (
     href: string,
   ): boolean =>
-    pathname === href ||
+    pathname === href
+    ||
     pathname.startsWith(
       `${href}/`,
     );
@@ -180,18 +220,25 @@ export default function Navbar() {
         () => undefined,
       );
 
+
       toast.success(
         "You have been signed out.",
       );
 
-      router.push("/");
+
+      router.push(
+        "/",
+      );
     };
 
 
   const authenticated =
-    status ===
-      "authenticated" &&
-    Boolean(user);
+    status
+      === "authenticated"
+    &&
+    Boolean(
+      user,
+    );
 
 
   const headerClassName = [
@@ -209,8 +256,12 @@ export default function Navbar() {
       ? styles.menuIsOpen
       : "",
   ]
-    .filter(Boolean)
-    .join(" ");
+    .filter(
+      Boolean,
+    )
+    .join(
+      " ",
+    );
 
 
   return (
@@ -223,7 +274,9 @@ export default function Navbar() {
         className={
           styles.navbar
         }
-        aria-label="Main navigation"
+        aria-label={
+          "Main navigation"
+        }
       >
         {/* ================================================
             BRAND
@@ -246,7 +299,7 @@ export default function Navbar() {
 
 
         {/* ================================================
-            DESKTOP NAV
+            DESKTOP NAVIGATION
         ================================================= */}
 
         <div
@@ -255,11 +308,14 @@ export default function Navbar() {
           }
         >
           {navigation.map(
-            (item) => {
+            (
+              item,
+            ) => {
               const active =
                 isActive(
                   item.href,
                 );
+
 
               return (
                 <Link
@@ -276,8 +332,12 @@ export default function Navbar() {
                       ? styles.activeNavLink
                       : "",
                   ]
-                    .filter(Boolean)
-                    .join(" ")}
+                    .filter(
+                      Boolean,
+                    )
+                    .join(
+                      " ",
+                    )}
                   aria-current={
                     active
                       ? "page"
@@ -285,7 +345,9 @@ export default function Navbar() {
                   }
                 >
                   <span>
-                    {item.label}
+                    {
+                      item.label
+                    }
                   </span>
 
                   <span
@@ -310,62 +372,65 @@ export default function Navbar() {
             styles.actions
           }
         >
-         
+          {
+            status
+            === "loading"
+              ? (
+                  <span
+                    className={
+                      styles.authSkeleton
+                    }
+                    aria-hidden="true"
+                  />
+                )
+              : authenticated
+                ? (
+                    <>
+                      <Link
+                        href="/dashboard"
+                        className={
+                          styles.dashboardAction
+                        }
+                      >
+                        <LayoutDashboard
+                          aria-hidden="true"
+                        />
 
+                        <span>
+                          Dashboard
+                        </span>
+                      </Link>
 
-          {status ===
-          "loading" ? (
-            <span
-              className={
-                styles.authSkeleton
-              }
-              aria-hidden="true"
-            />
-          ) : authenticated ? (
-            <>
-              <Link
-                href="/dashboard"
-                className={
-                  styles.dashboardAction
-                }
-              >
-                <LayoutDashboard
-                  aria-hidden="true"
-                />
+                      <button
+                        type="button"
+                        className={
+                          styles.signOutButton
+                        }
+                        onClick={
+                          handleLogout
+                        }
+                      >
+                        <LogOut
+                          aria-hidden="true"
+                        />
 
-                <span>
-                  Dashboard
-                </span>
-              </Link>
-
-              <button
-                type="button"
-                className={
-                  styles.signOutButton
-                }
-                onClick={
-                  handleLogout
-                }
-              >
-                <LogOut
-                  aria-hidden="true"
-                />
-
-                <span>
-                  Sign out
-                </span>
-              </button>
-            </>
-          ) : (
-            <Link
-              href="/login"
-              className={
-                styles.signInLink
-              }
-            >
-              Sign in
-            </Link>
-          )}
+                        <span>
+                          Sign out
+                        </span>
+                      </button>
+                    </>
+                  )
+                : (
+                    <Link
+                      href="/login"
+                      className={
+                        styles.signInLink
+                      }
+                    >
+                      Sign in
+                    </Link>
+                  )
+          }
 
 
           <Link
@@ -389,11 +454,15 @@ export default function Navbar() {
             className={
               styles.menuButton
             }
-            onClick={() =>
-              setMenuOpen(
-                (current) =>
-                  !current,
-              )
+            onClick={
+              () => {
+                setMenuOpen(
+                  (
+                    current,
+                  ) =>
+                    !current,
+                );
+              }
             }
             aria-label={
               menuOpen
@@ -403,17 +472,23 @@ export default function Navbar() {
             aria-expanded={
               menuOpen
             }
-            aria-controls="mobile-navigation"
+            aria-controls={
+              "mobile-navigation"
+            }
           >
-            {menuOpen ? (
-              <X
-                aria-hidden="true"
-              />
-            ) : (
-              <Menu
-                aria-hidden="true"
-              />
-            )}
+            {
+              menuOpen
+                ? (
+                    <X
+                      aria-hidden="true"
+                    />
+                  )
+                : (
+                    <Menu
+                      aria-hidden="true"
+                    />
+                  )
+            }
           </button>
         </div>
       </nav>
@@ -423,232 +498,287 @@ export default function Navbar() {
           MOBILE NAVIGATION
       ====================================================== */}
 
-      {menuOpen ? (
-        <>
-          <button
-            type="button"
-            className={
-              styles.backdrop
-            }
-            onClick={() =>
-              setMenuOpen(false)
-            }
-            aria-label="Close navigation menu"
-          />
-
-
-          <aside
-            id="mobile-navigation"
-            className={
-              styles.mobilePanel
-            }
-          >
-            <div
-              className={
-                styles.mobileTop
-              }
-            >
-              <HomeLinkLogo
-                href="/"
-                size="medium"
-                className={
-                  styles.mobileLogo
-                }
-              />
-
-              <button
-                type="button"
-                className={
-                  styles.mobileClose
-                }
-                onClick={() =>
-                  setMenuOpen(false)
-                }
-                aria-label="Close navigation menu"
-              >
-                <X
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
-
-
-            <div
-              className={
-                styles.mobileIntro
-              }
-            >
-              <span>
-                Around OOU
-              </span>
-
-              <h2>
-                Where do you
-                want to go?
-              </h2>
-            </div>
-
-
-            <div
-              className={
-                styles.mobileNavigation
-              }
-            >
-              {navigation.map(
-                (
-                  item,
-                  index,
-                ) => {
-                  const active =
-                    isActive(
-                      item.href,
-                    );
-
-                  return (
-                    <Link
-                      key={
-                        item.href
-                      }
-                      href={
-                        item.href
-                      }
-                      className={[
-                        styles.mobileLink,
-
-                        active
-                          ? styles.activeMobileLink
-                          : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      style={{
-                        animationDelay:
-                          `${
-                            index * 45
-                          }ms`,
-                      }}
-                    >
-                      <span
-                        className={
-                          styles.mobileLinkNumber
-                        }
-                      >
-                        {String(
-                          index + 1,
-                        ).padStart(
-                          2,
-                          "0",
-                        )}
-                      </span>
-
-                      <strong>
-                        {item.label}
-                      </strong>
-
-                      <ChevronRight
-                        aria-hidden="true"
-                      />
-                    </Link>
-                  );
-                },
-              )}
-            </div>
-
-
-            <div
-              className={
-                styles.mobileActions
-              }
-            >
-              {authenticated ? (
-                <>
-                  <Link
-                    href="/dashboard"
-                    className={
-                      styles.mobileSecondaryAction
-                    }
-                  >
-                    <LayoutDashboard
-                      aria-hidden="true"
-                    />
-
-                    Dashboard
-                  </Link>
-
-                  <button
-                    type="button"
-                    className={
-                      styles.mobileSignOutButton
-                    }
-                    onClick={
-                      handleLogout
-                    }
-                  >
-                    <LogOut
-                      aria-hidden="true"
-                    />
-
-                    Sign out
-                  </button>
-                </>
-              ) : (
-                <Link
-                  href="/login"
+      {
+        menuOpen
+          ? (
+              <>
+                <button
+                  type="button"
                   className={
-                    styles.mobileSecondaryAction
+                    styles.backdrop
+                  }
+                  onClick={
+                    () => {
+                      setMenuOpen(
+                        false,
+                      );
+                    }
+                  }
+                  aria-label={
+                    "Close navigation menu"
+                  }
+                />
+
+
+                <aside
+                  ref={
+                    mobilePanelRef
+                  }
+                  id="mobile-navigation"
+                  className={
+                    styles.mobilePanel
+                  }
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby={
+                    "mobile-navigation-title"
+                  }
+                  tabIndex={
+                    -1
                   }
                 >
-                  Sign in
-                </Link>
-              )}
+                  <div
+                    className={
+                      styles.mobileTop
+                    }
+                  >
+                    <HomeLinkLogo
+                      href="/"
+                      size="medium"
+                      className={
+                        styles.mobileLogo
+                      }
+                    />
+
+                    <button
+                      ref={
+                        mobileCloseRef
+                      }
+                      type="button"
+                      className={
+                        styles.mobileClose
+                      }
+                      onClick={
+                        () => {
+                          setMenuOpen(
+                            false,
+                          );
+                        }
+                      }
+                      aria-label={
+                        "Close navigation menu"
+                      }
+                    >
+                      <X
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </div>
 
 
-              <Link
-                href="/post-listing"
-                className={
-                  styles.mobilePrimaryAction
-                }
-              >
-                <Plus
-                  aria-hidden="true"
-                />
+                  <div
+                    className={
+                      styles.mobileIntro
+                    }
+                  >
+                    <span>
+                      Around OOU
+                    </span>
 
-                Post a listing
-              </Link>
-            </div>
+                    <h2
+                      id={
+                        "mobile-navigation-title"
+                      }
+                    >
+                      Where do you
+                      want to go?
+                    </h2>
+                  </div>
 
 
-            <div
-              className={
-                styles.mobileFooter
-              }
-            >
-              <span
-                className={
-                  styles.trustIcon
-                }
-              >
-                <ShieldCheck
-                  aria-hidden="true"
-                />
-              </span>
+                  <div
+                    className={
+                      styles.mobileNavigation
+                    }
+                  >
+                    {navigation.map(
+                      (
+                        item,
+                        index,
+                      ) => {
+                        const active =
+                          isActive(
+                            item.href,
+                          );
 
-              <div>
-                <strong>
-                  Search with more context.
-                </strong>
 
-                <p>
-                  Review listing details,
-                  media and publisher
-                  information before
-                  making contact.
-                </p>
-              </div>
-            </div>
-          </aside>
-        </>
-      ) : null}
+                        return (
+                          <Link
+                            key={
+                              item.href
+                            }
+                            href={
+                              item.href
+                            }
+                            className={[
+                              styles.mobileLink,
+
+                              active
+                                ? styles.activeMobileLink
+                                : "",
+                            ]
+                              .filter(
+                                Boolean,
+                              )
+                              .join(
+                                " ",
+                              )}
+                            aria-current={
+                              active
+                                ? "page"
+                                : undefined
+                            }
+                            style={{
+                              animationDelay:
+                                `${
+                                  index
+                                  * 45
+                                }ms`,
+                            }}
+                          >
+                            <span
+                              className={
+                                styles.mobileLinkNumber
+                              }
+                            >
+                              {
+                                String(
+                                  index
+                                  + 1,
+                                )
+                                  .padStart(
+                                    2,
+                                    "0",
+                                  )
+                              }
+                            </span>
+
+                            <strong>
+                              {
+                                item.label
+                              }
+                            </strong>
+
+                            <ChevronRight
+                              aria-hidden="true"
+                            />
+                          </Link>
+                        );
+                      },
+                    )}
+                  </div>
+
+
+                  <div
+                    className={
+                      styles.mobileActions
+                    }
+                  >
+                    {
+                      authenticated
+                        ? (
+                            <>
+                              <Link
+                                href="/dashboard"
+                                className={
+                                  styles.mobileSecondaryAction
+                                }
+                              >
+                                <LayoutDashboard
+                                  aria-hidden="true"
+                                />
+
+                                Dashboard
+                              </Link>
+
+                              <button
+                                type="button"
+                                className={
+                                  styles.mobileSignOutButton
+                                }
+                                onClick={
+                                  handleLogout
+                                }
+                              >
+                                <LogOut
+                                  aria-hidden="true"
+                                />
+
+                                Sign out
+                              </button>
+                            </>
+                          )
+                        : (
+                            <Link
+                              href="/login"
+                              className={
+                                styles.mobileSecondaryAction
+                              }
+                            >
+                              Sign in
+                            </Link>
+                          )
+                    }
+
+
+                    <Link
+                      href="/post-listing"
+                      className={
+                        styles.mobilePrimaryAction
+                      }
+                    >
+                      <Plus
+                        aria-hidden="true"
+                      />
+
+                      Post a listing
+                    </Link>
+                  </div>
+
+
+                  <div
+                    className={
+                      styles.mobileFooter
+                    }
+                  >
+                    <span
+                      className={
+                        styles.trustIcon
+                      }
+                    >
+                      <ShieldCheck
+                        aria-hidden="true"
+                      />
+                    </span>
+
+                    <div>
+                      <strong>
+                        Search with more context.
+                      </strong>
+
+                      <p>
+                        Review listing details,
+                        media and publisher
+                        information before
+                        making contact.
+                      </p>
+                    </div>
+                  </div>
+                </aside>
+              </>
+            )
+          : null
+      }
     </header>
   );
 }

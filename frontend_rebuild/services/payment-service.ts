@@ -8,18 +8,18 @@ import type {
   Payment,
   PaymentInitializeResponse,
   PaymentPlan,
+  PaymentProvider,
+  PaymentProviders,
 } from "@/types/payment";
-
 
 export const CREDITS_CHANGED_EVENT =
   "homelink:credits-changed";
 
-
 const CREDIT_CACHE_MS = 5_000;
 const PLAN_CACHE_MS = 5 * 60_000;
+const PROVIDER_CACHE_MS = 5 * 60_000;
 const HISTORY_CACHE_MS = 5_000;
 const SUCCESS_CACHE_MS = 30_000;
-
 
 function sessionKey(): string {
   return (
@@ -27,7 +27,6 @@ function sessionKey(): string {
     "cookie-session"
   );
 }
-
 
 /* =========================================================
    CREDIT CACHE
@@ -44,36 +43,46 @@ interface CreditRequest {
   promise: Promise<CreditBalance[]>;
 }
 
-let creditCache:
-  | CreditCache
-  | null = null;
+let creditCache: CreditCache | null = null;
 
 let creditRequest:
   | CreditRequest
   | null = null;
 
-
 /* =========================================================
-   PLAN CACHE
-
-   Plans barely change, so there is no reason for every
-   React mount to hit the API again.
+   PAYMENT PLAN CACHE
 ========================================================= */
 
-let planCache:
-  | {
-      expiresAt: number;
-      value: PaymentPlan[];
-    }
-  | null = null;
+interface PlanCache {
+  expiresAt: number;
+  value: PaymentPlan[];
+}
+
+let planCache: PlanCache | null = null;
 
 let planRequest:
   | Promise<PaymentPlan[]>
   | null = null;
 
+/* =========================================================
+   PROVIDER CACHE
+========================================================= */
+
+interface ProviderCache {
+  expiresAt: number;
+  value: PaymentProviders;
+}
+
+let providerCache:
+  | ProviderCache
+  | null = null;
+
+let providerRequest:
+  | Promise<PaymentProviders>
+  | null = null;
 
 /* =========================================================
-   HISTORY CACHE
+   PAYMENT HISTORY CACHE
 ========================================================= */
 
 interface HistoryCache {
@@ -95,35 +104,25 @@ let historyRequest:
   | HistoryRequest
   | null = null;
 
-
 /* =========================================================
-   VERIFY DEDUPLICATION
-
-   One reference can have only ONE client-side verification
-   request in flight at a time.
+   PAYMENT VERIFICATION DEDUPLICATION
 ========================================================= */
 
-const verifyRequests =
-  new Map<
-    string,
-    Promise<Payment>
-  >();
+const verifyRequests = new Map<
+  string,
+  Promise<Payment>
+>();
 
-const verifiedSuccessCache =
-  new Map<
-    string,
-    {
-      expiresAt: number;
-      value: Payment;
-    }
-  >();
-
+const verifiedSuccessCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    value: Payment;
+  }
+>();
 
 function notifyCreditsChanged(): void {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -134,22 +133,62 @@ function notifyCreditsChanged(): void {
   );
 }
 
-
 function invalidateCredits(): void {
   creditCache = null;
 }
-
 
 function invalidateHistory(): void {
   historyCache = null;
 }
 
-
 export const paymentService = {
+  async listProviders():
+    Promise<PaymentProviders> {
+    const now = Date.now();
+
+    if (
+      providerCache &&
+      providerCache.expiresAt > now
+    ) {
+      return providerCache.value;
+    }
+
+    if (providerRequest) {
+      return providerRequest;
+    }
+
+    const request = api
+      .get<PaymentProviders>(
+        "/payments/providers",
+      )
+      .then((response) => {
+        const value = response.data;
+
+        providerCache = {
+          value,
+          expiresAt:
+            Date.now() +
+            PROVIDER_CACHE_MS,
+        };
+
+        return value;
+      })
+      .finally(() => {
+        if (
+          providerRequest === request
+        ) {
+          providerRequest = null;
+        }
+      });
+
+    providerRequest = request;
+
+    return request;
+  },
+
   async listPlans():
     Promise<PaymentPlan[]> {
-    const now =
-      Date.now();
+    const now = Date.now();
 
     if (
       planCache &&
@@ -162,42 +201,34 @@ export const paymentService = {
       return planRequest;
     }
 
-    const request =
-      api
-        .get<PaymentPlan[]>(
-          "/payments/plans",
-        )
-        .then(
-          (response) => {
-            const value =
-              response.data;
+    const request = api
+      .get<PaymentPlan[]>(
+        "/payments/plans",
+      )
+      .then((response) => {
+        const value = response.data;
 
-            planCache = {
-              value,
-              expiresAt:
-                Date.now() +
-                PLAN_CACHE_MS,
-            };
+        planCache = {
+          value,
+          expiresAt:
+            Date.now() +
+            PLAN_CACHE_MS,
+        };
 
-            return value;
-          },
-        )
-        .finally(() => {
-          if (
-            planRequest ===
-            request
-          ) {
-            planRequest =
-              null;
-          }
-        });
+        return value;
+      })
+      .finally(() => {
+        if (
+          planRequest === request
+        ) {
+          planRequest = null;
+        }
+      });
 
-    planRequest =
-      request;
+    planRequest = request;
 
     return request;
   },
-
 
   async listCredits(
     options: {
@@ -208,11 +239,8 @@ export const paymentService = {
       force = false,
     } = options;
 
-    const key =
-      sessionKey();
-
-    const now =
-      Date.now();
+    const key = sessionKey();
+    const now = Date.now();
 
     if (
       !force &&
@@ -231,36 +259,31 @@ export const paymentService = {
       return creditRequest.promise;
     }
 
-    const promise =
-      api
-        .get<CreditBalance[]>(
-          "/payments/credits/me",
-        )
-        .then(
-          (response) => {
-            const value =
-              response.data;
+    const promise = api
+      .get<CreditBalance[]>(
+        "/payments/credits/me",
+      )
+      .then((response) => {
+        const value = response.data;
 
-            creditCache = {
-              key,
-              value,
-              expiresAt:
-                Date.now() +
-                CREDIT_CACHE_MS,
-            };
+        creditCache = {
+          key,
+          value,
+          expiresAt:
+            Date.now() +
+            CREDIT_CACHE_MS,
+        };
 
-            return value;
-          },
-        )
-        .finally(() => {
-          if (
-            creditRequest?.promise ===
-            promise
-          ) {
-            creditRequest =
-              null;
-          }
-        });
+        return value;
+      })
+      .finally(() => {
+        if (
+          creditRequest?.promise ===
+          promise
+        ) {
+          creditRequest = null;
+        }
+      });
 
     creditRequest = {
       key,
@@ -269,7 +292,6 @@ export const paymentService = {
 
     return promise;
   },
-
 
   async listHistory(
     options: {
@@ -284,11 +306,13 @@ export const paymentService = {
       force = false,
     } = options;
 
-    const key =
-      `${sessionKey()}:${limit}:${offset}`;
+    const key = [
+      sessionKey(),
+      limit,
+      offset,
+    ].join(":");
 
-    const now =
-      Date.now();
+    const now = Date.now();
 
     if (
       !force &&
@@ -307,42 +331,37 @@ export const paymentService = {
       return historyRequest.promise;
     }
 
-    const promise =
-      api
-        .get<Payment[]>(
-          "/payments/history",
-          {
-            params: {
-              limit,
-              offset,
-            },
+    const promise = api
+      .get<Payment[]>(
+        "/payments/history",
+        {
+          params: {
+            limit,
+            offset,
           },
-        )
-        .then(
-          (response) => {
-            const value =
-              response.data;
+        },
+      )
+      .then((response) => {
+        const value = response.data;
 
-            historyCache = {
-              key,
-              value,
-              expiresAt:
-                Date.now() +
-                HISTORY_CACHE_MS,
-            };
+        historyCache = {
+          key,
+          value,
+          expiresAt:
+            Date.now() +
+            HISTORY_CACHE_MS,
+        };
 
-            return value;
-          },
-        )
-        .finally(() => {
-          if (
-            historyRequest?.promise ===
-            promise
-          ) {
-            historyRequest =
-              null;
-          }
-        });
+        return value;
+      })
+      .finally(() => {
+        if (
+          historyRequest?.promise ===
+          promise
+        ) {
+          historyRequest = null;
+        }
+      });
 
     historyRequest = {
       key,
@@ -352,23 +371,22 @@ export const paymentService = {
     return promise;
   },
 
-
   async initialize(
     planCode: string,
+    provider?: PaymentProvider,
   ): Promise<PaymentInitializeResponse> {
     const response =
-      await api.post<
-        PaymentInitializeResponse
-      >(
+      await api.post<PaymentInitializeResponse>(
         "/payments/initialize",
         {
-          plan_code:
-            planCode,
+          plan_code: planCode,
+          provider,
         },
         {
-          // Payment providers are external services.
-          // Give initialization slightly more room than
-          // an ordinary HomeLink API request.
+          /*
+           * The backend has to contact an
+           * external payment gateway.
+           */
           timeout: 30_000,
         },
       );
@@ -378,7 +396,6 @@ export const paymentService = {
     return response.data;
   },
 
-
   async completeMock(
     reference: string,
   ): Promise<Payment> {
@@ -387,14 +404,12 @@ export const paymentService = {
         `/payments/mock/${reference}/complete`,
       );
 
-    const payment =
-      response.data;
+    const payment = response.data;
 
     invalidateHistory();
 
     if (
-      payment.status ===
-      "success"
+      payment.status === "success"
     ) {
       invalidateCredits();
       notifyCreditsChanged();
@@ -402,7 +417,6 @@ export const paymentService = {
 
     return payment;
   },
-
 
   async verify(
     reference: string,
@@ -414,74 +428,67 @@ export const paymentService = {
 
     if (
       cached &&
-      cached.expiresAt >
-        Date.now()
+      cached.expiresAt > Date.now()
     ) {
       return cached.value;
     }
 
     const existing =
-      verifyRequests.get(
-        reference,
-      );
+      verifyRequests.get(reference);
 
     if (existing) {
       return existing;
     }
 
-    const request =
-      api
-        .post<Payment>(
-          `/payments/${reference}/verify`,
-          undefined,
-          {
-            // Backend may need to contact Flutterwave.
-            // This avoids the browser aborting just before
-            // the provider responds.
-            timeout: 30_000,
-          },
-        )
-        .then(
-          (response) => {
-            const payment =
-              response.data;
+    const request = api
+      .post<Payment>(
+        `/payments/${reference}/verify`,
+        undefined,
+        {
+          /*
+           * The backend may need to
+           * contact Paystack or
+           * Flutterwave.
+           */
+          timeout: 30_000,
+        },
+      )
+      .then((response) => {
+        const payment =
+          response.data;
 
-            invalidateHistory();
+        invalidateHistory();
 
-            if (
-              payment.status ===
-              "success"
-            ) {
-              verifiedSuccessCache.set(
-                reference,
-                {
-                  value:
-                    payment,
-                  expiresAt:
-                    Date.now() +
-                    SUCCESS_CACHE_MS,
-                },
-              );
+        if (
+          payment.status === "success"
+        ) {
+          verifiedSuccessCache.set(
+            reference,
+            {
+              value: payment,
+              expiresAt:
+                Date.now() +
+                SUCCESS_CACHE_MS,
+            },
+          );
 
-              invalidateCredits();
+          invalidateCredits();
+          notifyCreditsChanged();
+        }
 
-              notifyCreditsChanged();
-            }
-
-            return payment;
-          },
-        )
-        .finally(() => {
-          if (
-            verifyRequests.get(
-              reference,
-            ) === request
-          ) {
-            verifyRequests.delete(
-              reference,
-            );
-          }
-        });
+        return payment;
+      })
+      .finally(() => {
+        if (
+          verifyRequests.get(
+            reference,
+          ) === request
+        ) {
+          verifyRequests.delete(
+            reference,
+          );
+        }
+      });
 
     verifyRequests.set(
       reference,
@@ -491,11 +498,9 @@ export const paymentService = {
     return request;
   },
 
-
   invalidateCredits(): void {
     invalidateCredits();
   },
-
 
   invalidateHistory(): void {
     invalidateHistory();

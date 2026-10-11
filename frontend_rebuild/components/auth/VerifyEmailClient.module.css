@@ -1,49 +1,123 @@
 .card {
-  width: min(100%, 500px);
+  width: min(100%, 520px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 38px;
+  padding: clamp(28px, 5vw, 42px);
   border: 1px solid var(--border);
-  border-radius: 24px;
-  background: var(--surface);
+  border-radius: 26px;
+  background:
+    radial-gradient(
+      circle at top,
+      color-mix(
+        in srgb,
+        var(--accent) 8%,
+        transparent
+      ),
+      transparent 42%
+    ),
+    var(--surface);
   box-shadow: var(--shadow-md);
   text-align: center;
 }
 
 .icon {
-  width: 66px;
-  height: 66px;
+  width: 68px;
+  height: 68px;
   display: grid;
   place-items: center;
-  border-radius: 20px;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--success-text) 16%,
+      transparent
+    );
+  border-radius: 21px;
   color: var(--success-text);
   background: var(--success-soft);
+  box-shadow:
+    0 12px 28px
+      color-mix(
+        in srgb,
+        var(--success-text) 12%,
+        transparent
+      );
+}
+
+.loadingIcon {
+  color: var(--accent);
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent) 16%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--accent) 9%,
+      var(--surface)
+    );
+  box-shadow:
+    0 12px 28px
+      color-mix(
+        in srgb,
+        var(--accent) 12%,
+        transparent
+      );
 }
 
 .errorIcon {
   color: var(--danger-text);
+  border-color:
+    color-mix(
+      in srgb,
+      var(--danger-text) 16%,
+      transparent
+    );
   background: var(--danger-soft);
+  box-shadow:
+    0 12px 28px
+      color-mix(
+        in srgb,
+        var(--danger-text) 10%,
+        transparent
+      );
 }
 
 .icon svg {
   width: 31px;
   height: 31px;
+  stroke-width: 2;
 }
 
-.icon svg:first-child {
-  animation: spin 1s linear infinite;
+.spinner {
+  animation: spin 0.9s linear infinite;
+}
+
+.loadingSpinner {
+  width: 29px;
+  height: 29px;
+  border: 3px solid
+    color-mix(
+      in srgb,
+      var(--accent) 20%,
+      transparent
+    );
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
 }
 
 .eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-top: 19px;
+  margin-top: 21px;
   color: var(--accent);
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
@@ -53,31 +127,146 @@
 }
 
 .card h1 {
-  margin: 10px 0 8px;
+  margin: 10px 0 9px;
+  color: var(--text-primary);
   font-family: var(--font-heading);
-  font-size: 31px;
-  letter-spacing: -0.05em;
+  font-size: clamp(28px, 5vw, 34px);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
 }
 
-.card p {
+.message {
+  max-width: 420px;
   margin: 0;
   color: var(--text-secondary);
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
-.card a {
+.progress {
+  width: min(100%, 260px);
+  height: 4px;
+  margin-top: 23px;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    color-mix(
+      in srgb,
+      var(--accent) 12%,
+      var(--surface)
+    );
+}
+
+.progress span {
+  width: 45%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--accent);
+  animation: progress 1.25s ease-in-out infinite;
+}
+
+.actions {
   width: 100%;
-  min-height: 43px;
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.primaryAction,
+.secondaryAction {
+  width: 100%;
+  min-height: 46px;
   display: grid;
   place-items: center;
-  margin-top: 20px;
-  border-radius: 12px;
-  color: #ffffff;
-  background: var(--accent);
+  padding: 10px 18px;
+  border-radius: 13px;
   font-size: 12px;
   font-weight: 850;
+  line-height: 1.35;
   text-decoration: none;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.primaryAction {
+  border: 1px solid var(--accent);
+  color: #ffffff;
+  background: var(--accent);
+  box-shadow:
+    0 12px 24px
+      color-mix(
+        in srgb,
+        var(--accent) 18%,
+        transparent
+      );
+}
+
+.secondaryAction {
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.primaryAction:hover,
+.secondaryAction:hover {
+  transform: translateY(-1px);
+}
+
+.primaryAction:hover {
+  box-shadow:
+    0 15px 30px
+      color-mix(
+        in srgb,
+        var(--accent) 23%,
+        transparent
+      );
+}
+
+.secondaryAction:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent) 35%,
+      var(--border)
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--accent) 5%,
+      var(--surface)
+    );
+}
+
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible {
+  outline: 3px solid
+    color-mix(
+      in srgb,
+      var(--accent) 30%,
+      transparent
+    );
+  outline-offset: 3px;
+}
+
+.helpText {
+  margin: 4px auto 0;
+  max-width: 390px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.securityNote {
+  margin: 24px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.6;
 }
 
 @keyframes spin {
@@ -86,8 +275,56 @@
   }
 }
 
+@keyframes progress {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  50% {
+    transform: translateX(65%);
+  }
+
+  100% {
+    transform: translateX(240%);
+  }
+}
+
+@media (max-width: 520px) {
+  .card {
+    padding: 28px 20px;
+    border-radius: 21px;
+  }
+
+  .icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 19px;
+  }
+
+  .card h1 {
+    font-size: 28px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .icon svg:first-child {
+  .spinner,
+  .loadingSpinner,
+  .progress span {
     animation: none;
+  }
+
+  .progress span {
+    width: 100%;
+    transform: none;
+  }
+
+  .primaryAction,
+  .secondaryAction {
+    transition: none;
+  }
+
+  .primaryAction:hover,
+  .secondaryAction:hover {
+    transform: none;
   }
 }

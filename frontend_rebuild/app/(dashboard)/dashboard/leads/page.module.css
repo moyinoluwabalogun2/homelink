@@ -1,9 +1,42 @@
+.headerSummary {
+  min-width: 110px;
+  display: grid;
+  justify-items: end;
+  flex: 0 0 auto;
+  padding-bottom: 4px;
+}
+
+.headerSummary strong {
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.headerSummary span {
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+/* =========================================================
+   LIST
+========================================================= */
+
 .list {
   display: grid;
   gap: 13px;
 }
 
+/* =========================================================
+   CARD
+========================================================= */
+
 .card {
+  min-width: 0;
   display: grid;
   gap: 17px;
   padding: 21px;
@@ -11,9 +44,20 @@
   border-radius: 19px;
   background: var(--surface);
   box-shadow: var(--shadow-xs);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .cardHeader {
+  min-width: 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -35,12 +79,18 @@
 .cardHeader h2 {
   margin: 5px 0 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--text-primary);
   font-family: var(--font-heading);
   font-size: 17px;
+  line-height: 1.3;
   letter-spacing: -0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* =========================================================
+   MESSAGE
+========================================================= */
 
 .card blockquote {
   margin: 0;
@@ -48,33 +98,58 @@
   border-left: 3px solid var(--accent);
   border-radius: 0 13px 13px 0;
   color: var(--text-secondary);
-  background: var(--surface-muted);
-  font-size: 13px;
+  background:
+    color-mix(
+      in srgb,
+      var(--accent-soft) 30%,
+      var(--surface-muted)
+    );
+  font-size: 12px;
   line-height: 1.75;
+  overflow-wrap: anywhere;
 }
+
+/* =========================================================
+   SENDER AND LINKS
+========================================================= */
 
 .senderRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
 }
 
-.senderRow > div {
+.senderRow > div:first-child {
+  min-width: 0;
   display: grid;
   gap: 3px;
 }
 
 .senderRow strong {
-  font-size: 13px;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .senderRow span {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 650;
 }
 
-.senderRow a,
+.contextLinks {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contextLinks a,
 .actions button {
   min-height: 39px;
   display: inline-flex;
@@ -86,52 +161,291 @@
   border-radius: 11px;
   color: var(--text-secondary);
   background: var(--surface-muted);
-  font-size: 11px;
-  font-weight: 800;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
   text-decoration: none;
   cursor: pointer;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease,
+    opacity 150ms ease;
 }
 
-.senderRow svg,
+.contextLinks a:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.contextLinks a:focus-visible,
+.actions button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.contextLinks svg,
 .actions svg {
   width: 15px;
   height: 15px;
 }
 
+/* =========================================================
+   ACTIONS
+========================================================= */
+
 .actions {
+  min-height: 56px;
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
   padding-top: 16px;
   border-top: 1px solid var(--border-subtle);
 }
 
-.actions button:first-child {
+.actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.actions button:disabled {
+  cursor: wait;
+  opacity: 0.48;
+  transform: none;
+}
+
+.actions .respondAction {
   color: var(--accent);
   border-color: var(--accent-border);
   background: var(--accent-soft);
 }
 
-.actions button:disabled {
-  opacity: 0.5;
-  cursor: wait;
+.actions .respondAction:hover:not(:disabled) {
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+  background: var(--accent);
 }
+
+.actions .closeAction {
+  color: #166534;
+  border-color: #bbdfc6;
+  background: #edf9f0;
+}
+
+.actions .closeAction:hover:not(:disabled) {
+  color: #ffffff;
+  border-color: #21834a;
+  background: #21834a;
+}
+
+.actions .reopenAction {
+  color: #835b12;
+  border-color: #ead6a5;
+  background: #fff8e7;
+}
+
+.actions .reopenAction:hover:not(:disabled) {
+  color: #ffffff;
+  border-color: #9a6812;
+  background: #9a6812;
+}
+
+.working {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: auto;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.working svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+
+/* =========================================================
+   LOADING SKELETON
+========================================================= */
 
 .skeleton {
   min-height: 245px;
+  display: grid;
+  align-content: start;
+  gap: 15px;
+  padding: 21px;
+  border: 1px solid var(--border-subtle);
   border-radius: 19px;
-  background: var(--surface-muted);
+  background: var(--surface);
 }
 
-@media (max-width: 620px) {
-  .cardHeader,
+.skeleton span {
+  display: block;
+  overflow: hidden;
+  height: 12px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      100deg,
+      var(--surface-muted) 15%,
+      var(--surface) 38%,
+      var(--surface-muted) 62%
+    );
+  background-size: 240% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeleton span:first-child {
+  width: 20%;
+  height: 9px;
+}
+
+.skeleton span:nth-child(2) {
+  width: 62%;
+  height: 18px;
+}
+
+.skeleton span:nth-child(3) {
+  width: 100%;
+  height: 82px;
+  border-radius: 13px;
+}
+
+.skeleton span:last-child {
+  width: 35%;
+  margin-top: 3px;
+}
+
+/* =========================================================
+   UTILITIES
+========================================================= */
+
+.spin {
+  animation: spin 800ms linear infinite;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 760px) {
+  .headerSummary {
+    justify-items: start;
+  }
+
   .senderRow {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .senderRow a,
+  .contextLinks {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .card {
+    padding: 17px;
+    border-radius: 16px;
+  }
+
+  .cardHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cardHeader h2 {
+    white-space: normal;
+  }
+
+  .contextLinks {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .contextLinks a,
   .actions button {
     width: 100%;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .working {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 440px) {
+  .contextLinks,
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .working {
+    grid-column: auto;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .contextLinks a,
+  .actions button {
+    transition: none;
+  }
+
+  .card:hover,
+  .contextLinks a:hover,
+  .actions button:hover {
+    transform: none;
+  }
+
+  .skeleton span,
+  .spin {
+    animation: none;
   }
 }

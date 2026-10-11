@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from sqlalchemy.orm import (
+    joinedload,
     noload,
-    selectinload,
 )
 
 from app.models.auth_session import (
@@ -35,8 +35,9 @@ class AuthSessionRepository:
                 AuthSession
             )
             .options(
-                selectinload(
-                    AuthSession.user
+                joinedload(
+                    AuthSession.user,
+                    innerjoin=True,
                 ).options(
                     noload(
                         User.auth_sessions

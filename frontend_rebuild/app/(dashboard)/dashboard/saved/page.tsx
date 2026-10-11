@@ -4,13 +4,16 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import Link from "next/link";
 
 import {
+  ArrowRight,
   Bookmark,
+  BookmarkX,
   Building2,
   Home,
   RefreshCw,
@@ -44,11 +47,14 @@ type SavedFilter =
   | "marketplace";
 
 
-const filters: {
+interface FilterDefinition {
   value: SavedFilter;
   label: string;
   icon: typeof Bookmark;
-}[] = [
+}
+
+
+const filters: FilterDefinition[] = [
   {
     value: "all",
     label: "All saved",
@@ -76,35 +82,38 @@ export default function SavedListingsPage() {
   const [
     items,
     setItems,
-  ] =
-    useState<SavedListing[]>([]);
+  ] = useState<SavedListing[]>([]);
 
   const [
     loading,
     setLoading,
-  ] =
-    useState(true);
+  ] = useState(true);
 
   const [
     removingId,
     setRemovingId,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  ] = useState<string | null>(
+    null,
+  );
 
   const [
     error,
     setError,
-  ] =
-    useState("");
+  ] = useState("");
 
   const [
     filter,
     setFilter,
-  ] =
-    useState<SavedFilter>(
-      "all",
+  ] = useState<SavedFilter>(
+    "all",
+  );
+
+  const requestVersionRef =
+    useRef(0);
+
+  const pendingRemovalIdsRef =
+    useRef<Set<string>>(
+      new Set(),
     );
 
 
@@ -115,19 +124,42 @@ export default function SavedListingsPage() {
   const loadSaved =
     useCallback(
       async () => {
+        const requestVersion =
+          ++requestVersionRef.current;
+
         setLoading(true);
         setError("");
 
         try {
           const records =
-            await engagementService.listSaved();
+            await engagementService
+              .listSaved();
+
+          if (
+            requestVersion !==
+            requestVersionRef.current
+          ) {
+            return;
+          }
 
           setItems(
-            records,
+            records.filter(
+              (item) =>
+                !pendingRemovalIdsRef
+                  .current
+                  .has(
+                    item.listing.id,
+                  ),
+            ),
           );
-        } catch (
-          reason
-        ) {
+        } catch (reason) {
+          if (
+            requestVersion !==
+            requestVersionRef.current
+          ) {
+            return;
+          }
+
           setError(
             getApiErrorMessage(
               reason,
@@ -135,9 +167,12 @@ export default function SavedListingsPage() {
             ),
           );
         } finally {
-          setLoading(
-            false,
-          );
+          if (
+            requestVersion ===
+            requestVersionRef.current
+          ) {
+            setLoading(false);
+          }
         }
       },
       [],
@@ -146,7 +181,13 @@ export default function SavedListingsPage() {
 
   useEffect(() => {
     void loadSaved();
-  }, [loadSaved]);
+
+    return () => {
+      requestVersionRef.current += 1;
+    };
+  }, [
+    loadSaved,
+  ]);
 
 
   /* =========================================================
@@ -157,27 +198,33 @@ export default function SavedListingsPage() {
     async (
       listingId: string,
     ) => {
-      if (removingId) {
+      if (
+        removingId !== null ||
+        pendingRemovalIdsRef
+          .current
+          .has(listingId)
+      ) {
         return;
       }
+
+      pendingRemovalIdsRef
+        .current
+        .add(listingId);
 
       setRemovingId(
         listingId,
       );
 
       try {
-        await engagementService.removeSavedListing(
-          listingId,
-        );
+        await engagementService
+          .removeSavedListing(
+            listingId,
+          );
 
         setItems(
-          (
-            current,
-          ) =>
+          (current) =>
             current.filter(
-              (
-                item,
-              ) =>
+              (item) =>
                 item.listing.id !==
                 listingId,
             ),
@@ -186,9 +233,11 @@ export default function SavedListingsPage() {
         toast.success(
           "Removed from saved listings.",
         );
-      } catch (
-        reason
-      ) {
+      } catch (reason) {
+        pendingRemovalIdsRef
+          .current
+          .delete(listingId);
+
         toast.error(
           getApiErrorMessage(
             reason,
@@ -197,7 +246,10 @@ export default function SavedListingsPage() {
         );
       } finally {
         setRemovingId(
-          null,
+          (current) =>
+            current === listingId
+              ? null
+              : current,
         );
       }
     };
@@ -207,33 +259,13 @@ export default function SavedListingsPage() {
      FILTERING
   ========================================================= */
 
-  const visibleItems =
-    useMemo(
-      () => {
-        if (
-          filter === "all"
-        ) {
-          return items;
-        }
-
-        return items.filter(
-          (
-            item,
-          ) =>
-            item.listing
-              .listing_type ===
-            filter,
-        );
-      },
-      [
-        filter,
-        items,
-      ],
-    );
-
-
   const counts =
-    useMemo(
+    useMemo<
+      Record<
+        SavedFilter,
+        number
+      >
+    >(
       () => ({
         all:
           items.length,
@@ -262,36 +294,62 @@ export default function SavedListingsPage() {
               "marketplace",
           ).length,
       }),
-      [items],
+      [
+        items,
+      ],
+    );
+
+
+  const visibleItems =
+    useMemo(
+      () => {
+        if (
+          filter === "all"
+        ) {
+          return items;
+        }
+
+        return items.filter(
+          (item) =>
+            item.listing
+              .listing_type ===
+            filter,
+        );
+      },
+      [
+        filter,
+        items,
+      ],
+    );
+
+
+  const activeFilter =
+    filters.find(
+      (item) =>
+        item.value === filter,
     );
 
 
   return (
     <div
-      className={
-        styles.page
-      }
+      className={styles.page}
     >
       {/* =====================================================
           HEADER
       ====================================================== */}
 
       <header
-        className={
-          styles.header
-        }
+        className={styles.header}
       >
         <div>
           <span
-            className={
-              styles.eyebrow
-            }
+            className={styles.eyebrow}
           >
             <Bookmark
               aria-hidden="true"
             />
 
-            Saved
+            Saved listings
           </span>
 
           <h1>
@@ -299,20 +357,23 @@ export default function SavedListingsPage() {
           </h1>
 
           <p>
-            Keep rentals,
-            properties and
-            marketplace finds
-            together while you
-            compare your options.
+            Keep rentals, properties
+            and marketplace finds
+            together while you compare
+            your options.
           </p>
         </div>
 
-
         {!loading &&
-        items.length > 0 ? (
+        !error ? (
           <div
-            className={
-              styles.savedCount
+            className={styles.savedCount}
+            aria-label={
+              `${items.length} ${
+                items.length === 1
+                  ? "saved listing"
+                  : "saved listings"
+              }`
             }
           >
             <strong>
@@ -320,8 +381,7 @@ export default function SavedListingsPage() {
             </strong>
 
             <span>
-              {items.length ===
-              1
+              {items.length === 1
                 ? "saved listing"
                 : "saved listings"}
             </span>
@@ -335,16 +395,14 @@ export default function SavedListingsPage() {
       ====================================================== */}
 
       {error ? (
-        <div
-          className={
-            styles.error
-          }
+        <section
+          className={styles.error}
           role="alert"
         >
           <div>
             <strong>
-              Couldn&apos;t load
-              your shortlist.
+              Couldn&apos;t load your
+              shortlist.
             </strong>
 
             <span>
@@ -354,17 +412,25 @@ export default function SavedListingsPage() {
 
           <button
             type="button"
-            onClick={() =>
-              void loadSaved()
-            }
+            disabled={loading}
+            onClick={() => {
+              void loadSaved();
+            }}
           >
             <RefreshCw
               aria-hidden="true"
+              className={
+                loading
+                  ? styles.spinner
+                  : undefined
+              }
             />
 
-            Try again
+            {loading
+              ? "Trying again…"
+              : "Try again"}
           </button>
-        </div>
+        </section>
       ) : null}
 
 
@@ -374,11 +440,20 @@ export default function SavedListingsPage() {
 
       {loading ? (
         <div
-          className={
-            styles.grid
+          className={styles.grid}
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          aria-label={
+            "Loading saved listings"
           }
-          aria-label="Loading saved listings"
         >
+          <span
+            className={styles.srOnly}
+          >
+            Loading saved listings…
+          </span>
+
           {Array.from(
             {
               length: 6,
@@ -388,13 +463,27 @@ export default function SavedListingsPage() {
               index,
             ) => (
               <div
-                key={
-                  index
-                }
-                className={
-                  styles.skeleton
-                }
-              />
+                key={index}
+                className={styles.skeleton}
+                aria-hidden="true"
+              >
+                <div
+                  className={
+                    styles.skeletonMedia
+                  }
+                />
+
+                <div
+                  className={
+                    styles.skeletonContent
+                  }
+                >
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
             ),
           )}
         </div>
@@ -402,23 +491,22 @@ export default function SavedListingsPage() {
 
 
       {/* =====================================================
-          EMPTY
+          MAIN EMPTY STATE
       ====================================================== */}
 
       {!loading &&
       !error &&
       items.length === 0 ? (
         <section
-          className={
-            styles.empty
+          className={styles.empty}
+          aria-labelledby={
+            "saved-empty-title"
           }
         >
           <span
-            className={
-              styles.emptyIcon
-            }
+            className={styles.emptyIcon}
           >
-            <Search
+            <BookmarkX
               aria-hidden="true"
             />
           </span>
@@ -431,18 +519,18 @@ export default function SavedListingsPage() {
             Nothing saved yet
           </span>
 
-          <h2>
-            Build a shortlist
-            as you browse.
+          <h2
+            id="saved-empty-title"
+          >
+            Build a shortlist as
+            you browse.
           </h2>
 
           <p>
-            Save any rental,
-            property or
-            marketplace listing
-            and it will appear
-            here for you to
-            revisit.
+            Save any rental, property
+            or marketplace listing and
+            it will appear here whenever
+            you want to revisit it.
           </p>
 
           <div
@@ -457,6 +545,19 @@ export default function SavedListingsPage() {
               }
             >
               Browse rentals
+
+              <ArrowRight
+                aria-hidden="true"
+              />
+            </Link>
+
+            <Link
+              href="/buy-property"
+              className={
+                styles.secondaryAction
+              }
+            >
+              View property
             </Link>
 
             <Link
@@ -481,8 +582,9 @@ export default function SavedListingsPage() {
       items.length > 0 ? (
         <>
           <section
-            className={
-              styles.toolbar
+            className={styles.toolbar}
+            aria-label={
+              "Saved listing filters"
             }
           >
             <div
@@ -500,17 +602,15 @@ export default function SavedListingsPage() {
               </strong>
             </div>
 
-
             <div
-              className={
-                styles.filters
+              className={styles.filters}
+              role="group"
+              aria-label={
+                "Filter saved listings by type"
               }
-              aria-label="Filter saved listings"
             >
               {filters.map(
-                (
-                  option,
-                ) => {
+                (option) => {
                   const Icon =
                     option.icon;
 
@@ -527,25 +627,32 @@ export default function SavedListingsPage() {
                       className={
                         active
                           ? styles.activeFilter
-                          : ""
+                          : undefined
                       }
-                      onClick={() =>
+                      aria-pressed={active}
+                      onClick={() => {
                         setFilter(
                           option.value,
-                        )
-                      }
+                        );
+                      }}
                     >
                       <Icon
                         aria-hidden="true"
                       />
 
                       <span>
-                        {
-                          option.label
-                        }
+                        {option.label}
                       </span>
 
-                      <b>
+                      <b
+                        aria-label={
+                          `${
+                            counts[
+                              option.value
+                            ]
+                          } listings`
+                        }
+                      >
                         {
                           counts[
                             option.value
@@ -559,57 +666,102 @@ export default function SavedListingsPage() {
             </div>
           </section>
 
+          <div
+            className={styles.resultMeta}
+            aria-live="polite"
+          >
+            <span>
+              {activeFilter?.label ??
+                "Saved listings"}
+            </span>
 
-          {visibleItems.length >
-          0 ? (
+            <strong>
+              {visibleItems.length}{" "}
+              {visibleItems.length === 1
+                ? "result"
+                : "results"}
+            </strong>
+          </div>
+
+          {visibleItems.length > 0 ? (
             <div
-              className={
-                styles.grid
+              className={styles.grid}
+              role="list"
+              aria-label={
+                activeFilter
+                  ? `${activeFilter.label} listings`
+                  : "Saved listings"
               }
             >
               {visibleItems.map(
-                (
-                  item,
-                ) => (
-                  <ListingCard
+                (item) => (
+                  <div
                     key={
                       item.listing.id
                     }
-                    listing={
-                      item.listing
+                    className={
+                      styles.gridItem
                     }
-                    saved
-                    saving={
-                      removingId ===
-                      item.listing.id
-                    }
-                    onToggleSaved={() =>
-                      void remove(
-                        item.listing.id,
-                      )
-                    }
-                  />
+                    role="listitem"
+                  >
+                    <ListingCard
+                      listing={
+                        item.listing
+                      }
+                      saved
+                      saving={
+                        removingId ===
+                        item.listing.id
+                      }
+                      onToggleSaved={() => {
+                        void remove(
+                          item.listing.id,
+                        );
+                      }}
+                    />
+                  </div>
                 ),
               )}
             </div>
           ) : (
-            <div
+            <section
               className={
                 styles.filteredEmpty
               }
+              aria-live="polite"
             >
-              <strong>
-                Nothing saved in
-                this category.
-              </strong>
-
-              <span>
-                Your other saved
-                listings are still
-                here — choose
-                another filter.
+              <span
+                className={
+                  styles.filteredEmptyIcon
+                }
+              >
+                <Search
+                  aria-hidden="true"
+                />
               </span>
-            </div>
+
+              <div>
+                <strong>
+                  Nothing saved in this
+                  category.
+                </strong>
+
+                <p>
+                  Your other saved listings
+                  are still here. Choose
+                  another filter to see them.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("all");
+                }}
+              >
+                Show all saved
+              </button>
+            </section>
           )}
         </>
       ) : null}

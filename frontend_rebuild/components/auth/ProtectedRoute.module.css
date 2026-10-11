@@ -1,10 +1,19 @@
-.loading {
+.loading,
+.unavailable {
   min-height: 65vh;
+
   display: grid;
   place-items: center;
   align-content: center;
+
   gap: 14px;
+
+  padding: 28px;
+
   color: var(--text-secondary);
+
+  text-align: center;
+
   font-size: 14px;
   font-weight: 700;
 }
@@ -12,12 +21,101 @@
 .loading svg {
   width: 28px;
   height: 28px;
+
   color: var(--accent);
-  animation: spin 900ms linear infinite;
+
+  animation:
+    spin
+    900ms
+    linear
+    infinite;
+}
+
+.unavailable {
+  gap: 10px;
+}
+
+.unavailableIcon {
+  width: 48px;
+  height: 48px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 4px;
+
+  border-radius: 15px;
+
+  color: var(--accent);
+
+  background: var(--accent-soft);
+}
+
+.unavailableIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.unavailable strong {
+  color: var(--text-primary);
+
+  font-family: var(--font-heading);
+
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+.unavailable p {
+  max-width: 500px;
+
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.unavailable button {
+  min-height: 44px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  margin-top: 8px;
+
+  padding: 0 16px;
+
+  border: 0;
+  border-radius: 11px;
+
+  color: #ffffff;
+  background: var(--accent);
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.unavailable button svg {
+  width: 16px;
+  height: 16px;
 }
 
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading svg {
+    animation: none;
   }
 }

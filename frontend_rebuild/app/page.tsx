@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -13,8 +13,27 @@ import {
   Store,
 } from "lucide-react";
 
-import HeroSearch from "@/components/home/HeroSearch";
-import { rentalAreas } from "@/lib/site-data";
+import SponsoredPlacement
+  from "@/components/advertising/SponsoredPlacement";
+
+import HeroSearch
+  from "@/components/home/HeroSearch";
+
+import LiveStatistics
+  from "@/components/home/LiveStatistics";
+
+import {
+  formatCurrency,
+  titleCase,
+} from "@/lib/formatters";
+
+import {
+  getPublicListings,
+} from "@/lib/public-listing";
+
+import {
+  rentalAreas,
+} from "@/lib/site-data";
 
 import styles from "./page.module.css";
 
@@ -24,7 +43,8 @@ const services = [
     icon: Home,
     number: "01",
     label: "Rentals",
-    title: "Find somewhere that feels right.",
+    title:
+      "Find somewhere that feels right.",
     description:
       "Rooms, hostels, self-contained spaces and apartments around OOU.",
     href: "/rentals",
@@ -34,9 +54,10 @@ const services = [
     icon: Building2,
     number: "02",
     label: "Property",
-    title: "Explore property around you.",
+    title:
+      "Explore property around you.",
     description:
-      "Discover land, houses and investment opportunities from approved publishers.",
+      "Discover land, houses and investment opportunities from HomeLink publishers.",
     href: "/buy-property",
     action: "Browse property",
   },
@@ -44,7 +65,8 @@ const services = [
     icon: Store,
     number: "03",
     label: "Marketplace",
-    title: "Buy and sell around campus.",
+    title:
+      "Buy and sell around campus.",
     description:
       "Furniture, phones, appliances, books and everyday student items nearby.",
     href: "/marketplace",
@@ -78,42 +100,106 @@ const steps = [
 ];
 
 
-const marketplaceItems = [
-  {
-    number: "01",
-    category: "Furniture",
-    name: "Reading desk",
-    price: "₦25,000",
-  },
-  {
-    number: "02",
-    category: "Gadgets",
-    name: "Laptop stand",
-    price: "₦8,500",
-  },
-  {
-    number: "03",
-    category: "Appliances",
-    name: "Mini refrigerator",
-    price: "₦72,000",
-  },
-];
+interface MarketplacePreview {
+  number: string;
+  category: string;
+  name: string;
+  price: string | null;
+  href: string;
+}
 
 
-export default function HomePage() {
+const fallbackMarketplaceItems:
+  MarketplacePreview[] = [
+    {
+      number: "01",
+      category: "Furniture",
+      name:
+        "Desks, chairs and storage",
+      price: null,
+      href:
+        "/marketplace?category=furniture",
+    },
+    {
+      number: "02",
+      category: "Gadgets",
+      name:
+        "Useful campus technology",
+      price: null,
+      href:
+        "/marketplace?category=gadgets",
+    },
+    {
+      number: "03",
+      category: "Appliances",
+      name:
+        "Everyday room essentials",
+      price: null,
+      href:
+        "/marketplace?category=appliances",
+    },
+  ];
+
+
+export default async function HomePage() {
+  const marketplaceListings =
+    await getPublicListings({
+      listing_type:
+        "marketplace",
+      sort: "newest",
+      limit: 3,
+      offset: 0,
+    });
+
+
+  const marketplaceItems:
+    MarketplacePreview[] =
+    marketplaceListings.length
+      ? marketplaceListings.map(
+          (
+            listing,
+            index,
+          ) => ({
+            number: String(
+              index + 1,
+            ).padStart(
+              2,
+              "0",
+            ),
+
+            category:
+              titleCase(
+                listing
+                  .marketplace_details
+                  ?.category ??
+                  "marketplace",
+              ),
+
+            name:
+              listing.title,
+
+            price:
+              formatCurrency(
+                listing.price,
+                listing.currency,
+              ),
+
+            href:
+              `/listings/${listing.id}`,
+          }),
+        )
+      : fallbackMarketplaceItems;
+
+
   return (
     <main className={styles.page}>
-      {/* =====================================================
-          HERO
-      ====================================================== */}
-
       <section className={styles.hero}>
         <Image
           src="/images/home/hero-home.jpg"
           alt="Modern residential home"
           fill
           priority
-          quality={92}
+          quality={86}
           sizes="100vw"
           className={styles.heroImage}
         />
@@ -144,9 +230,9 @@ export default function HomePage() {
             </h1>
 
             <p>
-              Rentals, property and everyday student deals —
-              all brought together around the places you
-              already know.
+              Rentals, property and everyday student
+              deals—all brought together around the
+              places you already know.
             </p>
 
             <div className={styles.heroActions}>
@@ -156,7 +242,9 @@ export default function HomePage() {
               >
                 Find a home
 
-                <ArrowRight aria-hidden="true" />
+                <ArrowRight
+                  aria-hidden="true"
+                />
               </Link>
 
               <Link
@@ -171,23 +259,34 @@ export default function HomePage() {
           <div className={styles.heroBottom}>
             <div className={styles.heroTrust}>
               <span>
-                <Check aria-hidden="true" />
+                <Check
+                  aria-hidden="true"
+                />
+
                 Moderated listings
               </span>
 
               <span>
-                <Check aria-hidden="true" />
+                <Check
+                  aria-hidden="true"
+                />
+
                 Reporting built in
               </span>
 
               <span>
-                <Check aria-hidden="true" />
+                <Check
+                  aria-hidden="true"
+                />
+
                 Made around OOU
               </span>
             </div>
 
             <div className={styles.heroLocation}>
-              <MapPin aria-hidden="true" />
+              <MapPin
+                aria-hidden="true"
+              />
 
               <div>
                 <small>
@@ -224,10 +323,6 @@ export default function HomePage() {
       </section>
 
 
-      {/* =====================================================
-          INTRO
-      ====================================================== */}
-
       <section className={styles.homeIntro}>
         <div className={styles.homeIntroTop}>
           <span className={styles.homeIntroIndex}>
@@ -253,20 +348,18 @@ export default function HomePage() {
               >
                 Start exploring
 
-                <ArrowRight aria-hidden="true" />
+                <ArrowRight
+                  aria-hidden="true"
+                />
               </Link>
             </div>
           </div>
         </div>
 
-
-        {/* =================================================
-            SERVICES
-        ================================================== */}
-
         <div className={styles.serviceRows}>
           {services.map((service) => {
-            const Icon = service.icon;
+            const Icon =
+              service.icon;
 
             return (
               <Link
@@ -274,16 +367,34 @@ export default function HomePage() {
                 href={service.href}
                 className={styles.serviceRow}
               >
-                <span className={styles.serviceRowNumber}>
+                <span
+                  className={
+                    styles.serviceRowNumber
+                  }
+                >
                   {service.number}
                 </span>
 
-                <span className={styles.serviceRowIcon}>
-                  <Icon aria-hidden="true" />
+                <span
+                  className={
+                    styles.serviceRowIcon
+                  }
+                >
+                  <Icon
+                    aria-hidden="true"
+                  />
                 </span>
 
-                <div className={styles.serviceRowMain}>
-                  <span className={styles.serviceRowLabel}>
+                <div
+                  className={
+                    styles.serviceRowMain
+                  }
+                >
+                  <span
+                    className={
+                      styles.serviceRowLabel
+                    }
+                  >
                     {service.label}
                   </span>
 
@@ -292,12 +403,22 @@ export default function HomePage() {
                   </h3>
                 </div>
 
-                <p className={styles.serviceRowDescription}>
+                <p
+                  className={
+                    styles.serviceRowDescription
+                  }
+                >
                   {service.description}
                 </p>
 
-                <span className={styles.serviceRowArrow}>
-                  <ArrowRight aria-hidden="true" />
+                <span
+                  className={
+                    styles.serviceRowArrow
+                  }
+                >
+                  <ArrowRight
+                    aria-hidden="true"
+                  />
                 </span>
               </Link>
             );
@@ -306,26 +427,36 @@ export default function HomePage() {
       </section>
 
 
-      {/* =====================================================
-          LOCATION FEATURE
-      ====================================================== */}
-
       <section className={styles.locationFeature}>
-        <div className={styles.locationFeatureVisual}>
+        <div
+          className={
+            styles.locationFeatureVisual
+          }
+        >
           <Image
             src="/images/home/hero-home.jpg"
             alt=""
             fill
-            sizes="(max-width: 900px) 100vw, 48vw"
-            className={styles.locationFeatureImage}
+            sizes={
+              "(max-width: 900px) 100vw, 48vw"
+            }
+            className={
+              styles.locationFeatureImage
+            }
           />
 
           <div
-            className={styles.locationFeatureOverlay}
+            className={
+              styles.locationFeatureOverlay
+            }
             aria-hidden="true"
           />
 
-          <div className={styles.locationFeatureContent}>
+          <div
+            className={
+              styles.locationFeatureContent
+            }
+          >
             <span>
               Around campus
             </span>
@@ -336,16 +467,22 @@ export default function HomePage() {
             </strong>
 
             <p>
-              Search the areas closest to
-              your classes, routines and
-              everyday life.
+              Search the areas closest to your
+              classes, routines and everyday life.
             </p>
           </div>
         </div>
 
-
-        <div className={styles.locationFeatureCopy}>
-          <div className={styles.locationFeatureHeader}>
+        <div
+          className={
+            styles.locationFeatureCopy
+          }
+        >
+          <div
+            className={
+              styles.locationFeatureHeader
+            }
+          >
             <span className={styles.sectionEyebrow}>
               Search nearby
             </span>
@@ -367,58 +504,71 @@ export default function HomePage() {
           >
             View all rentals
 
-            <ArrowRight aria-hidden="true" />
+            <ArrowRight
+              aria-hidden="true"
+            />
           </Link>
         </div>
       </section>
 
 
-      {/* =====================================================
-          AREAS
-      ====================================================== */}
-
       <section className={styles.areasSection}>
         <div className={styles.areaList}>
-          {rentalAreas.map((area, index) => (
-            <Link
-              key={area.slug}
-              href={`/rentals?area=${area.slug}`}
-              className={styles.areaItem}
-            >
-              <span className={styles.areaNumber}>
-                {String(index + 1).padStart(2, "0")}
-              </span>
+          {rentalAreas.map(
+            (
+              area,
+              index,
+            ) => (
+              <Link
+                key={area.slug}
+                href={`/rentals?area=${area.slug}`}
+                className={styles.areaItem}
+              >
+                <span className={styles.areaNumber}>
+                  {String(
+                    index + 1,
+                  ).padStart(
+                    2,
+                    "0",
+                  )}
+                </span>
 
-              <span className={styles.areaIcon}>
-                <MapPin aria-hidden="true" />
-              </span>
+                <span className={styles.areaIcon}>
+                  <MapPin
+                    aria-hidden="true"
+                  />
+                </span>
 
-              <span className={styles.areaName}>
-                <small>
-                  {area.campus}
-                </small>
+                <span className={styles.areaName}>
+                  <small>
+                    {area.campus}
+                  </small>
 
-                <strong>
-                  {area.name}
-                </strong>
-              </span>
+                  <strong>
+                    {area.name}
+                  </strong>
+                </span>
 
-              <p>
-                {area.description}
-              </p>
+                <p>
+                  {area.description}
+                </p>
 
-              <span className={styles.areaArrow}>
-                <ArrowRight aria-hidden="true" />
-              </span>
-            </Link>
-          ))}
+                <span className={styles.areaArrow}>
+                  <ArrowRight
+                    aria-hidden="true"
+                  />
+                </span>
+              </Link>
+            ),
+          )}
         </div>
       </section>
 
 
-      {/* =====================================================
-          BLUE STATEMENT
-      ====================================================== */}
+      <SponsoredPlacement
+        placement="homepage"
+      />
+
 
       <section className={styles.statementSection}>
         <div className={styles.statementTop}>
@@ -426,7 +576,9 @@ export default function HomePage() {
             02 / Why HomeLink
           </span>
 
-          <ShieldCheck aria-hidden="true" />
+          <ShieldCheck
+            aria-hidden="true"
+          />
         </div>
 
         <div className={styles.statementMain}>
@@ -452,16 +604,14 @@ export default function HomePage() {
             >
               Read our safety guide
 
-              <ArrowRight aria-hidden="true" />
+              <ArrowRight
+                aria-hidden="true"
+              />
             </Link>
           </div>
         </div>
       </section>
 
-
-      {/* =====================================================
-          PROCESS
-      ====================================================== */}
 
       <section className={styles.processSection}>
         <div className={styles.processHeader}>
@@ -475,22 +625,28 @@ export default function HomePage() {
           </h2>
         </div>
 
-
         <div className={styles.processGrid}>
           {steps.map((step) => {
-            const Icon = step.icon;
+            const Icon =
+              step.icon;
 
             return (
               <article
                 key={step.title}
                 className={styles.processItem}
               >
-                <div className={styles.processItemTop}>
+                <div
+                  className={
+                    styles.processItemTop
+                  }
+                >
                   <span>
                     {step.number}
                   </span>
 
-                  <Icon aria-hidden="true" />
+                  <Icon
+                    aria-hidden="true"
+                  />
                 </div>
 
                 <h3>
@@ -518,15 +674,13 @@ export default function HomePage() {
           >
             Safety guide
 
-            <ArrowRight aria-hidden="true" />
+            <ArrowRight
+              aria-hidden="true"
+            />
           </Link>
         </div>
       </section>
 
-
-      {/* =====================================================
-          MARKETPLACE
-      ====================================================== */}
 
       <section className={styles.marketSection}>
         <div className={styles.marketCopy}>
@@ -547,17 +701,26 @@ export default function HomePage() {
 
           <div className={styles.marketBenefits}>
             <span>
-              <Check aria-hidden="true" />
-              Two free listings
+              <Check
+                aria-hidden="true"
+              />
+
+              One free listing
             </span>
 
             <span>
-              <Check aria-hidden="true" />
+              <Check
+                aria-hidden="true"
+              />
+
               Photos and short video
             </span>
 
             <span>
-              <Check aria-hidden="true" />
+              <Check
+                aria-hidden="true"
+              />
+
               Moderated before publishing
             </span>
           </div>
@@ -569,7 +732,9 @@ export default function HomePage() {
             >
               Browse marketplace
 
-              <ArrowRight aria-hidden="true" />
+              <ArrowRight
+                aria-hidden="true"
+              />
             </Link>
 
             <Link
@@ -581,7 +746,6 @@ export default function HomePage() {
           </div>
         </div>
 
-
         <div className={styles.marketBoard}>
           <div className={styles.marketBoardTop}>
             <div>
@@ -590,42 +754,70 @@ export default function HomePage() {
               </span>
 
               <strong>
-                Fresh finds
+                {marketplaceListings.length
+                  ? "Recently listed"
+                  : "Popular categories"}
               </strong>
             </div>
 
-            <Store aria-hidden="true" />
+            <Store
+              aria-hidden="true"
+            />
           </div>
 
           <div className={styles.marketItems}>
-            {marketplaceItems.map((item) => (
-              <article
-                key={item.name}
-                className={styles.marketItem}
-              >
-                <span className={styles.marketNumber}>
-                  {item.number}
-                </span>
+            {marketplaceItems.map(
+              (item) => (
+                <Link
+                  key={
+                    `${item.number}-${item.name}`
+                  }
+                  href={item.href}
+                  className={styles.marketItem}
+                >
+                  <span
+                    className={
+                      styles.marketNumber
+                    }
+                  >
+                    {item.number}
+                  </span>
 
-                <div className={styles.marketItemCopy}>
-                  <small>
-                    {item.category}
-                  </small>
+                  <div
+                    className={
+                      styles.marketItemCopy
+                    }
+                  >
+                    <small>
+                      {item.category}
+                    </small>
 
-                  <strong>
-                    {item.name}
-                  </strong>
-                </div>
+                    <strong>
+                      {item.name}
+                    </strong>
+                  </div>
 
-                <span className={styles.marketPrice}>
-                  {item.price}
-                </span>
+                  <span
+                    className={
+                      styles.marketPrice
+                    }
+                  >
+                    {item.price ??
+                      "Explore"}
+                  </span>
 
-                <span className={styles.marketArrow}>
-                  <ArrowRight aria-hidden="true" />
-                </span>
-              </article>
-            ))}
+                  <span
+                    className={
+                      styles.marketArrow
+                    }
+                  >
+                    <ArrowRight
+                      aria-hidden="true"
+                    />
+                  </span>
+                </Link>
+              ),
+            )}
           </div>
 
           <Link
@@ -634,15 +826,16 @@ export default function HomePage() {
           >
             View marketplace
 
-            <ArrowRight aria-hidden="true" />
+            <ArrowRight
+              aria-hidden="true"
+            />
           </Link>
         </div>
       </section>
 
 
-      {/* =====================================================
-          FINAL CTA
-      ====================================================== */}
+      <LiveStatistics />
+
 
       <section className={styles.ctaSection}>
         <div
@@ -679,7 +872,9 @@ export default function HomePage() {
             >
               Start exploring
 
-              <ArrowRight aria-hidden="true" />
+              <ArrowRight
+                aria-hidden="true"
+              />
             </Link>
 
             <Link

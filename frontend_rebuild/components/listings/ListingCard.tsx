@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-
 import {
   Bath,
   BedDouble,
@@ -13,72 +12,38 @@ import {
   Ruler,
 } from "lucide-react";
 
-import {
-  formatCurrency,
-  titleCase,
-} from "@/lib/formatters";
-
-import type {
-  Listing,
-} from "@/types/listing";
+import { formatCurrency, titleCase } from "@/lib/formatters";
+import type { Listing } from "@/types/listing";
 
 import styles from "./ListingCard.module.css";
 
-
 interface ListingCardProps {
   listing: Listing;
-
   saved?: boolean;
   saving?: boolean;
-
-  onToggleSaved?: (
-    listing: Listing,
-  ) => void;
+  onToggleSaved?: (listing: Listing) => void;
 }
 
-
-function coverImage(
-  listing: Listing,
-): string | null {
-  const cover =
-    listing.media.find(
-      (item) =>
-        item.media_type ===
-          "image" &&
-        item.is_cover,
-    );
-
-  const firstImage =
-    listing.media.find(
-      (item) =>
-        item.media_type ===
-        "image",
-    );
-
-  return (
-    cover?.url ??
-    firstImage?.url ??
-    null
+function coverImage(listing: Listing): string | null {
+  const cover = listing.media.find(
+    (item) => item.media_type === "image" && item.is_cover,
   );
+
+  const firstImage = listing.media.find(
+    (item) => item.media_type === "image",
+  );
+
+  return cover?.url ?? firstImage?.url ?? null;
 }
 
-
-function categoryLabel(
-  listing: Listing,
-): string {
+function categoryLabel(listing: Listing): string {
   return titleCase(
-    listing.rental_details
-      ?.category ??
-      listing
-        .buy_property_details
-        ?.category ??
-      listing
-        .marketplace_details
-        ?.category ??
+    listing.rental_details?.category ??
+      listing.buy_property_details?.category ??
+      listing.marketplace_details?.category ??
       listing.listing_type,
   );
 }
-
 
 export default function ListingCard({
   listing,
@@ -86,185 +51,103 @@ export default function ListingCard({
   saving = false,
   onToggleSaved,
 }: ListingCardProps) {
-  const image =
-    coverImage(
-      listing,
-    );
-
-
-  const isMarketplace =
-    listing.listing_type ===
-    "marketplace";
-
+  const image = coverImage(listing);
+  const isMarketplace = listing.listing_type === "marketplace";
 
   const propertyDetails =
-    listing.rental_details ??
-    listing.buy_property_details;
+    listing.rental_details ?? listing.buy_property_details;
 
+  const marketplaceDetails = listing.marketplace_details;
+  const listingHref = `/listings/${listing.id}`;
 
-  const marketplaceDetails =
-    listing.marketplace_details;
-
+  const saveLabel = saved
+    ? `Remove ${listing.title} from saved listings`
+    : `Save ${listing.title}`;
 
   return (
     <article
-      className={[
-        styles.card,
-
-        isMarketplace
-          ? styles.marketplaceCard
-          : styles.propertyCard,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={`${styles.card} ${
+        isMarketplace ? styles.marketplaceCard : styles.propertyCard
+      }`}
     >
-      {/* =================================================
-          MEDIA
-      ================================================== */}
-
       <div
-        className={[
-          styles.media,
-
-          isMarketplace
-            ? styles.marketMedia
-            : styles.propertyMedia,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        className={`${styles.media} ${
+          isMarketplace ? styles.marketMedia : styles.propertyMedia
+        }`}
       >
         <Link
-          href={`/listings/${listing.id}`}
-          className={
-            styles.mediaLink
-          }
+          href={listingHref}
+          className={styles.mediaLink}
           aria-label={`View ${listing.title}`}
         >
           {image ? (
             <Image
               src={image}
-              alt={
-                listing.title
-              }
+              alt={listing.title}
               fill
               quality={82}
               sizes={
                 isMarketplace
-                  ? "(max-width: 800px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                  ? "(max-width: 440px) 100vw, (max-width: 800px) 50vw, (max-width: 1280px) 33vw, 25vw"
                   : "(max-width: 650px) 100vw, (max-width: 1060px) 50vw, 33vw"
               }
-              className={[
-                styles.image,
-
+              className={`${styles.image} ${
                 isMarketplace
                   ? styles.marketImage
-                  : styles.propertyImage,
-              ]
-                .filter(Boolean)
-                .join(" ")}
+                  : styles.propertyImage
+              }`}
             />
           ) : (
-            <div
-              className={
-                styles.placeholder
-              }
-            >
-              <Package
-                aria-hidden="true"
-              />
-
-              <span>
-                Photo coming soon
-              </span>
+            <div className={styles.placeholder}>
+              <Package aria-hidden="true" />
+              <span>Photo coming soon</span>
             </div>
           )}
         </Link>
 
-
         <div
-          className={
-            styles.badges
-          }
+          className={styles.badges}
+          aria-label="Listing labels"
         >
           {listing.is_featured ? (
-            <span
-              className={
-                styles.featuredBadge
-              }
-            >
+            <span className={styles.featuredBadge}>
               Featured
             </span>
           ) : null}
 
-
-          <span
-            className={
-              styles.categoryBadge
-            }
-          >
-            {categoryLabel(
-              listing,
-            )}
+          <span className={styles.categoryBadge}>
+            {categoryLabel(listing)}
           </span>
         </div>
 
-
-        <button
-          type="button"
-          className={[
-            styles.saveButton,
-
-            saved
-              ? styles.savedButton
-              : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          onClick={() =>
-            onToggleSaved?.(
-              listing,
-            )
-          }
-          disabled={
-            saving
-          }
-          aria-label={
-            saved
-              ? "Remove from saved listings"
-              : "Save listing"
-          }
-          aria-pressed={
-            saved
-          }
-        >
-          <Heart
-            aria-hidden="true"
-            fill={
-              saved
-                ? "currentColor"
-                : "none"
+        {onToggleSaved ? (
+          <button
+            type="button"
+            className={`${styles.saveButton} ${
+              saved ? styles.savedButton : ""
+            }`}
+            onClick={() => onToggleSaved(listing)}
+            disabled={saving}
+            aria-label={
+              saving
+                ? "Updating saved listing"
+                : saveLabel
             }
-          />
-        </button>
+            aria-pressed={saved}
+          >
+            <Heart
+              aria-hidden="true"
+              fill={saved ? "currentColor" : "none"}
+            />
+          </button>
+        ) : null}
       </div>
-
-
-      {/* =================================================
-          MARKETPLACE CONTENT
-      ================================================== */}
 
       {isMarketplace ? (
         <div
-          className={[
-            styles.content,
-            styles.marketContent,
-          ].join(" ")}
+          className={`${styles.content} ${styles.marketContent}`}
         >
-          <div
-            className={
-              styles.priceRow
-            }
-          >
+          <div className={styles.priceRow}>
             <strong>
               {formatCurrency(
                 listing.price,
@@ -273,85 +156,45 @@ export default function ListingCard({
             </strong>
           </div>
 
-
           <Link
-            href={`/listings/${listing.id}`}
-            className={
-              styles.titleLink
-            }
+            href={listingHref}
+            className={styles.titleLink}
           >
-            <h2>
-              {listing.title}
-            </h2>
+            <h2>{listing.title}</h2>
           </Link>
 
-
-          <div
-            className={
-              styles.marketFacts
-            }
-          >
+          <div className={styles.marketFacts}>
             <span>
-              <CheckCircle2
-                aria-hidden="true"
-              />
+              <CheckCircle2 aria-hidden="true" />
 
               {titleCase(
-                marketplaceDetails
-                  ?.condition ??
+                marketplaceDetails?.condition ??
                   "available",
               )}
             </span>
 
-            {marketplaceDetails
-              ?.is_negotiable ? (
-              <span
-                className={
-                  styles.negotiable
-                }
-              >
+            {marketplaceDetails?.is_negotiable ? (
+              <span className={styles.negotiable}>
                 Negotiable
               </span>
             ) : null}
           </div>
 
-
-          <p
-            className={
-              styles.location
-            }
-          >
-            <MapPin
-              aria-hidden="true"
-            />
+          <p className={styles.location}>
+            <MapPin aria-hidden="true" />
 
             <span>
-              {
-                listing.area.name
-              }
+              {listing.area.name}
 
-              {listing.campus
-                ?.name
+              {listing.campus?.name
                 ? ` · ${listing.campus.name}`
                 : ""}
             </span>
           </p>
         </div>
       ) : (
-        /* =================================================
-           PROPERTY / RENTAL CONTENT
-        ================================================== */
-
-        <div
-          className={
-            styles.content
-          }
-        >
-          <div
-            className={
-              styles.priceRow
-            }
-          >
+        <div className={styles.content}>
+          <div className={styles.priceRow}>
             <strong>
               {formatCurrency(
                 listing.price,
@@ -363,100 +206,54 @@ export default function ListingCard({
               <span>
                 /{" "}
                 {titleCase(
-                  listing
-                    .rental_details
-                    .rent_period,
+                  listing.rental_details.rent_period,
                 )}
               </span>
             ) : null}
           </div>
 
-
           <Link
-            href={`/listings/${listing.id}`}
-            className={
-              styles.titleLink
-            }
+            href={listingHref}
+            className={styles.titleLink}
           >
-            <h2>
-              {listing.title}
-            </h2>
+            <h2>{listing.title}</h2>
           </Link>
 
-
-          <p
-            className={
-              styles.location
-            }
-          >
-            <MapPin
-              aria-hidden="true"
-            />
+          <p className={styles.location}>
+            <MapPin aria-hidden="true" />
 
             <span>
-              {
-                listing.area.name
-              }
+              {listing.area.name}
 
-              {listing.campus
-                ?.name
+              {listing.campus?.name
                 ? ` · ${listing.campus.name}`
                 : ""}
             </span>
           </p>
 
-
           {propertyDetails ? (
-            <div
-              className={
-                styles.propertyFacts
-              }
-            >
-              {propertyDetails
-                .bedrooms !=
-              null ? (
+            <div className={styles.propertyFacts}>
+              {propertyDetails.bedrooms != null ? (
                 <span>
-                  <BedDouble
-                    aria-hidden="true"
-                  />
-
-                  {
-                    propertyDetails
-                      .bedrooms
-                  }{" "}
-                  bed
+                  <BedDouble aria-hidden="true" />
+                  {propertyDetails.bedrooms} bed
                 </span>
               ) : null}
 
-
-              {propertyDetails
-                .bathrooms !=
-              null ? (
+              {propertyDetails.bathrooms != null ? (
                 <span>
-                  <Bath
-                    aria-hidden="true"
-                  />
-
-                  {
-                    propertyDetails
-                      .bathrooms
-                  }{" "}
-                  bath
+                  <Bath aria-hidden="true" />
+                  {propertyDetails.bathrooms} bath
                 </span>
               ) : null}
 
-
-              {listing
-                .buy_property_details
+              {listing.buy_property_details
                 ?.land_size_sqm ? (
                 <span>
-                  <Ruler
-                    aria-hidden="true"
-                  />
+                  <Ruler aria-hidden="true" />
 
                   {
-                    listing
-                      .buy_property_details
+                    listing.buy_property_details
                       .land_size_sqm
                   }{" "}
                   m²

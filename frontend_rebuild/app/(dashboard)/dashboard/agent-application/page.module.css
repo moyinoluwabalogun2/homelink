@@ -1,11 +1,88 @@
+.loadError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+  color: var(--danger-text);
+  background: var(--danger-soft);
+}
+
+.loadError > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.loadError strong {
+  font-size: 13px;
+}
+
+.loadError span {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.loadError button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.loadError button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 52%);
+  transform: translateY(-1px);
+}
+
+.loadError button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+  transform: none;
+}
+
+.loadError button svg {
+  width: 15px;
+  height: 15px;
+}
+
 .profileSummary {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns:
+    64px
+    minmax(0, 1fr)
+    auto;
   align-items: start;
   gap: 20px;
-  padding: 24px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  padding: 25px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgb(31 94 255 / 9%),
+      transparent 42%
+    ),
+    var(--surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .icon {
@@ -15,7 +92,15 @@
   place-items: center;
   border-radius: 18px;
   color: #ffffff;
-  background: #122033;
+  background:
+    linear-gradient(
+      145deg,
+      #122033,
+      #1d3452
+    );
+  box-shadow:
+    0 12px 26px
+    rgb(18 32 51 / 18%);
 }
 
 .icon svg {
@@ -23,9 +108,13 @@
   height: 27px;
 }
 
+.summaryCopy {
+  min-width: 0;
+}
+
 .summaryCopy > span {
   color: var(--accent);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -34,7 +123,11 @@
 .summaryCopy h2 {
   margin: 6px 0 7px;
   font-family: var(--font-heading);
-  font-size: clamp(22px, 3vw, 28px);
+  font-size: clamp(
+    22px,
+    3vw,
+    28px
+  );
   letter-spacing: -0.035em;
 }
 
@@ -42,7 +135,7 @@
   max-width: 760px;
   margin: 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -53,12 +146,15 @@
 
 .statusNotice {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns:
+    42px
+    minmax(0, 1fr);
   align-items: start;
+  gap: 14px;
   padding: 18px 20px;
-  border: 1px solid #b9c9f5;
-  background: #f1f5ff;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
 }
 
 .statusNotice > span {
@@ -67,8 +163,9 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #1f5eff;
-  background: #ffffff;
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .statusNotice svg {
@@ -78,33 +175,33 @@
 
 .statusNotice strong {
   display: block;
-  color: #122033;
-  font-size: 15px;
+  color: var(--text-primary);
+  font-size: 14px;
 }
 
 .statusNotice p {
   margin: 5px 0 0;
-  color: #516071;
-  font-size: 14px;
-  line-height: 1.6;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 .approvedNotice {
-  border-color: #b9d7c5;
-  background: #f1f8f3;
+  border-color: var(--success-border);
+  background: var(--success-soft);
 }
 
 .approvedNotice > span {
-  color: #247345;
+  color: var(--success-text);
 }
 
 .rejectedNotice {
-  border-color: #e3c3bc;
-  background: #fbf3f1;
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
 }
 
 .rejectedNotice > span {
-  color: #a34231;
+  color: var(--danger-text);
 }
 
 
@@ -114,25 +211,29 @@
 
 .detailsGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--border);
 }
 
 .detailsGrid article {
+  min-width: 0;
   padding: 20px 22px;
-}
-
-.detailsGrid article + article {
-  border-left: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .detailsGrid span {
   display: block;
   color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.05em;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
@@ -156,13 +257,17 @@
   gap: 22px;
   padding: 26px;
   border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .sectionHeading {
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .sectionHeading > span {
@@ -171,9 +276,9 @@
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  color: #1f5eff;
-  background: #edf2ff;
+  border-radius: 14px;
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .sectionHeading > span svg {
@@ -192,8 +297,8 @@
   max-width: 720px;
   margin: 5px 0 0;
   color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 
@@ -203,14 +308,20 @@
 
 .formGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
   gap: 16px;
 }
 
 .formGrid label,
 .bio,
 .documentType {
+  min-width: 0;
   display: grid;
+  align-content: start;
   gap: 8px;
 }
 
@@ -219,7 +330,7 @@
 .documentType > span,
 .applicationCard legend {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -231,7 +342,7 @@
 
 .formGrid small {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 550;
 }
 
@@ -243,12 +354,17 @@
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--text-primary);
-  background: #ffffff;
+  background: var(--surface-muted);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
 }
 
 .formGrid input,
@@ -257,69 +373,117 @@
   padding: 0 14px;
 }
 
+.formGrid input::placeholder,
+.bio textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.formGrid input:hover:not(:disabled),
+.formGrid select:hover:not(:disabled),
+.documentType select:hover:not(:disabled),
+.bio textarea:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
 .formGrid input:focus,
 .formGrid select:focus,
 .documentType select:focus,
 .bio textarea:focus {
-  border-color: #1f5eff;
-  box-shadow: 0 0 0 3px rgba(31, 94, 255, 0.08);
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.formGrid input:disabled,
+.formGrid select:disabled,
+.documentType select:disabled,
+.bio textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .bio textarea {
   min-height: 156px;
   padding: 14px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 .bio small {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .applicationCard fieldset {
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
+.applicationCard fieldset:disabled {
+  opacity: 0.65;
+}
+
 .fieldHint {
   margin: 5px 0 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .areaGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
   gap: 9px;
   margin-top: 12px;
 }
 
 .areaGrid label {
+  min-width: 0;
+  min-height: 46px;
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 46px;
   padding: 0 13px;
   border: 1px solid var(--border);
+  border-radius: 11px;
   color: var(--text-secondary);
-  background: #ffffff;
-  font-size: 13px;
+  background: var(--surface-muted);
+  font-size: 12px;
   font-weight: 650;
   cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease,
+    transform 150ms ease;
+}
+
+.areaGrid label:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
 }
 
 .areaGrid label:has(input:checked) {
-  border-color: #9fb8ff;
-  color: #122033;
-  background: #f3f6ff;
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-soft);
+  box-shadow:
+    inset 0 0 0 1px
+    var(--accent-border);
 }
 
 .areaGrid input {
   width: 17px;
   height: 17px;
-  accent-color: #1f5eff;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
 }
 
 .submitButton,
@@ -331,13 +495,39 @@
   justify-content: center;
   gap: 9px;
   padding: 0 18px;
-  border: 0;
-  border-radius: 9px;
-  color: #ffffff;
-  background: #1f5eff;
-  font-size: 13px;
+  border: 1px solid var(--accent);
+  border-radius: 11px;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow:
+    0 9px 22px
+    rgb(31 94 255 / 18%);
+  font: inherit;
+  font-size: 12px;
   font-weight: 850;
   cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.submitButton:hover:not(:disabled),
+.uploadButton:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow:
+    0 12px 28px
+    rgb(31 94 255 / 24%);
+  transform: translateY(-1px);
+}
+
+.submitButton:focus-visible,
+.uploadButton:focus-visible,
+.loadError button:focus-visible,
+.uploadBox:focus-within {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
 }
 
 .submitButton svg,
@@ -350,6 +540,8 @@
 .uploadButton:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+  box-shadow: none;
+  transform: none;
 }
 
 
@@ -359,9 +551,11 @@
 
 .documentControls {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns:
+    220px
+    minmax(0, 1fr);
   align-items: end;
+  gap: 14px;
 }
 
 .uploadBox {
@@ -371,25 +565,43 @@
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  border: 1px dashed #aeb8c5;
-  background: #fafafa;
+  overflow: hidden;
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  background: var(--surface-muted);
   cursor: pointer;
   transition:
     border-color 160ms ease,
-    background 160ms ease;
+    background-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .uploadBox:hover {
-  border-color: #1f5eff;
-  background: #f6f8ff;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-xs);
+}
+
+.uploadBox:has(input:disabled) {
+  cursor: wait;
+  opacity: 0.62;
 }
 
 .uploadBox input {
   position: absolute;
   width: 1px;
   height: 1px;
-  opacity: 0;
-  pointer-events: none;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(
+    0,
+    0,
+    0,
+    0
+  );
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .uploadIcon {
@@ -398,9 +610,10 @@
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  color: #1f5eff;
-  background: #edf2ff;
+  border-radius: 14px;
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .uploadIcon svg {
@@ -408,22 +621,33 @@
   height: 21px;
 }
 
+.uploadBox > div {
+  min-width: 0;
+}
+
 .uploadBox strong {
   display: block;
+  overflow: hidden;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .uploadBox div > span {
   display: block;
   margin-top: 4px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .progressArea {
   display: grid;
   gap: 9px;
+  padding: 13px 14px;
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  background: var(--accent-soft);
 }
 
 .progressArea > div {
@@ -435,7 +659,7 @@
 
 .progressArea span,
 .progressArea strong {
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .progressArea span {
@@ -443,40 +667,61 @@
 }
 
 .progressArea strong {
-  color: #1f5eff;
+  color: var(--accent);
 }
 
 .progressArea progress {
   width: 100%;
   height: 8px;
-  accent-color: #1f5eff;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  accent-color: var(--accent);
+}
+
+.progressArea progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.progressArea progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.progressArea progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--accent);
 }
 
 .documentEmpty {
   display: flex;
   align-items: flex-start;
   gap: 13px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
+  padding: 17px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 13px;
   color: var(--text-muted);
+  background: var(--surface-muted);
 }
 
 .documentEmpty > svg {
   width: 22px;
   height: 22px;
   flex: 0 0 auto;
+  color: var(--accent);
 }
 
 .documentEmpty strong {
   display: block;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .documentEmpty p {
   margin: 4px 0 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -493,10 +738,10 @@
 }
 
 .historyHeader span {
-  color: #1f5eff;
-  font-size: 12px;
+  color: var(--accent);
+  font-size: 10px;
   font-weight: 850;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -507,8 +752,16 @@
 }
 
 .historyHeader > strong {
+  min-width: 31px;
+  min-height: 31px;
+  display: grid;
+  place-items: center;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
   color: var(--text-muted);
-  font-size: 14px;
+  background: var(--surface-muted);
+  font-size: 12px;
 }
 
 .documentList {
@@ -517,11 +770,14 @@
 }
 
 .documentRow {
+  min-height: 76px;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns:
+    42px
+    minmax(0, 1fr)
+    auto;
   align-items: center;
   gap: 13px;
-  min-height: 76px;
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
 }
@@ -531,9 +787,9 @@
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  color: #516071;
-  background: #f1f2f3;
+  border-radius: 13px;
+  color: var(--text-secondary);
+  background: var(--surface-muted);
 }
 
 .documentRowIcon svg {
@@ -547,23 +803,40 @@
 
 .documentInfo strong {
   display: block;
+  overflow: hidden;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .documentInfo > span {
   display: block;
   margin-top: 3px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .documentInfo small {
   display: block;
   margin-top: 5px;
-  color: #a34231;
-  font-size: 12px;
-  line-height: 1.45;
+  color: var(--danger-text);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.spinner {
+  animation:
+    spin
+    800ms
+    linear
+    infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 
@@ -574,18 +847,25 @@
 @media (max-width: 900px) {
   .formGrid,
   .areaGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
   }
 
   .documentControls {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
   }
 }
 
-
 @media (max-width: 720px) {
   .profileSummary {
-    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-columns:
+      54px
+      minmax(0, 1fr);
+    padding: 21px;
   }
 
   .profileSummary > :last-child {
@@ -596,20 +876,18 @@
   .icon {
     width: 54px;
     height: 54px;
+    border-radius: 15px;
   }
 
   .detailsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .detailsGrid article + article {
-    border-left: 0;
-    border-top: 1px solid var(--border);
+    grid-template-columns:
+      1fr;
   }
 
   .formGrid,
   .areaGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
   }
 
   .applicationCard,
@@ -622,16 +900,63 @@
   .uploadButton {
     width: 100%;
   }
+
+  .loadError {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .loadError button {
+    width: 100%;
+  }
 }
 
-
 @media (max-width: 520px) {
+  .profileSummary {
+    grid-template-columns:
+      46px
+      minmax(0, 1fr);
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+  }
+
+  .icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
   .statusNotice {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
+  }
+
+  .applicationCard,
+  .documentPanel,
+  .documentHistory {
+    padding: 17px;
+    border-radius: var(--radius-md);
+  }
+
+  .sectionHeading {
+    gap: 11px;
+  }
+
+  .sectionHeading > span {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
   }
 
   .documentRow {
-    grid-template-columns: 38px minmax(0, 1fr);
+    grid-template-columns:
+      38px
+      minmax(0, 1fr);
   }
 
   .documentRow > :last-child {
@@ -642,5 +967,45 @@
   .documentRowIcon {
     width: 38px;
     height: 38px;
+    border-radius: 11px;
+  }
+
+  .uploadBox {
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .uploadIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+}
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .loadError button,
+  .areaGrid label,
+  .submitButton,
+  .uploadButton,
+  .uploadBox,
+  .formGrid input,
+  .formGrid select,
+  .documentType select,
+  .bio textarea {
+    transition: none;
+  }
+
+  .loadError button:hover,
+  .areaGrid label:hover,
+  .submitButton:hover,
+  .uploadButton:hover {
+    transform: none;
+  }
+
+  .spinner {
+    animation: none;
   }
 }

@@ -1,0 +1,518 @@
+.page {
+  width: min(100%, 1040px);
+  display: grid;
+  gap: 22px;
+  margin: 0 auto;
+  padding-bottom: 42px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.header > div {
+  min-width: 0;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 11px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.eyebrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.header h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: clamp(29px, 4vw, 46px);
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+}
+
+.header p {
+  max-width: 660px;
+  margin: 13px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.status {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card {
+  display: grid;
+  gap: 24px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sectionHeading > span {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.sectionHeading svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.sectionHeading p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.grid label {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.grid label > span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.grid small {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.grid input,
+.grid select,
+.grid textarea {
+  width: 100%;
+  min-height: 47px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  background: var(--surface-muted);
+  outline: none;
+  font: inherit;
+  font-size: 13px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.grid textarea {
+  min-height: 132px;
+  padding: 14px;
+  resize: vertical;
+  line-height: 1.65;
+}
+
+.grid input:hover:not(:disabled),
+.grid select:hover:not(:disabled),
+.grid textarea:hover:not(:disabled) {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--border) 45%,
+      var(--text-muted)
+    );
+}
+
+.grid input:focus,
+.grid select:focus,
+.grid textarea:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow:
+    0 0 0 3px
+    var(--focus-ring);
+}
+
+.grid input:focus-visible,
+.grid select:focus-visible,
+.grid textarea:focus-visible {
+  outline: none;
+}
+
+.grid input:disabled,
+.grid select:disabled,
+.grid textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.saveBar > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.cancelButton:hover:not(:disabled),
+.saveButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.cancelButton:disabled,
+.saveButton:disabled {
+  cursor: wait;
+  opacity: 0.5;
+  transform: none;
+}
+
+.checkbox {
+  grid-template-columns: 18px minmax(0, 1fr) !important;
+  align-items: center;
+  align-content: center !important;
+  min-height: 47px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 17px;
+  min-height: 17px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.checkbox span {
+  line-height: 1.4;
+}
+
+.mediaStack {
+  display: grid;
+  gap: 24px;
+}
+
+.rejection {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 15px;
+  padding: 20px;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      #e5484d 32%,
+      var(--border)
+    );
+  border-radius: 18px;
+  background:
+    color-mix(
+      in srgb,
+      #e5484d 7%,
+      var(--surface)
+    );
+}
+
+.rejection > svg {
+  width: 22px;
+  height: 22px;
+  margin: 3px auto 0;
+  color: #d43d43;
+}
+
+.rejection strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.rejection p {
+  margin: 5px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.rejection span {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.trustNote {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 19px;
+  border: 1px solid var(--accent-border);
+  border-radius: 17px;
+  background: var(--accent-soft);
+}
+
+.trustNote > svg {
+  width: 21px;
+  height: 21px;
+  margin: 4px auto 0;
+  color: var(--accent);
+}
+
+.trustNote strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.trustNote p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.saveBar {
+  position: sticky;
+  bottom: 18px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px 19px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background:
+    color-mix(
+      in srgb,
+      var(--surface) 93%,
+      transparent
+    );
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
+}
+
+.saveBar > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.saveBar strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.saveBar span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.saveActions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cancelButton,
+.saveButton {
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 17px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    opacity 150ms ease,
+    border-color 150ms ease;
+}
+
+.cancelButton {
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--surface-muted);
+}
+
+.saveButton {
+  border: 1px solid var(--accent);
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow:
+    0 9px 22px
+    color-mix(
+      in srgb,
+      var(--accent) 22%,
+      transparent
+    );
+}
+
+.saveButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+
+.cancelButton:hover:not(:disabled),
+.saveButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.cancelButton:disabled,
+.saveButton:disabled {
+  cursor: wait;
+  opacity: 0.5;
+  transform: none;
+}
+
+
+.inlineError {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--danger-border);
+  border-radius: 13px;
+  color: var(--danger-text);
+  background: var(--danger-soft);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid input,
+  .grid select,
+  .grid textarea,
+  .cancelButton,
+  .saveButton {
+    transition: none;
+  }
+
+  .cancelButton:hover:not(:disabled),
+  .saveButton:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+
+@media (max-width: 720px) {
+  .page {
+    gap: 18px;
+  }
+
+  .header {
+    display: grid;
+    gap: 15px;
+  }
+
+  .status {
+    width: fit-content;
+  }
+
+  .card {
+    gap: 20px;
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .full {
+    grid-column: auto;
+  }
+
+  .saveBar {
+    position: static;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .saveActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cancelButton,
+  .saveButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 440px) {
+  .header h1 {
+    font-size: 30px;
+  }
+
+  .card {
+    padding: 17px;
+  }
+
+  .sectionHeading {
+    gap: 11px;
+  }
+
+  .sectionHeading > span {
+    width: 36px;
+    height: 36px;
+  }
+
+  .saveActions {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,21 +1,37 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import (
+    APIRouter,
+    Depends,
+    Query,
+)
 
 from app.api.auth_dependencies import (
     require_roles,
 )
-from app.api.dependencies import DbSession
-from app.models.enums import UserRole
-from app.models.user import User
+
+from app.api.dependencies import (
+    DbSession,
+)
+
+from app.models.enums import (
+    UserRole,
+)
+
+from app.models.user import (
+    User,
+)
+
 from app.repositories.listing_repository import (
     ListingRepository,
 )
+
 from app.schemas.listing import (
     ListingRead,
     ListingRejectRequest,
 )
+
 from app.services.listing_service import (
     ListingService,
 )
@@ -23,7 +39,9 @@ from app.services.listing_service import (
 
 router = APIRouter(
     prefix="/admin/listings",
-    tags=["admin-listings"],
+    tags=[
+        "admin-listings",
+    ],
 )
 
 
@@ -39,18 +57,36 @@ AdminUser = Annotated[
 
 @router.get(
     "/pending",
-    response_model=list[ListingRead],
+    response_model=list[
+        ListingRead
+    ],
 )
 async def list_pending_listings(
     session: DbSession,
     _: AdminUser,
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+    ),
 ) -> list[ListingRead]:
-    records = await ListingRepository(
-        session
-    ).list_pending()
+    records = (
+        await ListingRepository(
+            session
+        ).list_pending(
+            limit=limit,
+            offset=offset,
+        )
+    )
 
     return [
-        ListingRead.model_validate(item)
+        ListingRead.model_validate(
+            item
+        )
         for item in records
     ]
 

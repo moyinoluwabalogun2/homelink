@@ -1,11 +1,28 @@
 import re
-from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
 
-from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import (
+    UTC,
+    datetime,
+    timedelta,
+)
 
-from app.models.agent import AgentProfile
+from uuid import (
+    UUID,
+    uuid4,
+)
+
+from fastapi import (
+    HTTPException,
+)
+
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+)
+
+from app.models.agent import (
+    AgentProfile,
+)
+
 from app.models.enums import (
     AgentApplicationStatus,
     ListingStatus,
@@ -14,6 +31,7 @@ from app.models.enums import (
     NotificationType,
     UserRole,
 )
+
 from app.models.listing import (
     BuyPropertyDetails,
     Listing,
@@ -21,22 +39,28 @@ from app.models.listing import (
     MarketplaceDetails,
     RentalDetails,
 )
+
 from app.models.user import User
+
 from app.repositories.agent_repository import (
     AgentRepository,
 )
+
 from app.repositories.listing_repository import (
     ListingRepository,
 )
+
 from app.schemas.listing import (
     BuyPropertyCreate,
     ListingMediaInput,
     MarketplaceCreate,
     RentalCreate,
 )
+
 from app.services.credit_service import (
     CreditService,
 )
+
 from app.services.notification_service import (
     NotificationService,
 )
@@ -58,6 +82,10 @@ def slugify(
 
 
 class ListingService:
+    COMPLETION_UNDO_HOURS = 24
+
+    MEDIA_RECOVERY_DAYS = 30
+
     MEDIA_LIMITS = {
         ListingType.RENTAL: (
             8,
@@ -277,10 +305,6 @@ class ListingService:
         user: User,
         listing_id: UUID,
     ) -> Listing:
-        # Lock the listing FIRST.
-        #
-        # This prevents two simultaneous submit requests from
-        # seeing the same DRAFT state and charging two credits.
         listing = await self._owned_or_admin(
             user=user,
             listing_id=listing_id,
@@ -299,11 +323,6 @@ class ListingService:
                 ),
             )
 
-        # Re-check authorization at submission time.
-        #
-        # An approved agent may create a property draft and later
-        # lose the AGENT role before submitting it. Creation-time
-        # authorization alone is therefore insufficient.
         if listing.listing_type in {
             ListingType.RENTAL,
             ListingType.BUY_PROPERTY,
@@ -312,7 +331,6 @@ class ListingService:
                 user
             )
 
-        # The UI promises at least one IMAGE, not merely any media.
         has_image = any(
             media.media_type
             == MediaType.IMAGE
@@ -328,8 +346,6 @@ class ListingService:
                 ),
             )
 
-        # Credit mutation and listing state transition remain in
-        # the same database transaction.
         await self.credits.consume_for_listing(
             user=user,
             listing=listing,
@@ -340,6 +356,146 @@ class ListingService:
         )
 
         listing.rejection_reason = None
+
+        await self.session.commit()
+
+        return await self._reload(
+            listing.id
+        )
+
+    # ============================================================
+    # MARK SOLD / RENTED
+    # ============================================================
+
+    async def complete(
+        self,
+        *,
+        user: User,
+        listing_id: UUID,
+    ) -> Listing:
+        listing = await self._owned_or_admin(
+            user=user,
+            listing_id=listing_id,
+            for_update=True,
+        )
+
+        if (
+            listing.status
+            != ListingStatus.PUBLISHED
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Only a published listing "
+                    "can be marked as completed."
+                ),
+            )
+
+        now = datetime.now(
+            UTC
+        )
+
+        if (
+            listing.listing_type
+            == ListingType.RENTAL
+        ):
+            listing.status = (
+                ListingStatus.RENTED
+            )
+
+        else:
+            listing.status = (
+                ListingStatus.SOLD
+            )
+
+        listing.completed_at = now
+
+        listing.media_purge_after = (
+            now
+            + timedelta(
+                days=(
+                    self.MEDIA_RECOVERY_DAYS
+                )
+            )
+        )
+
+        await self.session.commit()
+
+        return await self._reload(
+            listing.id
+        )
+
+    # ============================================================
+    # UNDO SOLD / RENTED
+    # ============================================================
+
+    async def reopen_completed(
+        self,
+        *,
+        user: User,
+        listing_id: UUID,
+    ) -> Listing:
+        listing = await self._owned_or_admin(
+            user=user,
+            listing_id=listing_id,
+            for_update=True,
+        )
+
+        if listing.status not in {
+            ListingStatus.SOLD,
+            ListingStatus.RENTED,
+        }:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Only a sold or rented listing "
+                    "can be reopened."
+                ),
+            )
+
+        now = datetime.now(
+            UTC
+        )
+
+        if (
+            listing.completed_at
+            is None
+            or listing.completed_at
+            + timedelta(
+                hours=(
+                    self.COMPLETION_UNDO_HOURS
+                )
+            )
+            < now
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "The 24-hour completion undo "
+                    "period has ended."
+                ),
+            )
+
+        if (
+            listing.expires_at
+            is not None
+            and listing.expires_at
+            <= now
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "This listing expired and "
+                    "cannot be reopened."
+                ),
+            )
+
+        listing.status = (
+            ListingStatus.PUBLISHED
+        )
+
+        listing.completed_at = None
+        listing.media_purge_after = None
 
         await self.session.commit()
 
@@ -399,6 +555,10 @@ class ListingService:
         listing.published_at = now
 
         listing.rejection_reason = None
+
+        listing.completed_at = None
+
+        listing.media_purge_after = None
 
         if (
             listing.listing_type
@@ -547,9 +707,22 @@ class ListingService:
             for_update=True,
         )
 
-        listing.deleted_at = (
-            datetime.now(
-                UTC
+        now = datetime.now(
+            UTC
+        )
+
+        listing.archived_from_status = (
+            listing.status.value
+        )
+
+        listing.deleted_at = now
+
+        listing.media_purge_after = (
+            now
+            + timedelta(
+                days=(
+                    self.MEDIA_RECOVERY_DAYS
+                )
             )
         )
 
@@ -558,6 +731,91 @@ class ListingService:
         )
 
         await self.session.commit()
+
+    # ============================================================
+    # RESTORE RECENTLY DELETED
+    # ============================================================
+
+    async def restore(
+        self,
+        *,
+        user: User,
+        listing_id: UUID,
+    ) -> Listing:
+        listing = (
+            await self._owned_deleted_or_admin(
+                user=user,
+                listing_id=listing_id,
+            )
+        )
+
+        now = datetime.now(
+            UTC
+        )
+
+        if (
+            listing.media_purge_after
+            is None
+            or listing.media_purge_after
+            <= now
+        ):
+            raise HTTPException(
+                status_code=410,
+                detail=(
+                    "The 30-day recovery period "
+                    "for this listing has ended."
+                ),
+            )
+
+        try:
+            restored_status = (
+                ListingStatus(
+                    listing.archived_from_status
+                )
+            )
+        except (
+            TypeError,
+            ValueError,
+        ):
+            restored_status = (
+                ListingStatus.DRAFT
+            )
+
+        if (
+            restored_status
+            == ListingStatus.PUBLISHED
+            and listing.expires_at
+            is not None
+            and listing.expires_at
+            <= now
+        ):
+            restored_status = (
+                ListingStatus.EXPIRED
+            )
+
+        if (
+            restored_status
+            == ListingStatus.ARCHIVED
+        ):
+            restored_status = (
+                ListingStatus.DRAFT
+            )
+
+        listing.status = (
+            restored_status
+        )
+
+        listing.deleted_at = None
+
+        listing.archived_from_status = None
+
+        listing.media_purge_after = None
+
+        await self.session.commit()
+
+        return await self._reload(
+            listing.id
+        )
 
     # ============================================================
     # BUILD
@@ -724,6 +982,42 @@ class ListingService:
 
         return listing
 
+    async def _owned_deleted_or_admin(
+        self,
+        *,
+        user: User,
+        listing_id: UUID,
+    ) -> Listing:
+        listing = (
+            await self.repository
+            .get_deleted_by_id_for_update(
+                listing_id
+            )
+        )
+
+        if listing is None:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "Deleted listing not found."
+                ),
+            )
+
+        if (
+            user.role
+            != UserRole.ADMIN
+            and listing.owner_id
+            != user.id
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "You do not own this listing."
+                ),
+            )
+
+        return listing
+
     # ============================================================
     # PROPERTY POSTING AUTHORIZATION
     # ============================================================
@@ -780,7 +1074,9 @@ class ListingService:
     def _validate_media(
         self,
         listing_type: ListingType,
-        media: list[ListingMediaInput],
+        media: list[
+            ListingMediaInput
+        ],
     ) -> None:
         max_images, max_videos = (
             self.MEDIA_LIMITS[

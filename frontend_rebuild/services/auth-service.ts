@@ -85,20 +85,29 @@ export const authService = {
   },
 
   async changePassword(
-    currentPassword: string,
-    newPassword: string,
-  ): Promise<MessageResponse> {
-    try {
-      const response = await api.post<MessageResponse>(
-        "/auth/change-password",
-        {
-          current_password: currentPassword,
-          new_password: newPassword,
-        },
-      );
-      return response.data;
-    } finally {
-      clearAccessToken();
-    }
-  },
+  currentPassword: string,
+  newPassword: string,
+): Promise<MessageResponse> {
+  const response =
+    await api.post<MessageResponse>(
+      "/auth/change-password",
+      {
+        current_password:
+          currentPassword,
+
+        new_password:
+          newPassword,
+      },
+    );
+
+  /*
+   * Clear the local token only after the
+   * password was changed successfully.
+   * A rejected password request must not
+   * silently sign the user out.
+   */
+  clearAccessToken();
+
+  return response.data;
+},
 };

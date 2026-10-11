@@ -1,13 +1,23 @@
 from uuid import UUID
 
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy import (
+    delete,
+    select,
+)
+
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+)
+
+from sqlalchemy.orm import (
+    selectinload,
+)
 
 from app.models.agent import (
     AgentCoverageArea,
     AgentProfile,
 )
+
 from app.models.enums import (
     AgentApplicationStatus,
 )
@@ -31,9 +41,9 @@ class AgentRepository:
             ),
         )
 
-    # ============================================================
+    # =========================================================
     # GET BY USER
-    # ============================================================
+    # =========================================================
 
     async def get_by_user_id(
         self,
@@ -49,14 +59,15 @@ class AgentRepository:
             .where(
                 AgentProfile.user_id
                 == user_id,
+
                 AgentProfile.deleted_at
                 .is_(None),
             )
         )
 
-    # ============================================================
+    # =========================================================
     # GET BY PROFILE ID
-    # ============================================================
+    # =========================================================
 
     async def get_by_id(
         self,
@@ -72,27 +83,15 @@ class AgentRepository:
             .where(
                 AgentProfile.id
                 == profile_id,
+
                 AgentProfile.deleted_at
                 .is_(None),
             )
         )
 
-    # ============================================================
-    # GET BY PROFILE ID + ROW LOCK
-    #
-    # Used for state transitions such as:
-    #
-    # PENDING -> APPROVED
-    # PENDING -> REJECTED
-    #
-    # The lock prevents two administrators from making
-    # conflicting decisions against the same stale PENDING
-    # application at the same time.
-    #
-    # selectinload is safe here because related collections are
-    # loaded using separate SELECT statements rather than an
-    # OUTER JOIN in the FOR UPDATE statement.
-    # ============================================================
+    # =========================================================
+    # GET BY PROFILE ID WITH ROW LOCK
+    # =========================================================
 
     async def get_by_id_for_update(
         self,
@@ -108,34 +107,51 @@ class AgentRepository:
             .where(
                 AgentProfile.id
                 == profile_id,
+
                 AgentProfile.deleted_at
                 .is_(None),
             )
             .with_for_update()
         )
 
-    # ============================================================
+    # =========================================================
     # PUBLIC APPROVED DIRECTORY
-    # ============================================================
+    # =========================================================
 
     async def list_approved(
         self,
+        *,
+        limit: int,
+        offset: int,
     ) -> list[AgentProfile]:
-        result = await self.session.scalars(
-            select(
-                AgentProfile
-            )
-            .options(
-                *self._options()
-            )
-            .where(
-                AgentProfile.status
-                == AgentApplicationStatus.APPROVED,
-                AgentProfile.deleted_at
-                .is_(None),
-            )
-            .order_by(
-                AgentProfile.approved_at.desc()
+        result = (
+            await self.session.scalars(
+                select(
+                    AgentProfile
+                )
+                .options(
+                    *self._options()
+                )
+                .where(
+                    AgentProfile.status
+                    == (
+                        AgentApplicationStatus
+                        .APPROVED
+                    ),
+
+                    AgentProfile.deleted_at
+                    .is_(None),
+                )
+                .order_by(
+                    AgentProfile.approved_at
+                    .desc()
+                )
+                .limit(
+                    limit
+                )
+                .offset(
+                    offset
+                )
             )
         )
 
@@ -143,29 +159,42 @@ class AgentRepository:
             result.unique().all()
         )
 
-    # ============================================================
+    # =========================================================
     # ADMIN LIST BY STATUS
-    # ============================================================
+    # =========================================================
 
     async def list_by_status(
         self,
         status: AgentApplicationStatus,
+        *,
+        limit: int,
+        offset: int,
     ) -> list[AgentProfile]:
-        result = await self.session.scalars(
-            select(
-                AgentProfile
-            )
-            .options(
-                *self._options()
-            )
-            .where(
-                AgentProfile.status
-                == status,
-                AgentProfile.deleted_at
-                .is_(None),
-            )
-            .order_by(
-                AgentProfile.submitted_at.asc()
+        result = (
+            await self.session.scalars(
+                select(
+                    AgentProfile
+                )
+                .options(
+                    *self._options()
+                )
+                .where(
+                    AgentProfile.status
+                    == status,
+
+                    AgentProfile.deleted_at
+                    .is_(None),
+                )
+                .order_by(
+                    AgentProfile.submitted_at
+                    .asc()
+                )
+                .limit(
+                    limit
+                )
+                .offset(
+                    offset
+                )
             )
         )
 
@@ -173,9 +202,9 @@ class AgentRepository:
             result.unique().all()
         )
 
-    # ============================================================
+    # =========================================================
     # COVERAGE AREAS
-    # ============================================================
+    # =========================================================
 
     async def clear_coverage_areas(
         self,

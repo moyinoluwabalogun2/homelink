@@ -1,193 +1,963 @@
-.profileCard {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
+/* =========================================================
+   PROFILE SECTION
+========================================================= */
+
+.profileSection {
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 19px;
-  background: var(--border);
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    22px;
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    var(--shadow-xs);
 }
 
+
+.profileHeading {
+  min-height: 88px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 22px;
+
+  padding:
+    19px
+    22px;
+
+  border-bottom:
+    1px solid
+    var(--border-subtle);
+
+  background:
+    var(--surface-soft);
+}
+
+
+.profileHeading > div {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+}
+
+
+.profileIcon,
+.sectionIcon {
+  width: 46px;
+  height: 46px;
+
+  display: grid;
+  place-items: center;
+
+  flex:
+    0 0 auto;
+
+  border-radius:
+    14px;
+
+  color:
+    var(--accent);
+
+  background:
+    var(--accent-soft);
+}
+
+
+.profileIcon svg,
+.sectionIcon svg {
+  width: 21px;
+  height: 21px;
+}
+
+
+.profileHeading > div > div {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 4px;
+}
+
+
+.profileHeading > div > div > span,
+.formHeader > div > span,
+.dangerHeader > div > span {
+  color:
+    var(--accent);
+
+  font-size: 9px;
+  font-weight: 850;
+
+  letter-spacing:
+    0.1em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.profileHeading h2,
+.formHeader h2,
+.dangerHeader h2 {
+  margin: 0;
+
+  color:
+    var(--text-primary);
+
+  font-family:
+    var(--font-heading);
+
+  font-size: 18px;
+
+  line-height: 1.2;
+
+  letter-spacing:
+    -0.035em;
+}
+
+
+.accountStatus {
+  min-height: 31px;
+
+  display: inline-flex;
+  align-items: center;
+
+  flex:
+    0 0 auto;
+
+  gap: 7px;
+
+  padding:
+    6px
+    10px;
+
+  border:
+    1px solid
+    var(--success-border);
+
+  border-radius:
+    var(--radius-round);
+
+  color:
+    var(--success-text);
+
+  background:
+    var(--success-soft);
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing:
+    0.04em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.accountStatus svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+/* =========================================================
+   PROFILE DETAILS
+========================================================= */
+
+.profileCard {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 1px;
+
+  background:
+    var(--border-subtle);
+}
+
+
 .profileCard > div {
-  min-height: 98px;
+  min-width: 0;
+  min-height: 104px;
+
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 6px;
-  padding: 18px;
-  background: var(--surface);
+
+  gap: 7px;
+
+  padding: 19px;
+
+  background:
+    var(--surface);
 }
 
-.profileCard span {
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+
+.profileCard > div:hover {
+  background:
+    var(--surface-soft);
 }
+
+
+.profileCard > div > span {
+  color:
+    var(--text-muted);
+
+  font-size: 9px;
+  font-weight: 850;
+
+  letter-spacing:
+    0.08em;
+
+  text-transform:
+    uppercase;
+}
+
 
 .profileCard strong {
+  overflow-wrap:
+    anywhere;
+
+  color:
+    var(--text-primary);
+
   font-size: 13px;
-  overflow-wrap: anywhere;
+  font-weight: 750;
+
+  line-height: 1.45;
 }
 
-.sectionCard,
-.dangerZone {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+
+.profileStatus {
+  display: inline-flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--surface);
+
+  gap: 6px;
 }
 
-.sectionIcon {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  color: var(--accent);
-  background: var(--accent-soft);
+
+.profileStatus svg {
+  width: 15px;
+  height: 15px;
+
+  flex:
+    0 0 auto;
+
+  color:
+    var(--success-text);
 }
 
-.sectionIcon svg {
-  width: 22px;
-  height: 22px;
-}
 
-.sectionCard h2,
-.formCard h2,
-.dangerZone h2 {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: 17px;
-  letter-spacing: -0.03em;
-}
-
-.sectionCard p,
-.formCard p,
-.dangerZone p {
-  margin: 5px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.65;
-}
+/* =========================================================
+   SECURITY AND EXPORT GRID
+========================================================= */
 
 .formGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  align-items: stretch;
+
+  gap: 18px;
 }
+
 
 .formCard {
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 22px;
-  border: 1px solid var(--border);
-  border-radius: 19px;
-  background: var(--surface);
+
+  padding: 24px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    21px;
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    var(--shadow-xs);
 }
 
-.formCard h2 {
+
+.formHeader {
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+}
+
+
+.formHeader > div {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 4px;
+}
+
+
+.formCard > p {
+  min-height: 3.3em;
+
+  margin:
+    16px
+    0
+    0;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 12px;
+
+  line-height: 1.7;
+}
+
+
+/* =========================================================
+   FORMS
+========================================================= */
+
+.form {
+  width: 100%;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  margin-top: 19px;
+}
+
+
+.field {
+  width: 100%;
+  min-width: 0;
+
+  display: grid;
+
+  gap: 7px;
+
   margin-top: 14px;
 }
 
-.formCard label {
-  width: 100%;
-  display: grid;
-  gap: 7px;
-  margin-top: 15px;
+
+.field:first-child {
+  margin-top: 0;
 }
 
-.formCard label > span {
-  color: var(--text-secondary);
+
+.field > span {
+  color:
+    var(--text-secondary);
+
   font-size: 11px;
   font-weight: 800;
 }
 
-.formCard input,
-.deleteFields input {
-  box-sizing: border-box;
+
+.field small {
+  color:
+    var(--text-muted);
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+
+.fieldError {
+  color:
+    var(--danger-text)
+    !important;
+}
+
+
+.field input {
+  box-sizing:
+    border-box;
+
   width: 100%;
-  min-height: 45px;
-  padding: 0 13px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  color: var(--text-primary);
-  background: var(--surface-muted);
-  outline: 0;
+  min-width: 0;
+  min-height: 46px;
+
+  padding:
+    0
+    13px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    12px;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface-muted);
+
+  outline: none;
+
+  font:
+    inherit;
+
+  font-size: 13px;
+
+  transition:
+    border-color
+      var(--transition-fast),
+    background-color
+      var(--transition-fast),
+    box-shadow
+      var(--transition-fast);
 }
 
-.formCard input:focus,
-.deleteFields input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+
+.field input:hover:not(:disabled) {
+  border-color:
+    var(--border-strong);
 }
 
-.formCard button {
-  margin-top: 17px;
+
+.field input:focus {
+  border-color:
+    var(--accent);
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    0
+    0
+    0
+    3px
+    var(--focus-ring);
 }
+
+
+.field input[aria-invalid="true"] {
+  border-color:
+    var(--danger-border);
+}
+
+
+.field input[aria-invalid="true"]:focus {
+  box-shadow:
+    0
+    0
+    0
+    3px
+    rgb(180 35 24 / 13%);
+}
+
+
+.field input:disabled {
+  cursor:
+    not-allowed;
+
+  opacity: 0.62;
+}
+
+
+/* =========================================================
+   PASSWORD INPUT
+========================================================= */
+
+.passwordWrap {
+  position: relative;
+
+  min-width: 0;
+}
+
+
+.passwordWrap input {
+  padding-right: 48px;
+}
+
+
+.passwordToggle {
+  position: absolute;
+
+  top: 50%;
+  right: 5px;
+
+  width: 37px;
+  height: 37px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border-radius:
+    9px;
+
+  color:
+    var(--text-muted);
+
+  background:
+    transparent;
+
+  transform:
+    translateY(-50%);
+
+  transition:
+    color
+      var(--transition-fast),
+    background-color
+      var(--transition-fast);
+}
+
+
+.passwordToggle:hover {
+  color:
+    var(--accent);
+
+  background:
+    var(--accent-soft);
+}
+
+
+.passwordToggle:focus-visible {
+  outline:
+    3px solid
+    var(--focus-ring);
+
+  outline-offset:
+    1px;
+}
+
+
+.passwordToggle svg {
+  width: 17px;
+  height: 17px;
+}
+
+
+/* =========================================================
+   FORM ACTIONS
+========================================================= */
+
+.form > button[type="submit"] {
+  width: 100%;
+
+  margin-top: auto;
+
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+
+.form > .field:last-of-type {
+  margin-bottom: 20px;
+}
+
+
+.form > button svg,
+.deleteForm > button svg {
+  width: 16px;
+  height: 16px;
+}
+
+
+.spinner {
+  animation:
+    accountSpin
+    800ms
+    linear
+    infinite;
+}
+
+
+/* =========================================================
+   EXPORT NOTICE
+========================================================= */
+
+.exportNotice {
+  display: grid;
+
+  grid-template-columns:
+    18px
+    minmax(0, 1fr);
+
+  align-items: start;
+
+  gap: 9px;
+
+  margin:
+    17px
+    0
+    20px;
+
+  padding:
+    12px;
+
+  border:
+    1px solid
+    var(--accent-border);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--accent-soft);
+}
+
+
+.exportNotice svg {
+  width: 17px;
+  height: 17px;
+
+  margin-top: 2px;
+
+  color:
+    var(--accent);
+}
+
+
+.exportNotice p {
+  margin: 0;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 10px;
+
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   DANGER ZONE
+========================================================= */
 
 .dangerZone {
+  display: grid;
+
   grid-template-columns:
-    48px minmax(220px, 0.8fr)
-    minmax(300px, 1fr) auto;
-  border-color: var(--danger-border);
+    minmax(
+      250px,
+      0.8fr
+    )
+    minmax(
+      380px,
+      1.2fr
+    );
+
+  align-items: center;
+
+  gap: 30px;
+
+  padding: 24px;
+
+  border:
+    1px solid
+    var(--danger-border);
+
+  border-radius:
+    21px;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--surface),
+      var(--danger-soft)
+    );
+
+  box-shadow:
+    var(--shadow-xs);
 }
 
-.dangerZone .sectionIcon {
-  color: var(--danger-text);
-  background: var(--danger-soft);
+
+.dangerHeader {
+  min-width: 0;
+
+  display: grid;
+
+  grid-template-columns:
+    48px
+    minmax(0, 1fr);
+
+  align-items: start;
+
+  gap: 14px;
 }
+
+
+.dangerHeader
+.sectionIcon {
+  width: 48px;
+  height: 48px;
+
+  color:
+    var(--danger-text);
+
+  background:
+    var(--danger-soft);
+}
+
+
+.dangerHeader > div {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 5px;
+}
+
+
+.dangerHeader > div > span {
+  color:
+    var(--danger-text);
+}
+
+
+.dangerHeader p {
+  margin:
+    6px
+    0
+    0;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+
+  line-height: 1.65;
+}
+
+
+.deleteForm {
+  min-width: 0;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+
+  align-items: end;
+
+  gap: 12px;
+}
+
 
 .deleteFields {
+  min-width: 0;
+
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 10px;
 }
 
-@media (max-width: 980px) {
+
+.deleteFields
+.field {
+  margin-top: 0;
+}
+
+
+.deleteForm > button {
+  min-height: 46px;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+@keyframes accountSpin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   LARGE TABLET
+========================================================= */
+
+@media (
+  max-width:
+    1050px
+) {
   .dangerZone {
-    grid-template-columns: 48px 1fr;
+    grid-template-columns:
+      1fr;
   }
 
-  .deleteFields,
-  .dangerZone > button {
-    grid-column: 2;
+
+  .deleteForm {
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto;
   }
 }
 
-@media (max-width: 760px) {
-  .profileCard {
-    grid-template-columns: 1fr;
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (
+  max-width:
+    760px
+) {
+  .profileHeading {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
   }
+
+
+  .profileCard {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+
 
   .formGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
   }
 
-  .sectionCard {
-    grid-template-columns: 48px 1fr;
+
+  .formCard > p {
+    min-height: 0;
   }
 
-  .sectionCard > button {
-    grid-column: 1 / -1;
+
+  .deleteForm {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .deleteForm > button {
+    width: 100%;
   }
 }
 
-@media (max-width: 560px) {
-  .deleteFields,
+
+/* =========================================================
+   PHONE
+========================================================= */
+
+@media (
+  max-width:
+    560px
+) {
+  .profileSection,
+  .formCard,
   .dangerZone {
-    grid-template-columns: 1fr;
+    border-radius:
+      17px;
   }
 
-  .deleteFields,
-  .dangerZone > button {
-    grid-column: auto;
-    width: 100%;
+
+  .profileHeading,
+  .formCard,
+  .dangerZone {
+    padding: 18px;
+  }
+
+
+  .profileCard {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .profileCard > div {
+    min-height: 88px;
+
+    padding: 17px;
+  }
+
+
+  .accountStatus {
+    width: fit-content;
+  }
+
+
+  .deleteFields {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .dangerHeader {
+    grid-template-columns:
+      42px
+      minmax(0, 1fr);
+  }
+
+
+  .dangerHeader
+  .sectionIcon {
+    width: 42px;
+    height: 42px;
+
+    border-radius:
+      12px;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (
+  prefers-reduced-motion:
+    reduce
+) {
+  .field input,
+  .passwordToggle,
+  .spinner {
+    animation: none;
+
+    transition: none;
   }
 }

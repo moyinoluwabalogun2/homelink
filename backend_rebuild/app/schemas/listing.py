@@ -23,7 +23,10 @@ from app.schemas.user import PublicUserRead
 class ListingMediaInput(BaseModel):
     media_type: MediaType
     url: HttpUrl
-    storage_public_id: str | None = Field(default=None, max_length=255)
+    storage_public_id: str | None = Field(
+        default=None,
+        max_length=255,
+    )
     sort_order: int = Field(default=0, ge=0)
     is_cover: bool = False
 
@@ -36,37 +39,100 @@ class ListingMediaRead(ORMModel):
     is_cover: bool
 
 
+class OwnedListingMediaRead(
+    ListingMediaRead,
+):
+    storage_public_id: str | None
+
+
 class ListingBaseCreate(BaseModel):
     area_id: UUID
     campus_id: UUID | None = None
-    title: str = Field(min_length=5, max_length=220)
-    description: str = Field(min_length=30, max_length=12000)
-    price: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
-    media: list[ListingMediaInput] = Field(default_factory=list)
+    title: str = Field(
+        min_length=5,
+        max_length=220,
+    )
+    description: str = Field(
+        min_length=30,
+        max_length=12000,
+    )
+    price: Decimal = Field(
+        ge=0,
+        max_digits=14,
+        decimal_places=2,
+    )
+    media: list[ListingMediaInput] = Field(
+        default_factory=list,
+    )
 
 
 class RentalCreate(ListingBaseCreate):
     category: RentalCategory
     rent_period: RentPeriod
-    bedrooms: int | None = Field(default=None, ge=0, le=100)
-    bathrooms: int | None = Field(default=None, ge=0, le=100)
-    toilets: int | None = Field(default=None, ge=0, le=100)
+    bedrooms: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+    bathrooms: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+    toilets: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
     is_furnished: bool = False
-    caution_fee: Decimal | None = Field(default=None, ge=0)
-    service_charge: Decimal | None = Field(default=None, ge=0)
-    distance_to_campus_km: Decimal | None = Field(default=None, ge=0)
-    address: str = Field(min_length=5, max_length=2000)
+    caution_fee: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+    service_charge: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+    distance_to_campus_km: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+    address: str = Field(
+        min_length=5,
+        max_length=2000,
+    )
 
 
 class BuyPropertyCreate(ListingBaseCreate):
     category: PropertyCategory
     property_condition: PropertyCondition
-    bedrooms: int | None = Field(default=None, ge=0, le=100)
-    bathrooms: int | None = Field(default=None, ge=0, le=100)
-    toilets: int | None = Field(default=None, ge=0, le=100)
-    land_size_sqm: Decimal | None = Field(default=None, ge=0)
-    title_document: str | None = Field(default=None, max_length=180)
-    address: str = Field(min_length=5, max_length=2000)
+    bedrooms: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+    bathrooms: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+    toilets: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+    land_size_sqm: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+    title_document: str | None = Field(
+        default=None,
+        max_length=180,
+    )
+    address: str = Field(
+        min_length=5,
+        max_length=2000,
+    )
 
 
 class MarketplaceCreate(ListingBaseCreate):
@@ -76,7 +142,10 @@ class MarketplaceCreate(ListingBaseCreate):
 
 
 class ListingRejectRequest(BaseModel):
-    reason: str = Field(min_length=10, max_length=2000)
+    reason: str = Field(
+        min_length=10,
+        max_length=2000,
+    )
 
 
 class RentalDetailsRead(ORMModel):
@@ -114,6 +183,7 @@ class ListingRead(ORMModel):
     owner: PublicUserRead
     area: AreaRead
     campus: CampusRead | None
+
     listing_type: ListingType
     title: str
     slug: str
@@ -122,15 +192,36 @@ class ListingRead(ORMModel):
     currency: str
     status: ListingStatus
     rejection_reason: str | None
+
     is_featured: bool
     featured_until: datetime | None
     published_at: datetime | None
     expires_at: datetime | None
+
+    completed_at: datetime | None
+    deleted_at: datetime | None
+    media_purge_after: datetime | None
+
     view_count: int
     contact_count: int
+
     media: list[ListingMediaRead]
     rental_details: RentalDetailsRead | None
     buy_property_details: BuyPropertyDetailsRead | None
     marketplace_details: MarketplaceDetailsRead | None
+
     created_at: datetime
     updated_at: datetime
+
+
+class OwnedListingRead(
+    ListingRead,
+):
+    """
+    Owner-only response used by the listing editor.
+
+    Cloudinary public IDs are deliberately excluded from normal
+    public listing responses.
+    """
+
+    media: list[OwnedListingMediaRead]

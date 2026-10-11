@@ -7,16 +7,14 @@ import {
 
 import Image from "next/image";
 import Link from "next/link";
-
-import {
-  useRouter,
-} from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import {
   zodResolver,
 } from "@hookform/resolvers/zod";
 
 import {
+  Check,
   Eye,
   EyeOff,
   Loader2,
@@ -32,24 +30,13 @@ import {
   useForm,
 } from "react-hook-form";
 
-import {
-  toast,
-} from "sonner";
+import { toast } from "sonner";
+import { z } from "zod";
 
-import {
-  z,
-} from "zod";
-
-import {
-  useAuth,
-} from "@/context/AuthContext";
-
-import {
-  getApiErrorMessage,
-} from "@/lib/api-errors";
+import { useAuth } from "@/context/AuthContext";
+import { getApiErrorMessage } from "@/lib/api-errors";
 
 import styles from "@/components/auth/AuthForm.module.css";
-
 
 const passwordSchema =
   z
@@ -71,7 +58,6 @@ const passwordSchema =
       "Add a number.",
     );
 
-
 const registerSchema =
   z
     .object({
@@ -82,11 +68,16 @@ const registerSchema =
           .min(
             2,
             "Enter your full name.",
+          )
+          .max(
+            150,
+            "Your name is too long.",
           ),
 
       email:
         z
           .string()
+          .trim()
           .email(
             "Enter a valid email address.",
           ),
@@ -94,6 +85,7 @@ const registerSchema =
       phone:
         z
           .string()
+          .trim()
           .regex(
             /^\+?[0-9\s()-]{10,20}$/,
             "Enter a valid phone number.",
@@ -103,7 +95,12 @@ const registerSchema =
         passwordSchema,
 
       confirmPassword:
-        z.string(),
+        z
+          .string()
+          .min(
+            1,
+            "Confirm your password.",
+          ),
 
       acceptTerms:
         z
@@ -138,67 +135,99 @@ const registerSchema =
         path: [
           "confirmPassword",
         ],
-
         message:
           "Passwords do not match.",
       },
     );
-
 
 type RegisterForm =
   z.infer<
     typeof registerSchema
   >;
 
-
 export default function RegisterPage() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
   const {
     register:
       createAccount,
-
     status,
   } = useAuth();
-
 
   const [
     showPassword,
     setShowPassword,
-  ] =
-    useState(false);
+  ] = useState(false);
 
+  const [
+    showConfirmation,
+    setShowConfirmation,
+  ] = useState(false);
 
   const {
     register,
     handleSubmit,
+    watch,
 
     formState: {
       errors,
       isSubmitting,
     },
-  } =
-    useForm<RegisterForm>({
-      resolver:
-        zodResolver(
-          registerSchema,
+  } = useForm<RegisterForm>({
+    resolver:
+      zodResolver(
+        registerSchema,
+      ),
+
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+      acceptTerms: false,
+      acknowledgePrivacy:
+        false,
+      marketingConsent:
+        false,
+    },
+  });
+
+  const password =
+    watch("password") ?? "";
+
+  const passwordRequirements = [
+    {
+      label:
+        "At least 10 characters",
+      passed:
+        password.length >= 10,
+    },
+    {
+      label:
+        "One uppercase letter",
+      passed:
+        /[A-Z]/.test(
+          password,
         ),
-
-      defaultValues: {
-        fullName: "",
-        email: "",
-        phone: "",
-        password: "",
-        confirmPassword: "",
-        acceptTerms: false,
-        acknowledgePrivacy:
-          false,
-        marketingConsent:
-          false,
-      },
-    });
-
+    },
+    {
+      label:
+        "One lowercase letter",
+      passed:
+        /[a-z]/.test(
+          password,
+        ),
+    },
+    {
+      label:
+        "At least one number",
+      passed:
+        /[0-9]/.test(
+          password,
+        ),
+    },
+  ];
 
   useEffect(() => {
     if (
@@ -214,53 +243,41 @@ export default function RegisterPage() {
     router,
   ]);
 
-
   const submit =
     handleSubmit(
-      async (
-        values,
-      ) => {
+      async (values) => {
         try {
           const user =
-            await createAccount(
-              {
-                full_name:
-                  values.fullName,
-
-                email:
-                  values.email,
-
-                phone:
-                  values.phone,
-
-                password:
-                  values.password,
-
-                accept_terms:
-                  true,
-
-                acknowledge_privacy:
-                  true,
-
-                marketing_consent:
-                  values.marketingConsent,
-              },
-            );
+            await createAccount({
+              full_name:
+                values.fullName.trim(),
+              email:
+                values.email
+                  .trim()
+                  .toLowerCase(),
+              phone:
+                values.phone.trim(),
+              password:
+                values.password,
+              accept_terms:
+                true,
+              acknowledge_privacy:
+                true,
+              marketing_consent:
+                values.marketingConsent,
+            });
 
           toast.success(
-            `Your HomeLink account is ready, ${
-              user.full_name.split(
-                " ",
-              )[0]
+            `Welcome to HomeLink, ${
+              user.full_name
+                .split(" ")[0]
             }.`,
           );
 
           router.replace(
             "/dashboard",
           );
-        } catch (
-          error
-        ) {
+        } catch (error) {
           toast.error(
             getApiErrorMessage(
               error,
@@ -271,50 +288,25 @@ export default function RegisterPage() {
       },
     );
 
-
   return (
-    <main
-      className={
-        styles.authPage
-      }
-    >
-      {/* ===================================================
-          IMAGE SIDE
-      ==================================================== */}
-
-      <section
-        className={
-          styles.visual
-        }
-      >
+    <main className={styles.authPage}>
+      <section className={styles.visual}>
         <Image
           src="/images/home/hero-home.jpg"
           alt=""
           fill
           priority
           sizes="(max-width: 900px) 0vw, 45vw"
-          className={
-            styles.visualImage
-          }
+          className={styles.visualImage}
         />
 
         <div
-          className={
-            styles.visualOverlay
-          }
+          className={styles.visualOverlay}
+          aria-hidden="true"
         />
 
-
-        <div
-          className={
-            styles.visualContent
-          }
-        >
-          <span
-            className={
-              styles.visualEyebrow
-            }
-          >
+        <div className={styles.visualContent}>
+          <span className={styles.visualEyebrow}>
             Join HomeLink
           </span>
 
@@ -324,54 +316,29 @@ export default function RegisterPage() {
           </h2>
 
           <p>
-            Save places, contact
-            professionals, explore
-            marketplace items and
-            manage your own
-            listings.
+            Save places, contact professionals,
+            explore marketplace items and manage
+            your own listings.
           </p>
 
-
-          <div
-            className={
-              styles.visualTrust
-            }
-          >
-            <ShieldCheck
-              aria-hidden="true"
-            />
+          <div className={styles.visualTrust}>
+            <ShieldCheck aria-hidden="true" />
 
             <span>
-              Built around clearer
-              listings and safer
-              decisions.
+              Built around clearer listings
+              and safer decisions.
             </span>
           </div>
         </div>
       </section>
 
-
-      {/* ===================================================
-          REGISTER PANEL
-      ==================================================== */}
-
       <section
-        className={[
-          styles.panel,
-          styles.registerPanel,
-        ].join(" ")}
+        className={`${styles.panel} ${styles.registerPanel}`}
       >
         <div
-          className={[
-            styles.panelInner,
-            styles.registerInner,
-          ].join(" ")}
+          className={`${styles.panelInner} ${styles.registerInner}`}
         >
-          <div
-            className={
-              styles.panelTop
-            }
-          >
+          <div className={styles.panelTop}>
             <span>
               Create account
             </span>
@@ -381,17 +348,8 @@ export default function RegisterPage() {
             </Link>
           </div>
 
-
-          <header
-            className={
-              styles.header
-            }
-          >
-            <span
-              className={
-                styles.formEyebrow
-              }
-            >
+          <header className={styles.header}>
+            <span className={styles.formEyebrow}>
               Get started
             </span>
 
@@ -401,54 +359,39 @@ export default function RegisterPage() {
             </h1>
 
             <p>
-              Save listings,
-              contact agents and
-              manage posts from one
-              place.
+              Save listings, contact publishers and
+              manage posts from one place.
             </p>
           </header>
 
-
           <form
-            className={
-              styles.form
-            }
-            onSubmit={
-              submit
-            }
+            className={styles.form}
+            onSubmit={submit}
             noValidate
           >
-            <div
-              className={
-                styles.twoColumns
-              }
-            >
-              <div
-                className={
-                  styles.field
-                }
-              >
-                <label
-                  htmlFor="fullName"
-                >
+            <div className={styles.twoColumns}>
+              <div className={styles.field}>
+                <label htmlFor="fullName">
                   Full name
                 </label>
 
-                <div
-                  className={
-                    styles.inputWrap
-                  }
-                >
-                  <UserRound
-                    aria-hidden="true"
-                  />
+                <div className={styles.inputWrap}>
+                  <UserRound aria-hidden="true" />
 
                   <input
                     id="fullName"
                     autoComplete="name"
                     placeholder="Your full name"
-                    className={
-                      styles.input
+                    className={styles.input}
+                    aria-invalid={
+                      errors.fullName
+                        ? true
+                        : undefined
+                    }
+                    aria-describedby={
+                      errors.fullName
+                        ? "register-name-error"
+                        : undefined
                     }
                     {...register(
                       "fullName",
@@ -458,47 +401,39 @@ export default function RegisterPage() {
 
                 {errors.fullName ? (
                   <p
-                    className={
-                      styles.error
-                    }
+                    id="register-name-error"
+                    className={styles.error}
+                    role="alert"
                   >
-                    {
-                      errors
-                        .fullName
-                        .message
-                    }
+                    {errors.fullName.message}
                   </p>
                 ) : null}
               </div>
 
-
-              <div
-                className={
-                  styles.field
-                }
-              >
-                <label
-                  htmlFor="phone"
-                >
+              <div className={styles.field}>
+                <label htmlFor="phone">
                   Phone number
                 </label>
 
-                <div
-                  className={
-                    styles.inputWrap
-                  }
-                >
-                  <Phone
-                    aria-hidden="true"
-                  />
+                <div className={styles.inputWrap}>
+                  <Phone aria-hidden="true" />
 
                   <input
                     id="phone"
                     type="tel"
+                    inputMode="tel"
                     autoComplete="tel"
                     placeholder="08012345678"
-                    className={
-                      styles.input
+                    className={styles.input}
+                    aria-invalid={
+                      errors.phone
+                        ? true
+                        : undefined
+                    }
+                    aria-describedby={
+                      errors.phone
+                        ? "register-phone-error"
+                        : undefined
                     }
                     {...register(
                       "phone",
@@ -508,47 +443,42 @@ export default function RegisterPage() {
 
                 {errors.phone ? (
                   <p
-                    className={
-                      styles.error
-                    }
+                    id="register-phone-error"
+                    className={styles.error}
+                    role="alert"
                   >
-                    {
-                      errors.phone
-                        .message
-                    }
+                    {errors.phone.message}
                   </p>
                 ) : null}
               </div>
             </div>
 
-
-            <div
-              className={
-                styles.field
-              }
-            >
-              <label
-                htmlFor="email"
-              >
+            <div className={styles.field}>
+              <label htmlFor="email">
                 Email address
               </label>
 
-              <div
-                className={
-                  styles.inputWrap
-                }
-              >
-                <Mail
-                  aria-hidden="true"
-                />
+              <div className={styles.inputWrap}>
+                <Mail aria-hidden="true" />
 
                 <input
                   id="email"
                   type="email"
+                  inputMode="email"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   placeholder="you@example.com"
-                  className={
-                    styles.input
+                  className={styles.input}
+                  aria-invalid={
+                    errors.email
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    errors.email
+                      ? "register-email-error"
+                      : undefined
                   }
                   {...register(
                     "email",
@@ -558,43 +488,23 @@ export default function RegisterPage() {
 
               {errors.email ? (
                 <p
-                  className={
-                    styles.error
-                  }
+                  id="register-email-error"
+                  className={styles.error}
+                  role="alert"
                 >
-                  {
-                    errors.email
-                      .message
-                  }
+                  {errors.email.message}
                 </p>
               ) : null}
             </div>
 
-
-            <div
-              className={
-                styles.twoColumns
-              }
-            >
-              <div
-                className={
-                  styles.field
-                }
-              >
-                <label
-                  htmlFor="password"
-                >
+            <div className={styles.twoColumns}>
+              <div className={styles.field}>
+                <label htmlFor="password">
                   Password
                 </label>
 
-                <div
-                  className={
-                    styles.inputWrap
-                  }
-                >
-                  <LockKeyhole
-                    aria-hidden="true"
-                  />
+                <div className={styles.inputWrap}>
+                  <LockKeyhole aria-hidden="true" />
 
                   <input
                     id="password"
@@ -605,8 +515,16 @@ export default function RegisterPage() {
                     }
                     autoComplete="new-password"
                     placeholder="At least 10 characters"
-                    className={
-                      styles.passwordInput
+                    className={styles.passwordInput}
+                    aria-invalid={
+                      errors.password
+                        ? true
+                        : undefined
+                    }
+                    aria-describedby={
+                      errors.password
+                        ? "register-password-error register-password-requirements"
+                        : "register-password-requirements"
                     }
                     {...register(
                       "password",
@@ -615,14 +533,10 @@ export default function RegisterPage() {
 
                   <button
                     type="button"
-                    className={
-                      styles.passwordButton
-                    }
+                    className={styles.passwordButton}
                     onClick={() =>
                       setShowPassword(
-                        (
-                          current,
-                        ) =>
+                        (current) =>
                           !current,
                       )
                     }
@@ -631,173 +545,205 @@ export default function RegisterPage() {
                         ? "Hide password"
                         : "Show password"
                     }
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? (
-                      <EyeOff
-                        aria-hidden="true"
-                      />
+                      <EyeOff aria-hidden="true" />
                     ) : (
-                      <Eye
-                        aria-hidden="true"
-                      />
+                      <Eye aria-hidden="true" />
                     )}
                   </button>
                 </div>
 
                 {errors.password ? (
                   <p
-                    className={
-                      styles.error
-                    }
+                    id="register-password-error"
+                    className={styles.error}
+                    role="alert"
                   >
-                    {
-                      errors
-                        .password
-                        .message
-                    }
+                    {errors.password.message}
                   </p>
                 ) : null}
               </div>
 
-
-              <div
-                className={
-                  styles.field
-                }
-              >
-                <label
-                  htmlFor="confirmPassword"
-                >
+              <div className={styles.field}>
+                <label htmlFor="confirmPassword">
                   Confirm password
                 </label>
 
-                <div
-                  className={
-                    styles.inputWrap
-                  }
-                >
-                  <LockKeyhole
-                    aria-hidden="true"
-                  />
+                <div className={styles.inputWrap}>
+                  <LockKeyhole aria-hidden="true" />
 
                   <input
                     id="confirmPassword"
                     type={
-                      showPassword
+                      showConfirmation
                         ? "text"
                         : "password"
                     }
                     autoComplete="new-password"
                     placeholder="Repeat your password"
-                    className={
-                      styles.passwordInput
+                    className={styles.passwordInput}
+                    aria-invalid={
+                      errors.confirmPassword
+                        ? true
+                        : undefined
+                    }
+                    aria-describedby={
+                      errors.confirmPassword
+                        ? "register-confirm-error"
+                        : undefined
                     }
                     {...register(
                       "confirmPassword",
                     )}
                   />
+
+                  <button
+                    type="button"
+                    className={styles.passwordButton}
+                    onClick={() =>
+                      setShowConfirmation(
+                        (current) =>
+                          !current,
+                      )
+                    }
+                    aria-label={
+                      showConfirmation
+                        ? "Hide confirmation password"
+                        : "Show confirmation password"
+                    }
+                    aria-pressed={showConfirmation}
+                  >
+                    {showConfirmation ? (
+                      <EyeOff aria-hidden="true" />
+                    ) : (
+                      <Eye aria-hidden="true" />
+                    )}
+                  </button>
                 </div>
 
                 {errors.confirmPassword ? (
                   <p
-                    className={
-                      styles.error
-                    }
+                    id="register-confirm-error"
+                    className={styles.error}
+                    role="alert"
                   >
-                    {
-                      errors
-                        .confirmPassword
-                        .message
-                    }
+                    {errors.confirmPassword.message}
                   </p>
                 ) : null}
               </div>
             </div>
 
-
             <div
-              className={
-                styles.legalGroup
-              }
+              id="register-password-requirements"
+              className={styles.passwordRequirements}
             >
-              <div
-                className={
-                  styles.checkboxRow
-                }
-              >
+              <strong>
+                Password requirements
+              </strong>
+
+              <div>
+                {passwordRequirements.map(
+                  (requirement) => (
+                    <span
+                      key={requirement.label}
+                      className={
+                        requirement.passed
+                          ? styles.requirementPassed
+                          : undefined
+                      }
+                    >
+                      <Check aria-hidden="true" />
+                      {requirement.label}
+                    </span>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className={styles.legalGroup}>
+              <div className={styles.checkboxRow}>
                 <input
                   id="acceptTerms"
                   type="checkbox"
+                  aria-invalid={
+                    errors.acceptTerms
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    errors.acceptTerms
+                      ? "register-terms-error"
+                      : undefined
+                  }
                   {...register(
                     "acceptTerms",
                   )}
                 />
 
-                <label
-                  htmlFor="acceptTerms"
-                >
+                <label htmlFor="acceptTerms">
                   I accept the{" "}
 
-                  <a
-                    href="http://localhost:8001/api/v1/legal/terms"
+                  <Link
+                    href="/terms"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                   >
                     Terms of Service
-                  </a>
+                  </Link>
                   .
                 </label>
               </div>
 
               {errors.acceptTerms ? (
                 <p
-                  className={
-                    styles.error
-                  }
+                  id="register-terms-error"
+                  className={styles.error}
+                  role="alert"
                 >
-                  {
-                    errors
-                      .acceptTerms
-                      .message
-                  }
+                  {errors.acceptTerms.message}
                 </p>
               ) : null}
 
-
-              <div
-                className={
-                  styles.checkboxRow
-                }
-              >
+              <div className={styles.checkboxRow}>
                 <input
                   id="acknowledgePrivacy"
                   type="checkbox"
+                  aria-invalid={
+                    errors.acknowledgePrivacy
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    errors.acknowledgePrivacy
+                      ? "register-privacy-error"
+                      : undefined
+                  }
                   {...register(
                     "acknowledgePrivacy",
                   )}
                 />
 
-                <label
-                  htmlFor="acknowledgePrivacy"
-                >
+                <label htmlFor="acknowledgePrivacy">
                   I have read the{" "}
 
-                  <a
-                    href="http://localhost:8001/api/v1/legal/privacy"
+                  <Link
+                    href="/privacy"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                   >
                     Privacy Notice
-                  </a>
+                  </Link>
                   .
                 </label>
               </div>
 
               {errors.acknowledgePrivacy ? (
                 <p
-                  className={
-                    styles.error
-                  }
+                  id="register-privacy-error"
+                  className={styles.error}
+                  role="alert"
                 >
                   {
                     errors
@@ -807,12 +753,7 @@ export default function RegisterPage() {
                 </p>
               ) : null}
 
-
-              <div
-                className={
-                  styles.checkboxRow
-                }
-              >
+              <div className={styles.checkboxRow}>
                 <input
                   id="marketingConsent"
                   type="checkbox"
@@ -821,38 +762,25 @@ export default function RegisterPage() {
                   )}
                 />
 
-                <label
-                  htmlFor="marketingConsent"
-                >
-                  Send me optional
-                  HomeLink updates.
-                  I can withdraw
-                  this later.
+                <label htmlFor="marketingConsent">
+                  Send me optional HomeLink updates.
+                  I can withdraw this later.
                 </label>
               </div>
             </div>
 
-
             <button
               type="submit"
-              className={
-                styles.submitButton
-              }
-              disabled={
-                isSubmitting
-              }
+              className={styles.submitButton}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <Loader2
-                  className={
-                    styles.spinner
-                  }
+                  className={styles.spinner}
                   aria-hidden="true"
                 />
               ) : (
-                <UserRoundPlus
-                  aria-hidden="true"
-                />
+                <UserRoundPlus aria-hidden="true" />
               )}
 
               {isSubmitting
@@ -861,19 +789,12 @@ export default function RegisterPage() {
             </button>
           </form>
 
-
-          <p
-            className={
-              styles.footerText
-            }
-          >
+          <p className={styles.footerText}>
             Already registered?{" "}
 
             <Link
               href="/login"
-              className={
-                styles.footerLink
-              }
+              className={styles.footerLink}
             >
               Sign in
             </Link>

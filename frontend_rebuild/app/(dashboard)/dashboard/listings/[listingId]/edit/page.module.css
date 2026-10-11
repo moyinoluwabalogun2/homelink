@@ -1,0 +1,114 @@
+.state {
+  width: min(100%, 680px);
+  min-height: 380px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-content: center;
+  gap: 18px;
+  margin: 0 auto;
+  padding: 36px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.stateIcon,
+.errorIcon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+}
+
+.stateIcon {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.errorIcon {
+  color: #d43d43;
+  background:
+    color-mix(
+      in srgb,
+      #e5484d 9%,
+      var(--surface)
+    );
+}
+
+.stateIcon svg,
+.errorIcon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.state h1 {
+  margin: 3px 0 8px;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 25px;
+  letter-spacing: -0.04em;
+}
+
+.state p {
+  max-width: 500px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.spinner {
+  animation: spin 800ms linear infinite;
+}
+
+.backButton {
+  width: fit-content;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 19px;
+  padding: 0 15px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--text-primary);
+  background: var(--surface-muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.backButton:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.backButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 620px) {
+  .state {
+    min-height: 330px;
+    grid-template-columns: 1fr;
+    padding: 24px;
+    border-radius: 19px;
+  }
+
+  .state h1 {
+    font-size: 22px;
+  }
+}

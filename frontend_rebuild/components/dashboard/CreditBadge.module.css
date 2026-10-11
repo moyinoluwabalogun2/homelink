@@ -1,94 +1,494 @@
+.root {
+  position: relative;
+
+  z-index: 90;
+
+  flex:
+    0 0 auto;
+}
+
+
+/* =========================================================
+   CREDIT TRIGGER
+========================================================= */
+
 .badge {
   min-height: 48px;
 
   display: inline-flex;
   align-items: center;
+
   gap: 10px;
 
-  padding: 7px 13px 7px 8px;
+  padding:
+    7px
+    10px
+    7px
+    8px;
 
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border:
+    1px solid
+    var(--border);
 
-  color: var(--text-primary);
-  background: var(--surface);
+  border-radius:
+    15px;
 
-  text-decoration: none;
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    var(--shadow-xs);
+
+  font:
+    inherit;
+
+  text-align:
+    left;
 
   transition:
-    border-color 160ms ease,
-    transform 160ms ease,
-    background 160ms ease;
+    border-color
+      var(--transition-fast),
+    background-color
+      var(--transition-fast),
+    box-shadow
+      var(--transition-fast),
+    transform
+      var(--transition-fast);
 }
+
 
 .badge:hover {
   border-color:
-    color-mix(
-      in srgb,
-      var(--primary) 55%,
-      var(--border)
-    );
+    var(--accent-border);
 
   background:
-    color-mix(
-      in srgb,
-      var(--primary) 6%,
-      var(--surface)
-    );
+    var(--accent-soft);
 
-  transform: translateY(-1px);
+  box-shadow:
+    var(--shadow-sm);
+
+  transform:
+    translateY(-1px);
 }
+
+
+.badge:focus-visible,
+.manageLink:focus-visible {
+  outline:
+    3px solid
+    var(--focus-ring);
+
+  outline-offset:
+    3px;
+}
+
+
+/* =========================================================
+   SHARED ICONS
+========================================================= */
+
+.icon,
+.totalIcon,
+.balanceIcon {
+  display: grid;
+  place-items: center;
+
+  flex:
+    0 0 auto;
+
+  color:
+    var(--accent);
+
+  background:
+    var(--accent-soft);
+}
+
 
 .icon {
   width: 34px;
   height: 34px;
 
-  display: grid;
-  place-items: center;
-
-  flex: 0 0 auto;
-
-  border-radius: 10px;
-
-  color: var(--primary);
-  background:
-    color-mix(
-      in srgb,
-      var(--primary) 13%,
-      transparent
-    );
+  border-radius:
+    11px;
 }
+
 
 .icon svg {
   width: 18px;
   height: 18px;
 }
 
+
+/* =========================================================
+   TRIGGER COPY
+========================================================= */
+
 .copy {
   min-width: 0;
 
   display: grid;
-  gap: 2px;
+
+  gap: 3px;
 
   line-height: 1.05;
 }
 
+
 .copy small {
-  color: var(--text-secondary);
+  color:
+    var(--text-muted);
 
   font-size: 9px;
   font-weight: 800;
 
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing:
+    0.09em;
+
+  text-transform:
+    uppercase;
 }
 
+
 .copy strong {
-  white-space: nowrap;
+  color:
+    var(--text-primary);
+
+  white-space:
+    nowrap;
+
+  font-size: 12px;
+  font-weight: 850;
+}
+
+
+.chevron {
+  width: 15px;
+  height: 15px;
+
+  color:
+    var(--text-secondary);
+
+  transition:
+    transform
+    var(--transition-fast);
+}
+
+
+.chevronOpen {
+  transform:
+    rotate(180deg);
+}
+
+
+/* =========================================================
+   CREDIT PANEL
+========================================================= */
+
+.panel {
+  position: absolute;
+
+  top:
+    calc(
+      100% +
+      10px
+    );
+
+  right: 0;
+
+  z-index: 150;
+
+  width:
+    min(
+      350px,
+      calc(
+        100vw -
+        32px
+      )
+    );
+
+  padding: 14px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    20px;
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    var(--shadow-lg);
+
+  animation:
+    creditPanelIn
+    150ms
+    ease-out;
+}
+
+
+/* =========================================================
+   PANEL HEADER
+========================================================= */
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  padding:
+    5px
+    4px
+    14px;
+}
+
+
+.panelHeader > div {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 4px;
+}
+
+
+.panelHeader span {
+  color:
+    var(--text-muted);
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing:
+    0.08em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.panelHeader strong {
+  color:
+    var(--text-primary);
+
+  font-family:
+    var(--font-heading);
+
+  font-size: 20px;
+  font-weight: 850;
+
+  letter-spacing:
+    -0.03em;
+}
+
+
+.totalIcon {
+  width: 42px;
+  height: 42px;
+
+  border-radius:
+    14px;
+}
+
+
+.totalIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+
+/* =========================================================
+   BALANCE LIST
+========================================================= */
+
+.balanceList {
+  display: grid;
+
+  gap: 7px;
+}
+
+
+.balanceRow {
+  min-width: 0;
+
+  display: grid;
+
+  grid-template-columns:
+    auto
+    minmax(0, 1fr)
+    auto;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 10px;
+
+  border:
+    1px solid
+    var(--border-subtle);
+
+  border-radius:
+    14px;
+
+  background:
+    var(--surface-soft);
+}
+
+
+.balanceIcon {
+  width: 34px;
+  height: 34px;
+
+  border-radius:
+    11px;
+}
+
+
+.balanceIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+
+.balanceCopy,
+.balanceAmount {
+  min-width: 0;
+
+  display: grid;
+
+  gap: 3px;
+}
+
+
+.balanceCopy strong,
+.balanceAmount strong {
+  color:
+    var(--text-primary);
 
   font-size: 12px;
   font-weight: 800;
 }
+
+
+.balanceCopy span,
+.balanceAmount span {
+  color:
+    var(--text-muted);
+
+  font-size: 10px;
+  font-weight: 650;
+}
+
+
+.balanceCopy span {
+  overflow: hidden;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+
+.balanceAmount {
+  justify-items: end;
+
+  text-align:
+    right;
+}
+
+
+.balanceAmount strong {
+  font-size: 16px;
+}
+
+
+.balanceAmount span {
+  white-space:
+    nowrap;
+}
+
+
+/* =========================================================
+   PANEL FOOTER
+========================================================= */
+
+.note {
+  margin:
+    11px
+    2px
+    10px;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 10px;
+  font-weight: 600;
+
+  line-height: 1.5;
+}
+
+
+.manageLink {
+  min-height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    10px
+    14px;
+
+  border-radius:
+    13px;
+
+  color:
+    var(--accent-contrast);
+
+  background:
+    var(--accent);
+
+  font-size: 12px;
+  font-weight: 800;
+
+  text-align:
+    center;
+
+  text-decoration:
+    none;
+
+  transition:
+    background-color
+      var(--transition-fast),
+    transform
+      var(--transition-fast);
+}
+
+
+.manageLink:hover {
+  color:
+    var(--accent-contrast);
+
+  background:
+    var(--accent-hover);
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
 
 .loadingIcon {
   animation:
@@ -98,25 +498,157 @@
     infinite;
 }
 
+
 @keyframes creditBadgeSpin {
   to {
-    transform: rotate(360deg);
+    transform:
+      rotate(360deg);
   }
 }
 
-@media (max-width: 560px) {
+
+@keyframes creditPanelIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-5px)
+      scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (
+  max-width:
+    560px
+) {
   .badge {
     min-height: 42px;
 
-    padding: 5px;
+    gap: 7px;
+
+    padding:
+      5px
+      8px
+      5px
+      5px;
+
+    border-radius:
+      13px;
   }
+
 
   .icon {
-    width: 32px;
-    height: 32px;
+    width: 31px;
+    height: 31px;
+
+    border-radius:
+      9px;
   }
 
+
   .copy {
-    display: none;
+    gap: 2px;
+  }
+
+
+  .copy small {
+    font-size: 8px;
+  }
+
+
+  .copy strong {
+    font-size: 11px;
+  }
+
+
+  .chevron {
+    width: 13px;
+    height: 13px;
+  }
+
+
+  .panel {
+    position: fixed;
+
+    top: 76px;
+    right: 16px;
+    left: 16px;
+
+    width: auto;
+
+    max-height:
+      calc(
+        100dvh -
+        92px
+      );
+
+    overflow-y:
+      auto;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+========================================================= */
+
+@media (
+  max-width:
+    380px
+) {
+  .balanceRow {
+    grid-template-columns:
+      auto
+      minmax(0, 1fr);
+  }
+
+
+  .balanceAmount {
+    grid-column: 2;
+
+    justify-items:
+      start;
+
+    text-align:
+      left;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (
+  prefers-reduced-motion:
+    reduce
+) {
+  .badge,
+  .chevron,
+  .manageLink,
+  .panel,
+  .loadingIcon {
+    animation: none;
+
+    transition: none;
+  }
+
+
+  .badge:hover,
+  .manageLink:hover {
+    transform: none;
   }
 }

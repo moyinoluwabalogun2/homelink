@@ -1,24 +1,93 @@
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Query,
+    Request,
+)
 
-from app.api.auth_dependencies import CurrentUser
-from app.api.dependencies import DbSession
+from app.api.auth_dependencies import (
+    CurrentUser,
+)
+from app.api.dependencies import (
+    DbSession,
+    RedisClient,
+)
 from app.core.config import get_settings
+from app.core.rate_limit import (
+    protect_endpoint,
+)
+from app.models.enums import (
+    PaymentProvider,
+)
 from app.schemas.payment import (
     CreditBalanceRead,
     PaymentInitializeRequest,
     PaymentInitializeResponse,
     PaymentPlanRead,
+    PaymentProvidersRead,
     PaymentRead,
 )
-from app.services.payment_service import PaymentService
+from app.services.advertisement_webhook_service import (
+    AdvertisementWebhookService,
+)
+from app.services.payment_service import (
+    PaymentService,
+)
 
 
 router = APIRouter(
     prefix="/payments",
-    tags=["payments"],
+    tags=[
+        "payments",
+    ],
 )
 
 settings = get_settings()
+
+
+# ============================================================
+# AVAILABLE PAYMENT PROVIDERS
+# ============================================================
+
+
+@router.get(
+    "/providers",
+    response_model=(
+        PaymentProvidersRead
+    ),
+)
+async def list_payment_providers(
+) -> PaymentProvidersRead:
+    configured = (
+        settings.payment_provider
+    )
+
+    if configured == "disabled":
+        providers: list[
+            PaymentProvider
+        ] = []
+
+    elif configured == "both":
+        providers = [
+            PaymentProvider.PAYSTACK,
+            PaymentProvider.FLUTTERWAVE,
+        ]
+
+    else:
+        providers = [
+            PaymentProvider(
+                configured
+            ),
+        ]
+
+    return PaymentProvidersRead(
+        providers=providers,
+        default_provider=(
+            providers[0]
+            if providers
+            else None
+        ),
+    )
 
 
 # ============================================================
@@ -28,18 +97,20 @@ settings = get_settings()
 
 @router.get(
     "/plans",
-    response_model=list[PaymentPlanRead],
+    response_model=list[
+        PaymentPlanRead
+    ],
 )
 async def list_payment_plans(
     session: DbSession,
 ) -> list[PaymentPlanRead]:
     records = await PaymentService(
-        session,
+        session
     ).list_plans()
 
     return [
         PaymentPlanRead.model_validate(
-            item,
+            item
         )
         for item in records
     ]
@@ -52,59 +123,86 @@ async def list_payment_plans(
 
 @router.get(
     "/credits/me",
-    response_model=list[CreditBalanceRead],
+    response_model=list[
+        CreditBalanceRead
+    ],
 )
 async def list_my_credits(
     session: DbSession,
     current_user: CurrentUser,
 ) -> list[CreditBalanceRead]:
     records = await PaymentService(
-        session,
+        session
     ).list_credits(
-        current_user,
+        current_user
     )
 
     return [
         CreditBalanceRead.model_validate(
-            item,
+            item
         )
         for item in records
     ]
 
 
 # ============================================================
-# INITIALIZE PAYMENT
+# INITIALIZE LISTING-CREDIT PAYMENT
 # ============================================================
 
 
 @router.post(
     "/initialize",
-    response_model=PaymentInitializeResponse,
+    response_model=(
+        PaymentInitializeResponse
+    ),
     status_code=201,
 )
 async def initialize_payment(
     payload: PaymentInitializeRequest,
     session: DbSession,
+    redis: RedisClient,
     current_user: CurrentUser,
 ) -> PaymentInitializeResponse:
+    await protect_endpoint(
+        redis,
+        key=(
+            "payment-initialize:"
+            f"user:{current_user.id}"
+        ),
+        limit=10,
+        window_seconds=600,
+        unavailable_message=(
+            "Payment protection is "
+            "temporarily unavailable."
+        ),
+    )
+
     payment = await PaymentService(
-        session,
+        session
     ).initialize(
         user=current_user,
-        plan_code=payload.plan_code,
+        plan_code=(
+            payload.plan_code
+        ),
+        requested_provider=(
+            payload.provider
+        ),
     )
 
     if not payment.authorization_url:
         raise HTTPException(
             status_code=502,
             detail=(
-                "Payment checkout URL is unavailable."
+                "Payment checkout URL "
+                "is unavailable."
             ),
         )
 
     return PaymentInitializeResponse(
-        payment=PaymentRead.model_validate(
-            payment,
+        payment=(
+            PaymentRead.model_validate(
+                payment
+            )
         ),
         authorization_url=(
             payment.authorization_url
@@ -115,7 +213,12 @@ async def initialize_payment(
 # ============================================================
 # PAYSTACK WEBHOOK
 #
-# Paystack stays available as a fallback provider.
+# One signed endpoint receives both:
+#
+# - normal HomeLink credit payments
+# - sponsored advertisement payments
+#
+# Signature validation always happens before dispatch.
 # ============================================================
 
 
@@ -129,39 +232,66 @@ async def paystack_webhook(
 ) -> dict[str, bool]:
     if (
         settings.payment_provider
-        != "paystack"
+        not in {
+            "paystack",
+            "both",
+        }
     ):
         raise HTTPException(
             status_code=404,
             detail=(
-                "Paystack webhook is unavailable."
+                "Paystack webhook "
+                "is unavailable."
             ),
         )
 
     raw_body = await request.body()
 
     signature = request.headers.get(
-        "x-paystack-signature",
+        "x-paystack-signature"
     )
 
-    service = PaymentService(
-        session,
+    payment_service = PaymentService(
+        session
     )
 
-    if not service.valid_paystack_signature(
-        raw_body,
-        signature,
+    if not (
+        payment_service
+        .valid_paystack_signature(
+            raw_body,
+            signature,
+        )
     ):
         raise HTTPException(
             status_code=401,
             detail=(
-                "Invalid Paystack webhook signature."
+                "Invalid Paystack "
+                "webhook signature."
             ),
         )
 
-    await service.process_paystack_webhook(
-        raw_body,
+    advertisement_webhooks = (
+        AdvertisementWebhookService(
+            session
+        )
     )
+
+    advertisement_reference = (
+        advertisement_webhooks
+        .extract_paystack_reference(
+            raw_body
+        )
+    )
+
+    if advertisement_reference:
+        await advertisement_webhooks.process_paystack_webhook(
+            raw_body
+        )
+
+    else:
+        await payment_service.process_paystack_webhook(
+            raw_body
+        )
 
     return {
         "received": True,
@@ -170,6 +300,9 @@ async def paystack_webhook(
 
 # ============================================================
 # FLUTTERWAVE WEBHOOK
+#
+# One signed endpoint receives both credit and advert payments.
+# The reference prefix selects exactly one ledger.
 # ============================================================
 
 
@@ -183,46 +316,73 @@ async def flutterwave_webhook(
 ) -> dict[str, bool]:
     if (
         settings.payment_provider
-        != "flutterwave"
+        not in {
+            "flutterwave",
+            "both",
+        }
     ):
         raise HTTPException(
             status_code=404,
             detail=(
-                "Flutterwave webhook is unavailable."
+                "Flutterwave webhook "
+                "is unavailable."
             ),
         )
 
     raw_body = await request.body()
 
-    # Newer Flutterwave webhook signature.
+    # Current Flutterwave HMAC header.
     signature = request.headers.get(
-        "flutterwave-signature",
+        "flutterwave-signature"
     )
 
-    # Older/v3 Flutterwave Secret Hash header.
+    # Flutterwave v3 secret-hash header.
     legacy_hash = request.headers.get(
-        "verif-hash",
+        "verif-hash"
     )
 
-    service = PaymentService(
-        session,
+    payment_service = PaymentService(
+        session
     )
 
-    if not service.valid_flutterwave_signature(
-        raw_body,
-        signature,
-        legacy_hash,
+    if not (
+        payment_service
+        .valid_flutterwave_signature(
+            raw_body,
+            signature,
+            legacy_hash,
+        )
     ):
         raise HTTPException(
             status_code=401,
             detail=(
-                "Invalid Flutterwave webhook signature."
+                "Invalid Flutterwave "
+                "webhook signature."
             ),
         )
 
-    await service.process_flutterwave_webhook(
-        raw_body,
+    advertisement_webhooks = (
+        AdvertisementWebhookService(
+            session
+        )
     )
+
+    advertisement_reference = (
+        advertisement_webhooks
+        .extract_flutterwave_reference(
+            raw_body
+        )
+    )
+
+    if advertisement_reference:
+        await advertisement_webhooks.process_flutterwave_webhook(
+            raw_body
+        )
+
+    else:
+        await payment_service.process_flutterwave_webhook(
+            raw_body
+        )
 
     return {
         "received": True,
@@ -230,7 +390,9 @@ async def flutterwave_webhook(
 
 
 # ============================================================
-# MOCK PAYMENT COMPLETION
+# MOCK LISTING-CREDIT PAYMENT COMPLETION
+#
+# PaymentService rejects this in production.
 # ============================================================
 
 
@@ -244,30 +406,30 @@ async def complete_mock_payment(
     current_user: CurrentUser,
 ) -> PaymentRead:
     payment = await PaymentService(
-        session,
+        session
     ).complete_mock(
         reference=reference,
         user=current_user,
     )
 
     return PaymentRead.model_validate(
-        payment,
+        payment
     )
 
 
 # ============================================================
 # PAYMENT HISTORY
 #
-# IMPORTANT:
-# This route must remain ABOVE /{reference}.
-# Otherwise FastAPI can interpret "history"
-# as a payment reference.
+# Keep this route above the dynamic reference routes.
+# Otherwise FastAPI may interpret "history" as a reference.
 # ============================================================
 
 
 @router.get(
     "/history",
-    response_model=list[PaymentRead],
+    response_model=list[
+        PaymentRead
+    ],
 )
 async def payment_history(
     session: DbSession,
@@ -283,7 +445,7 @@ async def payment_history(
     ),
 ) -> list[PaymentRead]:
     records = await PaymentService(
-        session,
+        session
     ).list_payments(
         user=current_user,
         limit=limit,
@@ -292,14 +454,14 @@ async def payment_history(
 
     return [
         PaymentRead.model_validate(
-            item,
+            item
         )
         for item in records
     ]
 
 
 # ============================================================
-# VERIFY PAYMENT
+# VERIFY LISTING-CREDIT PAYMENT
 # ============================================================
 
 
@@ -313,21 +475,21 @@ async def verify_payment(
     current_user: CurrentUser,
 ) -> PaymentRead:
     payment = await PaymentService(
-        session,
+        session
     ).verify(
         reference=reference,
         user=current_user,
     )
 
     return PaymentRead.model_validate(
-        payment,
+        payment
     )
 
 
 # ============================================================
-# GET SINGLE PAYMENT
+# GET SINGLE LISTING-CREDIT PAYMENT
 #
-# Keep this near the bottom because it contains a dynamic path.
+# Keep this route last because it contains a dynamic path.
 # ============================================================
 
 
@@ -341,12 +503,12 @@ async def get_payment(
     current_user: CurrentUser,
 ) -> PaymentRead:
     payment = await PaymentService(
-        session,
+        session
     ).get_payment(
         reference=reference,
         user=current_user,
     )
 
     return PaymentRead.model_validate(
-        payment,
+        payment
     )

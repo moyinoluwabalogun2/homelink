@@ -1,22 +1,9 @@
-/* =========================================================
-   HOMELINK DESIGN FOUNDATION
-
-   Direction:
-   - clean property/lifestyle product
-   - warmer neutrals
-   - premium blue identity
-   - restrained surfaces
-   - editorial spacing
-   - less SaaS / less dashboard
-========================================================= */
-
 :root {
   color-scheme: light;
 
-
-  /* =========================================================
+  /* =======================================================
      TYPOGRAPHY
-  ========================================================= */
+  ======================================================= */
 
   --font-body:
     var(--font-dm-sans),
@@ -32,44 +19,70 @@
     sans-serif;
 
 
-  /* =========================================================
+  /* =======================================================
      LAYOUT
-  ========================================================= */
+  ======================================================= */
 
-  --container-width:
-    1180px;
+  --container-narrow: 820px;
+  --container-width: 1180px;
+  --container-wide: 1420px;
 
-  --container-wide:
-    1420px;
+  --content-gutter: 28px;
+  --nav-height: 78px;
 
-  --content-gutter:
-    28px;
+  --section-space-sm:
+    clamp(
+      52px,
+      7vw,
+      86px
+    );
 
-  --nav-height:
-    78px;
+  --section-space:
+    clamp(
+      76px,
+      10vw,
+      132px
+    );
+
+  --section-space-lg:
+    clamp(
+      96px,
+      13vw,
+      175px
+    );
 
 
-  /* =========================================================
-     CORE BRAND
-  ========================================================= */
+  /* =======================================================
+     BRAND COLOURS
+  ======================================================= */
 
-  --accent:
-    #1f5eff;
+  --brand-navy: #122033;
+  --brand-navy-deep: #0b1729;
+  --brand-navy-soft: #1a2c45;
 
-  --accent-hover:
-    #174ed8;
+  --brand-blue: #1f5eff;
+  --brand-blue-dark: #174ed8;
+  --brand-blue-deep: #123daf;
 
-  --accent-active:
-    #123daf;
+  --brand-gold: #c79b4b;
+  --brand-gold-hover: #ad8134;
+  --brand-gold-dark: #8c6624;
+  --brand-gold-soft: #f7f0df;
+  --brand-gold-border: #e7d4ab;
 
-  --accent-soft:
-    #edf3ff;
 
-  --accent-soft-hover:
-    #e4edff;
+  /* =======================================================
+     PRIMARY ACTION
+  ======================================================= */
 
-  --accent-border:
-    #c8d8ff;
+  --accent: var(--brand-blue);
+  --accent-hover: var(--brand-blue-dark);
+  --accent-active: var(--brand-blue-deep);
+  --accent-contrast: #ffffff;
+
+  --accent-soft: #edf3ff;
+  --accent-soft-hover: #e4edff;
+  --accent-border: #c8d8ff;
 
   --primary:
     var(--accent);
@@ -78,193 +91,155 @@
     var(--accent-hover);
 
 
-  --brand-navy:
-    #122033;
+  /* =======================================================
+     SURFACES
+  ======================================================= */
 
-  --brand-blue:
-    #1f5eff;
+  --background: #f7f5f0;
 
-  --brand-gold:
-    #dca74b;
-
-
-  /* =========================================================
-     WARM NEUTRALS
-  ========================================================= */
-
-  --background:
-    #f7f5f0;
-
-  --surface:
-    #ffffff;
-
-  --surface-raised:
-    #ffffff;
-
-  --surface-muted:
-    #f1efe9;
-
-  --surface-soft:
-    #faf9f6;
-
-  --surface-hover:
-    #f4f2ed;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #f1efe9;
+  --surface-soft: #fbfaf7;
+  --surface-hover: #f4f2ed;
 
   --surface-inverse:
-    #122033;
+    var(--brand-navy);
 
-  --surface-blue:
-    #eaf1ff;
+  --surface-inverse-deep:
+    var(--brand-navy-deep);
 
-  --surface-sand:
-    #eee9df;
+  --surface-blue: #eaf1ff;
+  --surface-blue-strong: #dfe9ff;
+
+  --surface-sand: #eee9df;
+  --surface-sand-soft: #f6f2e9;
+  --surface-gold: var(--brand-gold-soft);
 
 
-  /* =========================================================
+  /* =======================================================
      TEXT
-  ========================================================= */
+  ======================================================= */
 
-  --text-primary:
-    #122033;
+  --text-primary: #122033;
+  --text-secondary: #4f5b6b;
+  --text-muted: #737f8f;
+  --text-soft: #8d97a3;
+  --text-disabled: #a6adb6;
+  --text-inverse: #ffffff;
 
-  --text-secondary:
-    #4f5b6b;
+  --text-inverse-secondary:
+    rgb(255 255 255 / 72%);
 
-  --text-muted:
-    #838c98;
-
-  --text-disabled:
-    #a6adb6;
-
-  --text-inverse:
-    #ffffff;
+  --text-inverse-muted:
+    rgb(255 255 255 / 52%);
 
 
-  /* =========================================================
+  /* =======================================================
      BORDERS
-  ========================================================= */
+  ======================================================= */
 
-  --border:
-    #dddcd6;
+  --border: #dddcd6;
+  --border-subtle: #e9e7e1;
+  --border-strong: #c7c5bd;
 
-  --border-subtle:
-    #e9e7e1;
-
-  --border-strong:
-    #cbc9c1;
+  --border-inverse:
+    rgb(255 255 255 / 14%);
 
 
-  /* =========================================================
-     STATUS
-  ========================================================= */
+  /* =======================================================
+     FEEDBACK COLOURS
+  ======================================================= */
 
-  --success-text:
-    #176442;
+  --success-text: #176442;
+  --success-soft: #edf8f2;
+  --success-border: #b8e3cc;
 
-  --success-soft:
-    #edf8f2;
+  --warning-text: #876014;
+  --warning-soft: #fff8e8;
+  --warning-border: #ecd79b;
 
-  --success-border:
-    #b8e3cc;
+  --danger-text: #a92c22;
+  --danger-soft: #fff1ef;
+  --danger-border: #f1c0ba;
 
-
-  --warning-text:
-    #876014;
-
-  --warning-soft:
-    #fff8e8;
-
-  --warning-border:
-    #ecd79b;
+  --info-text: #1956cb;
+  --info-soft: #edf4ff;
+  --info-border: #bfd2ff;
 
 
-  --danger-text:
-    #b42318;
+  /* =======================================================
+     SPACING SCALE
+  ======================================================= */
 
-  --danger-soft:
-    #fff1ef;
-
-  --danger-border:
-    #f4c4bf;
-
-
-  --info-text:
-    #1956cb;
-
-  --info-soft:
-    #edf4ff;
-
-  --info-border:
-    #bfd2ff;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
 
 
-  /* =========================================================
-     RADIUS
+  /* =======================================================
+     RADII
+  ======================================================= */
 
-     Less "app UI".
-     More deliberate editorial shapes.
-  ========================================================= */
-
-  --radius-xs:
-    6px;
-
-  --radius-sm:
-    9px;
-
-  --radius-md:
-    12px;
-
-  --radius-lg:
-    16px;
-
-  --radius-xl:
-    22px;
-
-  --radius-2xl:
-    30px;
-
-  --radius-round:
-    999px;
+  --radius-xs: 6px;
+  --radius-sm: 9px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 30px;
+  --radius-round: 999px;
 
 
-  /* =========================================================
+  /* =======================================================
      SHADOWS
-
-     Softer and wider.
-     Avoid floating SaaS-card look.
-  ========================================================= */
+  ======================================================= */
 
   --shadow-xs:
     0 1px 2px
     rgb(18 32 51 / 4%);
 
-
   --shadow-sm:
     0 5px 16px
     rgb(18 32 51 / 6%);
-
 
   --shadow-md:
     0 14px 36px
     rgb(18 32 51 / 9%);
 
-
   --shadow-lg:
     0 24px 70px
     rgb(18 32 51 / 13%);
-
 
   --shadow-image:
     0 30px 80px
     rgb(18 32 51 / 17%);
 
+  --shadow-blue:
+    0 16px 40px
+    rgb(31 94 255 / 18%);
 
-  /* =========================================================
+  --shadow-gold:
+    0 16px 42px
+    rgb(140 102 36 / 13%);
+
+
+  /* =======================================================
      INTERACTION
-  ========================================================= */
+  ======================================================= */
 
   --focus-ring:
-    rgb(31 94 255 / 24%);
+    rgb(31 94 255 / 27%);
+
+  --focus-ring-gold:
+    rgb(199 155 75 / 30%);
 
   --transition-fast:
     150ms ease;
@@ -282,35 +257,32 @@
     );
 
 
-  /* =========================================================
+  /* =======================================================
      IMAGE OVERLAYS
-  ========================================================= */
+  ======================================================= */
 
   --overlay-navy:
     linear-gradient(
       180deg,
       rgb(8 20 38 / 5%) 0%,
       rgb(8 20 38 / 18%) 48%,
-      rgb(8 20 38 / 82%) 100%
+      rgb(8 20 38 / 84%) 100%
     );
-
 
   --overlay-blue:
     linear-gradient(
       135deg,
-      rgb(13 44 115 / 70%),
-      rgb(21 92 240 / 27%)
+      rgb(13 44 115 / 72%),
+      rgb(21 92 240 / 28%)
+    );
+
+  --overlay-premium:
+    linear-gradient(
+      140deg,
+      rgb(9 24 44 / 94%),
+      rgb(20 53 100 / 84%)
     );
 }
-
-
-/* =========================================================
-   DARK THEME
-
-   Dashboard/components still receive dark values,
-   while public pages can deliberately override these.
-========================================================= */
-
 
 
 /* =========================================================
@@ -332,6 +304,10 @@ html {
   scroll-behavior:
     smooth;
 
+  scrollbar-color:
+    var(--border-strong)
+    var(--background);
+
   background:
     var(--background);
 }
@@ -344,8 +320,10 @@ body {
   min-height:
     100vh;
 
-  margin:
-    0;
+  margin: 0;
+
+  overflow-x:
+    clip;
 
   color:
     var(--text-primary);
@@ -363,7 +341,7 @@ body {
     400;
 
   line-height:
-    1.55;
+    1.6;
 
   text-rendering:
     optimizeLegibility;
@@ -373,12 +351,6 @@ body {
 
   -moz-osx-font-smoothing:
     grayscale;
-
-  transition:
-    color
-    var(--transition-normal),
-    background-color
-    var(--transition-normal);
 }
 
 
@@ -402,39 +374,39 @@ h6 {
     var(--font-heading);
 
   font-weight:
-    700;
+    650;
 
   line-height:
-    1.06;
+    1.08;
 
   letter-spacing:
-    -0.045em;
+    -0.04em;
 }
 
 
 h1 {
   font-size:
     clamp(
-      2.8rem,
-      6vw,
-      5.7rem
+      2.35rem,
+      5.5vw,
+      5rem
     );
 
   letter-spacing:
-    -0.065em;
+    -0.06em;
 }
 
 
 h2 {
   font-size:
     clamp(
-      2rem,
-      4vw,
-      3.6rem
+      1.9rem,
+      3.8vw,
+      3.35rem
     );
 
   letter-spacing:
-    -0.055em;
+    -0.05em;
 }
 
 
@@ -455,23 +427,35 @@ h4 {
 
 
 p {
-  margin-top:
-    0;
+  margin-top: 0;
 
   color:
     var(--text-secondary);
 }
 
 
-strong {
-  color:
-    inherit;
+strong,
+b {
+  color: inherit;
 }
 
 
-a {
+small {
+  font-size:
+    0.82em;
+}
+
+
+ul,
+ol {
+  padding-left:
+    1.25rem;
+}
+
+
+li::marker {
   color:
-    inherit;
+    var(--accent);
 }
 
 
@@ -480,6 +464,8 @@ a {
 ========================================================= */
 
 a {
+  color: inherit;
+
   text-decoration-thickness:
     1px;
 
@@ -488,16 +474,39 @@ a {
 }
 
 
+a,
+button {
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+
 /* =========================================================
-   FORMS
+   FORM FOUNDATIONS
 ========================================================= */
 
 button,
 input,
 select,
 textarea {
+  min-width: 0;
+
+  max-width: 100%;
+
+  color: inherit;
+
   font:
     inherit;
+}
+
+
+button {
+  border: 0;
+}
+
+
+button:not(:disabled) {
+  cursor: pointer;
 }
 
 
@@ -515,32 +524,18 @@ textarea {
 }
 
 
+textarea {
+  resize:
+    vertical;
+}
+
+
 input::placeholder,
 textarea::placeholder {
   color:
     var(--text-muted);
 
-  opacity:
-    0.86;
-}
-
-
-button,
-a {
-  -webkit-tap-highlight-color:
-    transparent;
-}
-
-
-button {
-  border:
-    0;
-}
-
-
-button:not(:disabled) {
-  cursor:
-    pointer;
+  opacity: 0.86;
 }
 
 
@@ -551,8 +546,24 @@ textarea:disabled {
   cursor:
     not-allowed;
 
-  opacity:
-    0.62;
+  opacity: 0.62;
+}
+
+
+/* Remove browser-specific search decorations */
+
+input[type="search"] {
+  appearance:
+    none;
+
+  -webkit-appearance:
+    none;
+}
+
+
+input[type="search"]::-webkit-search-cancel-button {
+  cursor:
+    pointer;
 }
 
 
@@ -586,6 +597,30 @@ img {
 }
 
 
+iframe {
+  max-width:
+    100%;
+
+  border: 0;
+}
+
+
+/* =========================================================
+   TABLES
+========================================================= */
+
+table {
+  width:
+    100%;
+
+  border-collapse:
+    collapse;
+
+  border-spacing:
+    0;
+}
+
+
 /* =========================================================
    SITE SHELL
 ========================================================= */
@@ -599,21 +634,33 @@ img {
 .site-main {
   min-height:
     calc(
-      100vh -
+      100vh
+      -
       var(--nav-height)
     );
 }
 
 
+.site-main:focus {
+  outline:
+    none;
+}
+
+
 /* =========================================================
-   GLOBAL CONTENT UTILITIES
+   CONTAINERS
+========================================================= */
+
+/* =========================================================
+   CONTAINERS
 ========================================================= */
 
 .container {
   width:
     min(
       calc(
-        100% -
+        100%
+        -
         (
           var(--content-gutter)
           * 2
@@ -631,7 +678,8 @@ img {
   width:
     min(
       calc(
-        100% -
+        100%
+        -
         (
           var(--content-gutter)
           * 2
@@ -644,6 +692,24 @@ img {
     auto;
 }
 
+
+.containerNarrow {
+  width:
+    min(
+      calc(
+        100%
+        -
+        (
+          var(--content-gutter)
+          * 2
+        )
+      ),
+      var(--container-narrow)
+    );
+
+  margin-inline:
+    auto;
+}
 
 /* =========================================================
    SELECTION
@@ -672,6 +738,25 @@ img {
 }
 
 
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline:
+    2px solid
+    var(--accent);
+
+  outline-offset:
+    1px;
+
+  box-shadow:
+    0
+    0
+    0
+    4px
+    var(--focus-ring);
+}
+
+
 /* =========================================================
    SKIP LINK
 ========================================================= */
@@ -689,12 +774,21 @@ img {
   z-index:
     9999;
 
+  min-height:
+    42px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
   padding:
-    11px
+    0
     15px;
 
   border-radius:
-    9px;
+    var(--radius-sm);
 
   color:
     #ffffff;
@@ -709,7 +803,7 @@ img {
     12px;
 
   font-weight:
-    700;
+    800;
 
   text-decoration:
     none;
@@ -729,14 +823,47 @@ img {
 }
 
 
-.site-main:focus {
-  outline:
-    none;
+/* =========================================================
+   SCREEN-READER UTILITY
+========================================================= */
+
+.sr-only {
+  position:
+    absolute !important;
+
+  width:
+    1px !important;
+
+  height:
+    1px !important;
+
+  overflow:
+    hidden !important;
+
+  padding:
+    0 !important;
+
+  margin:
+    -1px !important;
+
+  border:
+    0 !important;
+
+  clip:
+    rect(
+      0,
+      0,
+      0,
+      0
+    ) !important;
+
+  white-space:
+    nowrap !important;
 }
 
 
 /* =========================================================
-   TEXT WRAPPING
+   TEXT SAFETY
 ========================================================= */
 
 h1,
@@ -751,13 +878,19 @@ a,
 button,
 label,
 span,
-strong {
+strong,
+small,
+dt,
+dd {
   overflow-wrap:
     break-word;
 }
 
 
-@supports (text-wrap: balance) {
+@supports (
+  text-wrap:
+    balance
+) {
   h1,
   h2,
   h3 {
@@ -767,7 +900,10 @@ strong {
 }
 
 
-@supports (text-wrap: pretty) {
+@supports (
+  text-wrap:
+    pretty
+) {
   p,
   li {
     text-wrap:
@@ -801,7 +937,7 @@ strong {
     var(--background);
 
   border-radius:
-    999px;
+    var(--radius-round);
 
   background:
     var(--border-strong);
@@ -815,21 +951,19 @@ strong {
 
 
 /* =========================================================
-   ANIMATION HELPERS
+   GLOBAL ANIMATIONS
 ========================================================= */
 
 @keyframes fadeUp {
   from {
-    opacity:
-      0;
+    opacity: 0;
 
     transform:
       translateY(18px);
   }
 
   to {
-    opacity:
-      1;
+    opacity: 1;
 
     transform:
       translateY(0);
@@ -839,29 +973,25 @@ strong {
 
 @keyframes fadeIn {
   from {
-    opacity:
-      0;
+    opacity: 0;
   }
 
   to {
-    opacity:
-      1;
+    opacity: 1;
   }
 }
 
 
 @keyframes slideInLeft {
   from {
-    opacity:
-      0;
+    opacity: 0;
 
     transform:
       translateX(-20px);
   }
 
   to {
-    opacity:
-      1;
+    opacity: 1;
 
     transform:
       translateX(0);
@@ -871,16 +1001,14 @@ strong {
 
 @keyframes slideInRight {
   from {
-    opacity:
-      0;
+    opacity: 0;
 
     transform:
       translateX(20px);
   }
 
   to {
-    opacity:
-      1;
+    opacity: 1;
 
     transform:
       translateX(0);
@@ -915,33 +1043,15 @@ strong {
 }
 
 
-/* =========================================================
-   REDUCED MOTION
-========================================================= */
-
-@media (
-  prefers-reduced-motion:
-  reduce
-) {
-  html {
-    scroll-behavior:
-      auto;
+@keyframes shimmer {
+  from {
+    background-position:
+      200% 0;
   }
 
-  *,
-  *::before,
-  *::after {
-    animation-duration:
-      0.01ms !important;
-
-    animation-iteration-count:
-      1 !important;
-
-    transition-duration:
-      0.01ms !important;
-
-    scroll-behavior:
-      auto !important;
+  to {
+    background-position:
+      -200% 0;
   }
 }
 
@@ -950,7 +1060,10 @@ strong {
    RESPONSIVE FOUNDATION
 ========================================================= */
 
-@media (max-width: 900px) {
+@media (
+  max-width:
+    900px
+) {
   :root {
     --content-gutter:
       20px;
@@ -961,7 +1074,10 @@ strong {
 }
 
 
-@media (max-width: 600px) {
+@media (
+  max-width:
+    600px
+) {
   :root {
     --content-gutter:
       16px;
@@ -978,18 +1094,53 @@ strong {
   h1 {
     font-size:
       clamp(
-        2.55rem,
-        13vw,
-        4rem
+        2.15rem,
+        11vw,
+        3.5rem
       );
   }
 
   h2 {
     font-size:
       clamp(
-        1.9rem,
-        9vw,
-        2.8rem
+        1.75rem,
+        8vw,
+        2.6rem
       );
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (
+  prefers-reduced-motion:
+    reduce
+) {
+  html {
+    scroll-behavior:
+      auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration:
+      0.01ms
+      !important;
+
+    animation-iteration-count:
+      1
+      !important;
+
+    transition-duration:
+      0.01ms
+      !important;
+
+    scroll-behavior:
+      auto
+      !important;
   }
 }

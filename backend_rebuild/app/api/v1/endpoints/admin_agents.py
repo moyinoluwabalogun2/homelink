@@ -7,23 +7,46 @@ from fastapi import (
     HTTPException,
     Query,
 )
-from sqlalchemy import select
 
-from app.api.auth_dependencies import require_roles
-from app.api.dependencies import DbSession
-from app.models.agent import AgentVerificationDocument
+from sqlalchemy import (
+    select,
+)
+
+from app.api.auth_dependencies import (
+    require_roles,
+)
+
+from app.api.dependencies import (
+    DbSession,
+)
+
+from app.models.agent import (
+    AgentVerificationDocument,
+)
+
 from app.models.enums import (
     AgentApplicationStatus,
     UserRole,
 )
-from app.models.user import User
-from app.repositories.agent_repository import AgentRepository
+
+from app.models.user import (
+    User,
+)
+
+from app.repositories.agent_repository import (
+    AgentRepository,
+)
+
 from app.schemas.agent import (
     AgentDocumentAccessResponse,
     AgentProfileRead,
     AgentRejectRequest,
 )
-from app.services.agent_service import AgentService
+
+from app.services.agent_service import (
+    AgentService,
+)
+
 from app.services.cloudinary_asset_service import (
     CloudinaryAssetService,
 )
@@ -31,8 +54,11 @@ from app.services.cloudinary_asset_service import (
 
 router = APIRouter(
     prefix="/admin/agent-applications",
-    tags=["admin-agents"],
+    tags=[
+        "admin-agents",
+    ],
 )
+
 
 AdminUser = Annotated[
     User,
@@ -51,19 +77,37 @@ AdminUser = Annotated[
 
 @router.get(
     "",
-    response_model=list[AgentProfileRead],
+    response_model=list[
+        AgentProfileRead
+    ],
 )
 async def list_agent_applications(
     session: DbSession,
     _: AdminUser,
     status: AgentApplicationStatus = Query(
-        default=AgentApplicationStatus.PENDING,
+        default=(
+            AgentApplicationStatus
+            .PENDING
+        ),
+    ),
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
     ),
 ) -> list[AgentProfileRead]:
-    records = await AgentRepository(
-        session
-    ).list_by_status(
-        status
+    records = (
+        await AgentRepository(
+            session
+        ).list_by_status(
+            status,
+            limit=limit,
+            offset=offset,
+        )
     )
 
     return [
@@ -81,7 +125,9 @@ async def list_agent_applications(
 
 @router.get(
     "/{profile_id}/documents/{document_id}/access",
-    response_model=AgentDocumentAccessResponse,
+    response_model=(
+        AgentDocumentAccessResponse
+    ),
 )
 async def access_agent_document(
     profile_id: UUID,
@@ -93,11 +139,10 @@ async def access_agent_document(
     ),
 ) -> AgentDocumentAccessResponse:
     """
-    Generate a short-lived signed URL for one verification file.
+    Generate a five-minute signed URL for one verification file.
 
-    This endpoint is admin-only.
-
-    The permanent Cloudinary credentials are never exposed.
+    This route is administrator-only. Permanent Cloudinary
+    credentials are never exposed to the frontend.
     """
 
     document = (
@@ -107,7 +152,9 @@ async def access_agent_document(
             ).where(
                 AgentVerificationDocument.id
                 == document_id,
-                AgentVerificationDocument.agent_profile_id
+
+                AgentVerificationDocument
+                .agent_profile_id
                 == profile_id,
             )
         )
@@ -123,8 +170,10 @@ async def access_agent_document(
         )
 
     if (
-        document.purged_at is not None
-        or document.storage_public_id is None
+        document.purged_at
+        is not None
+        or document.storage_public_id
+        is None
     ):
         raise HTTPException(
             status_code=410,
@@ -140,8 +189,9 @@ async def access_agent_document(
             status_code=409,
             detail=(
                 "This verification file "
-                "does not have enough storage "
-                "metadata for secure access."
+                "does not have enough "
+                "storage metadata for "
+                "secure access."
             ),
         )
 
@@ -152,9 +202,10 @@ async def access_agent_document(
         raise HTTPException(
             status_code=409,
             detail=(
-                "This older verification file "
-                "was not stored as a protected "
-                "authenticated asset."
+                "This older verification "
+                "file was not stored as "
+                "a protected authenticated "
+                "asset."
             ),
         )
 
@@ -164,16 +215,19 @@ async def access_agent_document(
         CloudinaryAssetService()
         .create_agent_document_access_url(
             public_id=(
-                document.storage_public_id
+                document
+                .storage_public_id
             ),
             file_format=(
                 document.file_format
             ),
             resource_type=(
-                document.storage_resource_type
+                document
+                .storage_resource_type
             ),
             delivery_type=(
-                document.storage_delivery_type
+                document
+                .storage_delivery_type
             ),
             attachment=download,
             expires_in_seconds=(
@@ -192,7 +246,7 @@ async def access_agent_document(
 
 
 # ============================================================
-# APPROVE
+# APPROVE APPLICATION
 # ============================================================
 
 
@@ -218,7 +272,7 @@ async def approve_agent(
 
 
 # ============================================================
-# REJECT
+# REJECT APPLICATION
 # ============================================================
 
 

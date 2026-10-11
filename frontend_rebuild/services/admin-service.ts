@@ -1,4 +1,6 @@
-import { api } from "@/lib/api";
+import {
+  api,
+} from "@/lib/api";
 
 import type {
   AccountStatus,
@@ -11,9 +13,14 @@ import type {
 } from "@/types/agent";
 
 import type {
+  AdminAdvertisement,
+  AdminAdvertisementFilters,
+  AdminAdvertisementListResponse,
+  AdminBusinessDashboard,
   AdminDashboardSummary,
   AdminUser,
   AdminUserFilters,
+  AdvertisementApprovalPayload,
   AuditLog,
   AuditLogFilters,
   ListingReport,
@@ -40,6 +47,17 @@ export const adminService = {
     const response =
       await api.get<AdminDashboardSummary>(
         "/admin/dashboard/summary",
+      );
+
+    return response.data;
+  },
+
+
+  async getBusinessDashboard():
+    Promise<AdminBusinessDashboard> {
+    const response =
+      await api.get<AdminBusinessDashboard>(
+        "/admin/dashboard",
       );
 
     return response.data;
@@ -172,6 +190,104 @@ export const adminService = {
 
 
   /* =======================================================
+     ADVERTISEMENTS
+  ======================================================= */
+
+  async listAdvertisements(
+    filters:
+      AdminAdvertisementFilters = {},
+  ): Promise<
+    AdminAdvertisementListResponse
+  > {
+    const response =
+      await api.get<
+        AdminAdvertisementListResponse
+      >(
+        "/admin/advertisements",
+        {
+          params: filters,
+        },
+      );
+
+    return response.data;
+  },
+
+
+  async getAdvertisement(
+    advertisementId: string,
+  ): Promise<AdminAdvertisement> {
+    const response =
+      await api.get<AdminAdvertisement>(
+        `/admin/advertisements/${advertisementId}`,
+      );
+
+    return response.data;
+  },
+
+
+  async approveAdvertisement(
+    advertisementId: string,
+    payload: AdvertisementApprovalPayload,
+  ): Promise<AdminAdvertisement> {
+    const response =
+      await api.post<AdminAdvertisement>(
+        `/admin/advertisements/${advertisementId}/approve`,
+        payload,
+      );
+
+    return response.data;
+  },
+
+
+  async requestAdvertisementChanges(
+    advertisementId: string,
+    reason: string,
+  ): Promise<AdminAdvertisement> {
+    const response =
+      await api.post<AdminAdvertisement>(
+        `/admin/advertisements/${advertisementId}/request-changes`,
+        {
+          reason,
+        },
+      );
+
+    return response.data;
+  },
+
+
+  async rejectAdvertisement(
+    advertisementId: string,
+    reason: string,
+  ): Promise<AdminAdvertisement> {
+    const response =
+      await api.post<AdminAdvertisement>(
+        `/admin/advertisements/${advertisementId}/reject`,
+        {
+          reason,
+        },
+      );
+
+    return response.data;
+  },
+
+
+  async cancelAdvertisement(
+    advertisementId: string,
+    reason: string,
+  ): Promise<AdminAdvertisement> {
+    const response =
+      await api.post<AdminAdvertisement>(
+        `/admin/advertisements/${advertisementId}/cancel`,
+        {
+          reason,
+        },
+      );
+
+    return response.data;
+  },
+
+
+  /* =======================================================
      REPORTS
   ======================================================= */
 
@@ -179,9 +295,7 @@ export const adminService = {
     status?: ReportStatus,
   ): Promise<ListingReport[]> {
     const response =
-      await api.get<
-        ListingReport[]
-      >(
+      await api.get<ListingReport[]>(
         "/admin/reports",
         {
           params:
@@ -203,9 +317,7 @@ export const adminService = {
     resolutionNote: string,
   ): Promise<ListingReport> {
     const response =
-      await api.patch<
-        ListingReport
-      >(
+      await api.patch<ListingReport>(
         `/admin/reports/${reportId}`,
         {
           status,
@@ -227,13 +339,10 @@ export const adminService = {
       AdminUserFilters = {},
   ): Promise<AdminUser[]> {
     const response =
-      await api.get<
-        AdminUser[]
-      >(
+      await api.get<AdminUser[]>(
         "/admin/users",
         {
-          params:
-            filters,
+          params: filters,
         },
       );
 
@@ -247,9 +356,7 @@ export const adminService = {
     reason?: string,
   ): Promise<AdminUser> {
     const response =
-      await api.patch<
-        AdminUser
-      >(
+      await api.patch<AdminUser>(
         `/admin/users/${userId}/status`,
         {
           status,
@@ -268,9 +375,7 @@ export const adminService = {
     reason?: string,
   ): Promise<AdminUser> {
     const response =
-      await api.patch<
-        AdminUser
-      >(
+      await api.patch<AdminUser>(
         `/admin/users/${userId}/role`,
         {
           role,
@@ -292,13 +397,10 @@ export const adminService = {
       AuditLogFilters = {},
   ): Promise<AuditLog[]> {
     const response =
-      await api.get<
-        AuditLog[]
-      >(
+      await api.get<AuditLog[]>(
         "/admin/audit-logs",
         {
-          params:
-            filters,
+          params: filters,
         },
       );
 

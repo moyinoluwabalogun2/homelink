@@ -7,10 +7,7 @@ import {
 
 import Image from "next/image";
 import Link from "next/link";
-
-import {
-  useRouter,
-} from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import {
   zodResolver,
@@ -30,30 +27,20 @@ import {
   useForm,
 } from "react-hook-form";
 
-import {
-  toast,
-} from "sonner";
+import { toast } from "sonner";
+import { z } from "zod";
 
-import {
-  z,
-} from "zod";
-
-import {
-  useAuth,
-} from "@/context/AuthContext";
-
-import {
-  getApiErrorMessage,
-} from "@/lib/api-errors";
+import { useAuth } from "@/context/AuthContext";
+import { getApiErrorMessage } from "@/lib/api-errors";
 
 import styles from "@/components/auth/AuthForm.module.css";
-
 
 const loginSchema =
   z.object({
     email:
       z
         .string()
+        .trim()
         .email(
           "Enter a valid email address.",
         ),
@@ -67,16 +54,44 @@ const loginSchema =
         ),
   });
 
-
 type LoginForm =
   z.infer<
     typeof loginSchema
   >;
 
+function safeReturnPath(): string {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return "/dashboard";
+  }
+
+  const requestedPath =
+    new URLSearchParams(
+      window.location.search,
+    ).get("next");
+
+  if (
+    !requestedPath ||
+    !requestedPath.startsWith("/") ||
+    requestedPath.startsWith("//") ||
+    requestedPath.includes("\\") ||
+    requestedPath.includes(
+      "\n",
+    ) ||
+    requestedPath.includes(
+      "\r",
+    )
+  ) {
+    return "/dashboard";
+  }
+
+  return requestedPath;
+}
 
 export default function LoginPage() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
   const {
     login,
@@ -86,9 +101,7 @@ export default function LoginPage() {
   const [
     showPassword,
     setShowPassword,
-  ] =
-    useState(false);
-
+  ] = useState(false);
 
   const {
     register,
@@ -98,19 +111,17 @@ export default function LoginPage() {
       errors,
       isSubmitting,
     },
-  } =
-    useForm<LoginForm>({
-      resolver:
-        zodResolver(
-          loginSchema,
-        ),
+  } = useForm<LoginForm>({
+    resolver:
+      zodResolver(
+        loginSchema,
+      ),
 
-      defaultValues: {
-        email: "",
-        password: "",
-      },
-    });
-
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   useEffect(() => {
     if (
@@ -118,7 +129,7 @@ export default function LoginPage() {
       "authenticated"
     ) {
       router.replace(
-        "/dashboard",
+        safeReturnPath(),
       );
     }
   }, [
@@ -126,32 +137,29 @@ export default function LoginPage() {
     router,
   ]);
 
-
   const submit =
     handleSubmit(
-      async (
-        values,
-      ) => {
+      async (values) => {
         try {
           const user =
-            await login(
-              values,
-            );
+            await login({
+              email:
+                values.email.trim(),
+              password:
+                values.password,
+            });
 
           toast.success(
             `Welcome back, ${
-              user.full_name.split(
-                " ",
-              )[0]
+              user.full_name
+                .split(" ")[0]
             }.`,
           );
 
           router.replace(
-            "/dashboard",
+            safeReturnPath(),
           );
-        } catch (
-          error
-        ) {
+        } catch (error) {
           toast.error(
             getApiErrorMessage(
               error,
@@ -162,50 +170,25 @@ export default function LoginPage() {
       },
     );
 
-
   return (
-    <main
-      className={
-        styles.authPage
-      }
-    >
-      {/* ===================================================
-          IMAGE SIDE
-      ==================================================== */}
-
-      <section
-        className={
-          styles.visual
-        }
-      >
+    <main className={styles.authPage}>
+      <section className={styles.visual}>
         <Image
           src="/images/home/hero-home.jpg"
           alt=""
           fill
           priority
           sizes="(max-width: 900px) 0vw, 48vw"
-          className={
-            styles.visualImage
-          }
+          className={styles.visualImage}
         />
 
         <div
-          className={
-            styles.visualOverlay
-          }
+          className={styles.visualOverlay}
+          aria-hidden="true"
         />
 
-
-        <div
-          className={
-            styles.visualContent
-          }
-        >
-          <span
-            className={
-              styles.visualEyebrow
-            }
-          >
+        <div className={styles.visualContent}>
+          <span className={styles.visualEyebrow}>
             HomeLink · OOU
           </span>
 
@@ -217,49 +200,23 @@ export default function LoginPage() {
 
           <p>
             Sign in and continue
-            from where you left
-            off.
+            from where you left off.
           </p>
 
-
-          <div
-            className={
-              styles.visualTrust
-            }
-          >
-            <ShieldCheck
-              aria-hidden="true"
-            />
+          <div className={styles.visualTrust}>
+            <ShieldCheck aria-hidden="true" />
 
             <span>
-              Browse, save and
-              contact with more
-              context.
+              Browse, save and contact
+              with more context.
             </span>
           </div>
         </div>
       </section>
 
-
-      {/* ===================================================
-          FORM SIDE
-      ==================================================== */}
-
-      <section
-        className={
-          styles.panel
-        }
-      >
-        <div
-          className={
-            styles.panelInner
-          }
-        >
-          <div
-            className={
-              styles.panelTop
-            }
-          >
+      <section className={styles.panel}>
+        <div className={styles.panelInner}>
+          <div className={styles.panelTop}>
             <span>
               Member access
             </span>
@@ -269,17 +226,8 @@ export default function LoginPage() {
             </Link>
           </div>
 
-
-          <header
-            className={
-              styles.header
-            }
-          >
-            <span
-              className={
-                styles.formEyebrow
-              }
-            >
+          <header className={styles.header}>
+            <span className={styles.formEyebrow}>
               Welcome back
             </span>
 
@@ -289,50 +237,42 @@ export default function LoginPage() {
             </h1>
 
             <p>
-              Continue managing
-              saved listings,
-              inquiries and your
-              HomeLink activity.
+              Continue managing saved listings,
+              inquiries and your HomeLink activity.
             </p>
           </header>
 
-
           <form
-            className={
-              styles.form
-            }
-            onSubmit={
-              submit
-            }
+            className={styles.form}
+            onSubmit={submit}
             noValidate
           >
-            <div
-              className={
-                styles.field
-              }
-            >
-              <label
-                htmlFor="email"
-              >
+            <div className={styles.field}>
+              <label htmlFor="email">
                 Email address
               </label>
 
-              <div
-                className={
-                  styles.inputWrap
-                }
-              >
-                <Mail
-                  aria-hidden="true"
-                />
+              <div className={styles.inputWrap}>
+                <Mail aria-hidden="true" />
 
                 <input
                   id="email"
                   type="email"
+                  inputMode="email"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   placeholder="you@example.com"
-                  className={
-                    styles.input
+                  className={styles.input}
+                  aria-invalid={
+                    errors.email
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    errors.email
+                      ? "login-email-error"
+                      : undefined
                   }
                   {...register(
                     "email",
@@ -342,54 +282,31 @@ export default function LoginPage() {
 
               {errors.email ? (
                 <p
-                  className={
-                    styles.error
-                  }
+                  id="login-email-error"
+                  className={styles.error}
+                  role="alert"
                 >
-                  {
-                    errors.email
-                      .message
-                  }
+                  {errors.email.message}
                 </p>
               ) : null}
             </div>
 
-
-            <div
-              className={
-                styles.field
-              }
-            >
-              <div
-                className={
-                  styles.labelRow
-                }
-              >
-                <label
-                  htmlFor="password"
-                >
+            <div className={styles.field}>
+              <div className={styles.labelRow}>
+                <label htmlFor="password">
                   Password
                 </label>
 
                 <Link
                   href="/forgot-password"
-                  className={
-                    styles.textLink
-                  }
+                  className={styles.textLink}
                 >
                   Forgot password?
                 </Link>
               </div>
 
-
-              <div
-                className={
-                  styles.inputWrap
-                }
-              >
-                <LockKeyhole
-                  aria-hidden="true"
-                />
+              <div className={styles.inputWrap}>
+                <LockKeyhole aria-hidden="true" />
 
                 <input
                   id="password"
@@ -400,8 +317,16 @@ export default function LoginPage() {
                   }
                   autoComplete="current-password"
                   placeholder="Enter your password"
-                  className={
-                    styles.passwordInput
+                  className={styles.passwordInput}
+                  aria-invalid={
+                    errors.password
+                      ? true
+                      : undefined
+                  }
+                  aria-describedby={
+                    errors.password
+                      ? "login-password-error"
+                      : undefined
                   }
                   {...register(
                     "password",
@@ -410,14 +335,10 @@ export default function LoginPage() {
 
                 <button
                   type="button"
-                  className={
-                    styles.passwordButton
-                  }
+                  className={styles.passwordButton}
                   onClick={() =>
                     setShowPassword(
-                      (
-                        current,
-                      ) =>
+                      (current) =>
                         !current,
                     )
                   }
@@ -426,54 +347,39 @@ export default function LoginPage() {
                       ? "Hide password"
                       : "Show password"
                   }
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? (
-                    <EyeOff
-                      aria-hidden="true"
-                    />
+                    <EyeOff aria-hidden="true" />
                   ) : (
-                    <Eye
-                      aria-hidden="true"
-                    />
+                    <Eye aria-hidden="true" />
                   )}
                 </button>
               </div>
 
               {errors.password ? (
                 <p
-                  className={
-                    styles.error
-                  }
+                  id="login-password-error"
+                  className={styles.error}
+                  role="alert"
                 >
-                  {
-                    errors.password
-                      .message
-                  }
+                  {errors.password.message}
                 </p>
               ) : null}
             </div>
 
-
             <button
               type="submit"
-              className={
-                styles.submitButton
-              }
-              disabled={
-                isSubmitting
-              }
+              className={styles.submitButton}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <Loader2
-                  className={
-                    styles.spinner
-                  }
+                  className={styles.spinner}
                   aria-hidden="true"
                 />
               ) : (
-                <LogIn
-                  aria-hidden="true"
-                />
+                <LogIn aria-hidden="true" />
               )}
 
               {isSubmitting
@@ -482,19 +388,12 @@ export default function LoginPage() {
             </button>
           </form>
 
-
-          <p
-            className={
-              styles.footerText
-            }
-          >
+          <p className={styles.footerText}>
             New to HomeLink?{" "}
 
             <Link
               href="/register"
-              className={
-                styles.footerLink
-              }
+              className={styles.footerLink}
             >
               Create an account
             </Link>

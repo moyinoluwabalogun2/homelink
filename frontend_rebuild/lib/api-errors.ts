@@ -19,33 +19,106 @@ export function getApiErrorMessage(
       : fallback;
   }
 
-  const detail = error.response?.data?.detail;
+  const detail =
+    error.response?.data?.detail;
 
-  if (typeof detail === "string" && detail.trim()) {
+  if (
+    typeof detail ===
+      "string" &&
+    detail.trim()
+  ) {
     return detail;
   }
 
-  if (Array.isArray(detail) && detail.length > 0) {
-    return detail
-      .map((issue) => issue.msg)
-      .filter((message): message is string => Boolean(message))
-      .join(" ");
+  if (
+    Array.isArray(
+      detail,
+    ) &&
+    detail.length >
+      0
+  ) {
+    const message =
+      detail
+        .map(
+          (
+            issue,
+          ) =>
+            issue.msg,
+        )
+        .filter(
+          (
+            item,
+          ): item is string =>
+            Boolean(
+              item,
+            ),
+        )
+        .join(
+          " ",
+        );
+
+    if (
+      message
+    ) {
+      return message;
+    }
   }
 
-  if (error.code === "ECONNABORTED") {
+  if (
+    error.code ===
+    "ECONNABORTED"
+  ) {
     return "The server took too long to respond. Please try again.";
   }
 
-  if (!error.response) {
-    return "HomeLink could not reach the backend. Confirm that FastAPI is running on port 8001.";
+  if (
+    !error.response
+  ) {
+    if (
+      process.env
+        .NODE_ENV ===
+      "development"
+    ) {
+      return (
+        "HomeLink could not reach the local API. " +
+        "Confirm the backend is running and try again."
+      );
+    }
+
+    return (
+      "HomeLink could not reach the server. " +
+      "Check your connection and try again."
+    );
   }
 
-  if (error.response.status === 429) {
+  if (
+    error.response
+      .status ===
+    402
+  ) {
+    return (
+      typeof detail ===
+        "string" &&
+      detail.trim()
+        ? detail
+        : "A posting credit is required before this listing can be submitted."
+    );
+  }
+
+  if (
+    error.response
+      .status ===
+    429
+  ) {
     return "Too many attempts. Please wait before trying again.";
   }
 
-  if (error.response.status === 503) {
-    return "HomeLink security services are temporarily unavailable.";
+  if (
+    error.response
+      .status ===
+    503
+  ) {
+    return "HomeLink is temporarily unavailable. Please try again shortly.";
   }
 
   return fallback;

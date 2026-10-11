@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -62,6 +63,15 @@ import styles from "./page.module.css";
 
 
 export default function AgentWorkspacePage() {
+  const profileRequestRef =
+    useRef(0);
+
+  const summaryRequestRef =
+    useRef(0);
+
+  const leadsRequestRef =
+    useRef(0);
+
   const [
     profile,
     setProfile,
@@ -83,7 +93,6 @@ export default function AgentWorkspacePage() {
     Inquiry[] | null
   >(null);
 
-
   const [
     profileLoading,
     setProfileLoading,
@@ -98,7 +107,6 @@ export default function AgentWorkspacePage() {
     leadsLoading,
     setLeadsLoading,
   ] = useState(true);
-
 
   const [
     profileError,
@@ -116,25 +124,29 @@ export default function AgentWorkspacePage() {
   ] = useState("");
 
 
-  /* =========================================================
-     LOAD PROFILE
-  ========================================================= */
-
   const loadProfile =
     useCallback(
       async () => {
+        const requestVersion =
+          ++profileRequestRef.current;
+
         setProfileLoading(
           true,
         );
 
-        setProfileError(
-          "",
-        );
+        setProfileError("");
 
         try {
           const result =
             await agentService
               .getMine();
+
+          if (
+            requestVersion !==
+            profileRequestRef.current
+          ) {
+            return;
+          }
 
           setProfile(
             result,
@@ -145,10 +157,14 @@ export default function AgentWorkspacePage() {
               "HomeLink could not find your agent profile.",
             );
           }
+        } catch (error) {
+          if (
+            requestVersion !==
+            profileRequestRef.current
+          ) {
+            return;
+          }
 
-        } catch (
-          error
-        ) {
           setProfile(
             null,
           );
@@ -159,132 +175,154 @@ export default function AgentWorkspacePage() {
               "Your agent profile could not be loaded.",
             ),
           );
-
         } finally {
-          setProfileLoading(
-            false,
-          );
+          if (
+            requestVersion ===
+            profileRequestRef.current
+          ) {
+            setProfileLoading(
+              false,
+            );
+          }
         }
       },
       [],
     );
 
 
-  /* =========================================================
-     LOAD SUMMARY
-
-     Do not force the request during the initial load.
-
-     DashboardShell also asks dashboardService for the summary.
-     The service already has an in-flight request deduper/cache,
-     so both consumers can share the same request.
-  ========================================================= */
-
   const loadSummary =
     useCallback(
       async () => {
+        const requestVersion =
+          ++summaryRequestRef.current;
+
         setSummaryLoading(
           true,
         );
 
-        setSummaryError(
-          "",
-        );
+        setSummaryError("");
 
         try {
           const result =
             await dashboardService
               .getSummary();
 
+          if (
+            requestVersion !==
+            summaryRequestRef.current
+          ) {
+            return;
+          }
+
           setSummary(
             result,
           );
+        } catch (error) {
+          if (
+            requestVersion !==
+            summaryRequestRef.current
+          ) {
+            return;
+          }
 
-        } catch (
-          error
-        ) {
           setSummaryError(
             getApiErrorMessage(
               error,
               "Your dashboard summary could not be loaded.",
             ),
           );
-
         } finally {
-          setSummaryLoading(
-            false,
-          );
+          if (
+            requestVersion ===
+            summaryRequestRef.current
+          ) {
+            setSummaryLoading(
+              false,
+            );
+          }
         }
       },
       [],
     );
 
 
-  /* =========================================================
-     LOAD INCOMING LEADS
-  ========================================================= */
-
   const loadLeads =
     useCallback(
       async () => {
+        const requestVersion =
+          ++leadsRequestRef.current;
+
         setLeadsLoading(
           true,
         );
 
-        setLeadsError(
-          "",
-        );
+        setLeadsError("");
 
         try {
           const result =
             await engagementService
               .listReceivedInquiries();
 
+          if (
+            requestVersion !==
+            leadsRequestRef.current
+          ) {
+            return;
+          }
+
           setLeads(
             result,
           );
+        } catch (error) {
+          if (
+            requestVersion !==
+            leadsRequestRef.current
+          ) {
+            return;
+          }
 
-        } catch (
-          error
-        ) {
           setLeadsError(
             getApiErrorMessage(
               error,
               "Incoming leads could not be loaded.",
             ),
           );
-
         } finally {
-          setLeadsLoading(
-            false,
-          );
+          if (
+            requestVersion ===
+            leadsRequestRef.current
+          ) {
+            setLeadsLoading(
+              false,
+            );
+          }
         }
       },
       [],
     );
 
 
-  /* =========================================================
-     INITIAL LOAD
-  ========================================================= */
+  useEffect(() => {
+    void loadProfile();
+    void loadSummary();
+    void loadLeads();
 
-  useEffect(
-    () => {
-      void loadProfile();
-      void loadSummary();
-      void loadLeads();
-    },
-    [
-      loadProfile,
-      loadSummary,
-      loadLeads,
-    ],
-  );
+    return () => {
+      profileRequestRef.current +=
+        1;
 
+      summaryRequestRef.current +=
+        1;
 
-  /* =========================================================
-     DERIVED VALUES
-  ========================================================= */
+      leadsRequestRef.current +=
+        1;
+    };
+  }, [
+    loadProfile,
+    loadSummary,
+    loadLeads,
+  ]);
+
 
   const publishedListings =
     useMemo(
@@ -314,9 +352,7 @@ export default function AgentWorkspacePage() {
         }
 
         return leads.filter(
-          (
-            lead,
-          ) =>
+          (lead) =>
             lead.status ===
             "open",
         ).length;
@@ -331,10 +367,6 @@ export default function AgentWorkspacePage() {
     summary?.credits ??
     null;
 
-
-  /* =========================================================
-     RENDER
-  ========================================================= */
 
   return (
     <div
@@ -386,7 +418,6 @@ export default function AgentWorkspacePage() {
         </Link>
       </header>
 
-
       <section
         className={
           styles.statsSection
@@ -416,19 +447,18 @@ export default function AgentWorkspacePage() {
             <strong>
               {summaryLoading &&
               !summary
-                ? "…"
+                ? "\u2026"
                 : summaryError &&
                     !summary
-                  ? "—"
+                  ? "\u2014"
                   : publishedListings ??
-                    "—"}
+                    "\u2014"}
             </strong>
 
             <span>
               Published listings
             </span>
           </article>
-
 
           <article
             className={
@@ -448,19 +478,18 @@ export default function AgentWorkspacePage() {
             <strong>
               {leadsLoading &&
               !leads
-                ? "…"
+                ? "\u2026"
                 : leadsError &&
                     !leads
-                  ? "—"
+                  ? "\u2014"
                   : openLeads ??
-                    "—"}
+                    "\u2014"}
             </strong>
 
             <span>
               Open leads
             </span>
           </article>
-
 
           <article
             className={
@@ -480,20 +509,19 @@ export default function AgentWorkspacePage() {
             <strong>
               {summaryLoading &&
               !summary
-                ? "…"
+                ? "\u2026"
                 : summaryError &&
                     !summary
-                  ? "—"
+                  ? "\u2014"
                   : summary
                       ?.received_inquiries ??
-                    "—"}
+                    "\u2014"}
             </strong>
 
             <span>
               Total inquiries
             </span>
           </article>
-
 
           <article
             className={
@@ -513,13 +541,13 @@ export default function AgentWorkspacePage() {
             <strong>
               {profileLoading &&
               !profile
-                ? "…"
+                ? "\u2026"
                 : profileError &&
                     !profile
-                  ? "—"
+                  ? "\u2014"
                   : profile
                       ?.years_experience ??
-                    "—"}
+                    "\u2014"}
             </strong>
 
             <span>
@@ -527,7 +555,6 @@ export default function AgentWorkspacePage() {
             </span>
           </article>
         </div>
-
 
         {summaryError ? (
           <div
@@ -548,19 +575,23 @@ export default function AgentWorkspacePage() {
 
             <button
               type="button"
-              onClick={() => {
-                void loadSummary();
-              }}
               className={
                 styles.retryButton
               }
+              disabled={
+                summaryLoading
+              }
+              onClick={() => {
+                void loadSummary();
+              }}
             >
-              Try again
+              {summaryLoading
+                ? "Trying again\u2026"
+                : "Try again"}
             </button>
           </div>
         ) : null}
       </section>
-
 
       <section
         className={
@@ -597,7 +628,6 @@ export default function AgentWorkspacePage() {
                 </span>
               </div>
             </div>
-
           ) : profileError ||
             !profile ? (
             <div
@@ -626,14 +656,18 @@ export default function AgentWorkspacePage() {
                 className={
                   styles.retryButton
                 }
+                disabled={
+                  profileLoading
+                }
                 onClick={() => {
                   void loadProfile();
                 }}
               >
-                Try again
+                {profileLoading
+                  ? "Trying again\u2026"
+                  : "Try again"}
               </button>
             </div>
-
           ) : (
             <>
               <div
@@ -668,12 +702,10 @@ export default function AgentWorkspacePage() {
                 />
               </div>
 
-
               <p>
                 {profile.bio ||
                   "Your verified profile information will appear here."}
               </p>
-
 
               <div
                 className={
@@ -706,7 +738,6 @@ export default function AgentWorkspacePage() {
                     ),
                   )}
               </div>
-
 
               <div
                 className={
@@ -745,7 +776,6 @@ export default function AgentWorkspacePage() {
           )}
         </article>
 
-
         <aside
           className={
             shared.creditPanel
@@ -777,13 +807,14 @@ export default function AgentWorkspacePage() {
             </div>
           </div>
 
-
           {summaryLoading &&
           !summary ? (
             <div
               className={
                 shared.creditList
               }
+              aria-label="Loading credit balances"
+              aria-busy="true"
             >
               {Array.from(
                 {
@@ -800,11 +831,11 @@ export default function AgentWorkspacePage() {
                     className={
                       shared.creditSkeleton
                     }
+                    aria-hidden="true"
                   />
                 ),
               )}
             </div>
-
           ) : summaryError &&
             !summary ? (
             <>
@@ -822,14 +853,18 @@ export default function AgentWorkspacePage() {
                 className={
                   styles.creditRetry
                 }
+                disabled={
+                  summaryLoading
+                }
                 onClick={() => {
                   void loadSummary();
                 }}
               >
-                Try again
+                {summaryLoading
+                  ? "Trying again\u2026"
+                  : "Try again"}
               </button>
             </>
-
           ) : credits &&
             credits.length >
               0 ? (
@@ -839,9 +874,7 @@ export default function AgentWorkspacePage() {
               }
             >
               {credits.map(
-                (
-                  credit,
-                ) => {
+                (credit) => {
                   const total =
                     credit
                       .free_remaining +
@@ -851,7 +884,8 @@ export default function AgentWorkspacePage() {
                   return (
                     <div
                       key={
-                        credit.credit_type
+                        credit
+                          .credit_type
                       }
                       className={
                         shared.creditRow
@@ -870,7 +904,8 @@ export default function AgentWorkspacePage() {
                             credit
                               .free_remaining
                           }{" "}
-                          free ·{" "}
+                          free{" "}
+                          {"\u00B7"}{" "}
                           {
                             credit
                               .paid_remaining
@@ -887,7 +922,6 @@ export default function AgentWorkspacePage() {
                 },
               )}
             </div>
-
           ) : (
             <p
               className={
@@ -900,7 +934,6 @@ export default function AgentWorkspacePage() {
           )}
         </aside>
       </section>
-
 
       <section
         className={
@@ -922,7 +955,6 @@ export default function AgentWorkspacePage() {
             </h2>
           </div>
         </div>
-
 
         <div
           className={
@@ -956,7 +988,6 @@ export default function AgentWorkspacePage() {
             />
           </Link>
 
-
           <Link
             href="/post-listing/property"
             className={
@@ -984,7 +1015,6 @@ export default function AgentWorkspacePage() {
             />
           </Link>
 
-
           <Link
             href="/dashboard/leads"
             className={
@@ -1011,7 +1041,6 @@ export default function AgentWorkspacePage() {
               aria-hidden="true"
             />
           </Link>
-
 
           <Link
             href="/dashboard/listings"
@@ -1043,7 +1072,6 @@ export default function AgentWorkspacePage() {
         </div>
       </section>
 
-
       <section
         className={
           styles.leadsPanel
@@ -1072,17 +1100,18 @@ export default function AgentWorkspacePage() {
           </Link>
         </div>
 
-
         {leadsLoading &&
         !leads ? (
           <div
             className={
               styles.leadLoading
             }
+            role="status"
+            aria-live="polite"
           >
-            Loading recent leads…
+            Loading recent
+            leads{"\u2026"}
           </div>
-
         ) : leadsError &&
           !leads ? (
           <div
@@ -1102,17 +1131,21 @@ export default function AgentWorkspacePage() {
 
             <button
               type="button"
-              onClick={() => {
-                void loadLeads();
-              }}
               className={
                 styles.retryButton
               }
+              disabled={
+                leadsLoading
+              }
+              onClick={() => {
+                void loadLeads();
+              }}
             >
-              Try again
+              {leadsLoading
+                ? "Trying again\u2026"
+                : "Try again"}
             </button>
           </div>
-
         ) : leads &&
           leads.length ===
             0 ? (
@@ -1138,7 +1171,6 @@ export default function AgentWorkspacePage() {
               </span>
             </div>
           </div>
-
         ) : (
           <div
             className={
@@ -1151,9 +1183,7 @@ export default function AgentWorkspacePage() {
                 4,
               )
               .map(
-                (
-                  lead,
-                ) => (
+                (lead) => (
                   <article
                     key={
                       lead.id
@@ -1186,7 +1216,11 @@ export default function AgentWorkspacePage() {
                       }
                     />
 
-                    <time>
+                    <time
+                      dateTime={
+                        lead.created_at
+                      }
+                    >
                       {formatDate(
                         lead.created_at,
                       )}

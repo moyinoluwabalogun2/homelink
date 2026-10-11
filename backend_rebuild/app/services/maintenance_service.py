@@ -1,6 +1,10 @@
 import asyncio
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import (
+    UTC,
+    datetime,
+    timedelta,
+)
 
 import cloudinary
 import cloudinary.api
@@ -10,14 +14,22 @@ from sqlalchemy import (
     select,
     update,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+)
 
-from app.core.config import get_settings
+from app.core.config import (
+    get_settings,
+)
 from app.models.agent import (
     AgentVerificationDocument,
 )
-from app.models.audit import AuditLog
-from app.models.auth_session import AuthSession
+from app.models.audit import (
+    AuditLog,
+)
+from app.models.auth_session import (
+    AuthSession,
+)
 from app.models.email_verification import (
     EmailVerificationToken,
 )
@@ -25,29 +37,54 @@ from app.models.enums import (
     ListingStatus,
     VerificationDocumentStatus,
 )
-from app.models.listing import Listing
-from app.models.notification import Notification
+from app.models.listing import (
+    Listing,
+)
+from app.models.notification import (
+    Notification,
+)
 from app.models.password_reset import (
     PasswordResetToken,
 )
 from app.models.payment import (
     PaymentWebhookEvent,
 )
+from app.services.admin_advertising_service import (
+    AdminAdvertisingService,
+)
+from app.services.media_cleanup_service import (
+    MediaCleanupService,
+)
 
 
 settings = get_settings()
-
 logger = logging.getLogger(
     __name__
 )
 
 
 class MaintenanceService:
+    MEDIA_CLEANUP_BATCHES_PER_RUN = 3
+
+    ADVERTISEMENT_BATCH_SIZE = 100
+
     def __init__(
         self,
         session: AsyncSession,
     ) -> None:
         self.session = session
+
+        self.media_cleanup = (
+            MediaCleanupService(
+                session
+            )
+        )
+
+        self.advertising = (
+            AdminAdvertisingService(
+                session
+            )
+        )
 
     async def run(
         self,
@@ -56,43 +93,67 @@ class MaintenanceService:
             UTC
         )
 
-        # ========================================================
-        # EXPIRE LISTINGS
-        # ========================================================
-
+        # One indexed UPDATE instead of loading every expired
+        # listing into Python.
         expired_result = (
             await self.session.execute(
-                update(Listing)
+                update(
+                    Listing
+                )
                 .where(
                     Listing.status
-                    == ListingStatus.PUBLISHED,
-                    Listing.expires_at.is_not(
-                        None
-                    ),
+                    == ListingStatus
+                    .PUBLISHED,
+                    Listing.expires_at
+                    .is_not(None),
                     Listing.expires_at
                     <= now,
-                    Listing.deleted_at.is_(
-                        None
-                    ),
+                    Listing.deleted_at
+                    .is_(None),
                 )
                 .values(
                     status=(
-                        ListingStatus.EXPIRED
-                    )
+                        ListingStatus
+                        .EXPIRED
+                    ),
                 )
             )
         )
 
-        # ========================================================
-        # AUTH SESSIONS
-        # ========================================================
+        # Complete expired advert campaigns first. This includes
+        # any scheduled campaign whose entire date range passed
+        # before a maintenance run could activate it.
+        completed_advertisements = (
+            await self.advertising
+            .complete_expired(
+                now=now,
+                limit=(
+                    self
+                    .ADVERTISEMENT_BATCH_SIZE
+                ),
+            )
+        )
+
+        # Activate only campaigns that are due and whose end date
+        # remains in the future.
+        activated_advertisements = (
+            await self.advertising
+            .activate_scheduled(
+                now=now,
+                limit=(
+                    self
+                    .ADVERTISEMENT_BATCH_SIZE
+                ),
+            )
+        )
 
         session_cutoff = (
             now
             - timedelta(
                 days=(
-                    settings.session_cleanup_grace_days
-                )
+                    settings
+                    .session_cleanup_grace_days
+                ),
             )
         )
 
@@ -102,21 +163,18 @@ class MaintenanceService:
                     AuthSession
                 ).where(
                     AuthSession.expires_at
-                    < session_cutoff
+                    < session_cutoff,
                 )
             )
         )
-
-        # ========================================================
-        # AUTH TOKENS
-        # ========================================================
 
         token_cutoff = (
             now
             - timedelta(
                 days=(
-                    settings.token_cleanup_retention_days
-                )
+                    settings
+                    .token_cleanup_retention_days
+                ),
             )
         )
 
@@ -126,10 +184,11 @@ class MaintenanceService:
                     PasswordResetToken
                 ).where(
                     or_(
-                        PasswordResetToken.expires_at
+                        PasswordResetToken
+                        .expires_at
                         < token_cutoff,
-
-                        PasswordResetToken.used_at
+                        PasswordResetToken
+                        .used_at
                         < token_cutoff,
                     )
                 )
@@ -142,26 +201,24 @@ class MaintenanceService:
                     EmailVerificationToken
                 ).where(
                     or_(
-                        EmailVerificationToken.expires_at
+                        EmailVerificationToken
+                        .expires_at
                         < token_cutoff,
-
-                        EmailVerificationToken.used_at
+                        EmailVerificationToken
+                        .used_at
                         < token_cutoff,
                     )
                 )
             )
         )
 
-        # ========================================================
-        # READ NOTIFICATIONS
-        # ========================================================
-
         notification_cutoff = (
             now
             - timedelta(
                 days=(
-                    settings.read_notification_retention_days
-                )
+                    settings
+                    .read_notification_retention_days
+                ),
             )
         )
 
@@ -170,25 +227,21 @@ class MaintenanceService:
                 delete(
                     Notification
                 ).where(
-                    Notification.read_at.is_not(
-                        None
-                    ),
+                    Notification.read_at
+                    .is_not(None),
                     Notification.read_at
                     < notification_cutoff,
                 )
             )
         )
 
-        # ========================================================
-        # PAYMENT WEBHOOK HISTORY
-        # ========================================================
-
         webhook_cutoff = (
             now
             - timedelta(
                 days=(
-                    settings.webhook_event_retention_days
-                )
+                    settings
+                    .webhook_event_retention_days
+                ),
             )
         )
 
@@ -197,25 +250,23 @@ class MaintenanceService:
                 delete(
                     PaymentWebhookEvent
                 ).where(
-                    PaymentWebhookEvent.processed_at.is_not(
-                        None
-                    ),
-                    PaymentWebhookEvent.processed_at
+                    PaymentWebhookEvent
+                    .processed_at
+                    .is_not(None),
+                    PaymentWebhookEvent
+                    .processed_at
                     < webhook_cutoff,
                 )
             )
         )
 
-        # ========================================================
-        # AUDIT LOGS
-        # ========================================================
-
         audit_cutoff = (
             now
             - timedelta(
                 days=(
-                    settings.audit_log_retention_days
-                )
+                    settings
+                    .audit_log_retention_days
+                ),
             )
         )
 
@@ -225,30 +276,49 @@ class MaintenanceService:
                     AuditLog
                 ).where(
                     AuditLog.created_at
-                    < audit_cutoff
+                    < audit_cutoff,
                 )
             )
         )
 
-        # ========================================================
-        # AGENT VERIFICATION DOCUMENTS
-        #
-        # Pending:
-        #   NEVER purged.
-        #
-        # Approved/rejected:
-        #   Cloudinary file is removed after the configured
-        #   retention period.
-        #
-        # PostgreSQL row remains for audit history.
-        # ========================================================
-
-        purged_agent_documents = (
-            await self._purge_agent_documents(
-                now=now
+        # Queue a maximum of 300 expired listing-media assets.
+        queued_listing_media = (
+            await self.media_cleanup
+            .enqueue_expired_listing_media(
+                now=now,
             )
         )
 
+        # Process at most three Cloudinary batches during this
+        # maintenance run. This prevents cleanup from dominating
+        # normal user traffic.
+        purged_listing_media = 0
+
+        for _ in range(
+            self.MEDIA_CLEANUP_BATCHES_PER_RUN
+        ):
+            processed = (
+                await self.media_cleanup
+                .process_pending_jobs(
+                    now=now,
+                )
+            )
+
+            purged_listing_media += (
+                processed
+            )
+
+            if processed == 0:
+                break
+
+        purged_agent_documents = (
+            await self._purge_agent_documents(
+                now=now,
+            )
+        )
+
+        # One transaction covers database maintenance and advert
+        # lifecycle transitions.
         await self.session.commit()
 
         return {
@@ -256,45 +326,49 @@ class MaintenanceService:
                 expired_result.rowcount
                 or 0
             ),
-
+            "activated_advertisements": (
+                activated_advertisements
+            ),
+            "completed_advertisements": (
+                completed_advertisements
+            ),
             "deleted_sessions": int(
                 deleted_sessions.rowcount
                 or 0
             ),
-
             "deleted_password_reset_tokens": int(
-                deleted_password_tokens.rowcount
+                deleted_password_tokens
+                .rowcount
                 or 0
             ),
-
             "deleted_email_verification_tokens": int(
-                deleted_email_tokens.rowcount
+                deleted_email_tokens
+                .rowcount
                 or 0
             ),
-
             "deleted_notifications": int(
-                deleted_notifications.rowcount
+                deleted_notifications
+                .rowcount
                 or 0
             ),
-
             "deleted_webhook_events": int(
                 deleted_webhooks.rowcount
                 or 0
             ),
-
             "deleted_audit_logs": int(
                 deleted_audits.rowcount
                 or 0
             ),
-
+            "queued_listing_media": (
+                queued_listing_media
+            ),
+            "purged_listing_media": (
+                purged_listing_media
+            ),
             "purged_agent_verification_documents": (
                 purged_agent_documents
             ),
         }
-
-    # ============================================================
-    # AGENT DOCUMENT RETENTION
-    # ============================================================
 
     async def _purge_agent_documents(
         self,
@@ -303,9 +377,18 @@ class MaintenanceService:
     ) -> int:
         if (
             not settings.cloudinary_enabled
-            or not settings.cloudinary_cloud_name
-            or not settings.cloudinary_api_key
-            or not settings.cloudinary_api_secret
+            or not (
+                settings
+                .cloudinary_cloud_name
+            )
+            or not (
+                settings
+                .cloudinary_api_key
+            )
+            or not (
+                settings
+                .cloudinary_api_secret
+            )
         ):
             return 0
 
@@ -313,58 +396,55 @@ class MaintenanceService:
             now
             - timedelta(
                 days=(
-                    settings.agent_document_retention_days
-                )
+                    settings
+                    .agent_document_retention_days
+                ),
             )
         )
-
-        # --------------------------------------------------------
-        # BOUNDED BATCH
-        #
-        # We deliberately process only 100 files in one
-        # maintenance run.
-        #
-        # No table-wide hydration and no one-request-per-file
-        # Cloudinary loop.
-        # --------------------------------------------------------
 
         result = await self.session.execute(
             select(
                 AgentVerificationDocument.id,
-                AgentVerificationDocument.storage_public_id,
+                AgentVerificationDocument
+                .storage_public_id,
             )
             .where(
-                AgentVerificationDocument.status.in_(
+                AgentVerificationDocument
+                .status
+                .in_(
                     [
-                        VerificationDocumentStatus.APPROVED,
-                        VerificationDocumentStatus.REJECTED,
+                        VerificationDocumentStatus
+                        .APPROVED,
+                        VerificationDocumentStatus
+                        .REJECTED,
                     ]
                 ),
-
-                AgentVerificationDocument.reviewed_at.is_not(
-                    None
-                ),
-
-                AgentVerificationDocument.reviewed_at
+                AgentVerificationDocument
+                .reviewed_at
+                .is_not(None),
+                AgentVerificationDocument
+                .reviewed_at
                 <= cutoff,
-
-                AgentVerificationDocument.purged_at.is_(
-                    None
-                ),
-
-                AgentVerificationDocument.storage_public_id.is_not(
-                    None
-                ),
-
-                AgentVerificationDocument.storage_resource_type
+                AgentVerificationDocument
+                .purged_at
+                .is_(None),
+                AgentVerificationDocument
+                .storage_public_id
+                .is_not(None),
+                AgentVerificationDocument
+                .storage_resource_type
                 == "image",
-
-                AgentVerificationDocument.storage_delivery_type
+                AgentVerificationDocument
+                .storage_delivery_type
                 == "authenticated",
             )
             .order_by(
-                AgentVerificationDocument.reviewed_at.asc(),
-                AgentVerificationDocument.id.asc(),
+                AgentVerificationDocument
+                .reviewed_at
+                .asc(),
+                AgentVerificationDocument
+                .id
+                .asc(),
             )
             .limit(
                 100
@@ -378,7 +458,6 @@ class MaintenanceService:
         if not rows:
             return 0
 
-        # Public ID -> DB document IDs.
         document_ids_by_public_id: dict[
             str,
             list,
@@ -403,35 +482,32 @@ class MaintenanceService:
             )
 
         public_ids = list(
-            document_ids_by_public_id.keys()
+            document_ids_by_public_id
         )
 
         if not public_ids:
             return 0
 
-        # --------------------------------------------------------
-        # CLOUDINARY ADMIN API
-        #
-        # Python Cloudinary SDK is synchronous, so run the
-        # network call off the async FastAPI event loop.
-        # --------------------------------------------------------
-
         cloudinary.config(
             cloud_name=(
-                settings.cloudinary_cloud_name
+                settings
+                .cloudinary_cloud_name
             ),
             api_key=(
-                settings.cloudinary_api_key
+                settings
+                .cloudinary_api_key
             ),
             api_secret=(
-                settings.cloudinary_api_secret
+                settings
+                .cloudinary_api_secret
             ),
             secure=True,
         )
 
         try:
             response = await asyncio.to_thread(
-                cloudinary.api.delete_resources,
+                cloudinary.api
+                .delete_resources,
                 public_ids,
                 resource_type="image",
                 type="authenticated",
@@ -439,9 +515,6 @@ class MaintenanceService:
             )
 
         except Exception:
-            # Cloudinary being temporarily unavailable must not
-            # prevent the unrelated maintenance tasks above from
-            # committing.
             logger.exception(
                 "Agent verification document "
                 "retention cleanup failed."
@@ -454,15 +527,16 @@ class MaintenanceService:
             dict,
         ):
             logger.warning(
-                "Cloudinary returned an unexpected "
-                "agent document deletion response."
+                "Cloudinary returned an "
+                "unexpected document deletion "
+                "response."
             )
 
             return 0
 
         deleted_map = response.get(
             "deleted",
-            {}
+            {},
         )
 
         if not isinstance(
@@ -471,30 +545,24 @@ class MaintenanceService:
         ):
             return 0
 
-        successfully_removed_public_ids = [
+        removed_public_ids = [
             public_id
-            for (
-                public_id,
-                status,
-            )
+            for public_id, status
             in deleted_map.items()
-            if status
-            in {
+            if status in {
                 "deleted",
                 "not_found",
             }
         ]
 
-        if not successfully_removed_public_ids:
-            return 0
-
         database_ids = []
 
         for public_id in (
-            successfully_removed_public_ids
+            removed_public_ids
         ):
             database_ids.extend(
-                document_ids_by_public_id.get(
+                document_ids_by_public_id
+                .get(
                     public_id,
                     [],
                 )
@@ -503,26 +571,15 @@ class MaintenanceService:
         if not database_ids:
             return 0
 
-        # --------------------------------------------------------
-        # KEEP AUDIT ROW, REMOVE THE ACTUAL FILE REFERENCE
-        #
-        # We intentionally retain:
-        # - document type
-        # - verification result
-        # - rejection reason
-        # - reviewed timestamp
-        # - Cloudinary public ID metadata
-        #
-        # But the usable file URL disappears.
-        # --------------------------------------------------------
-
         update_result = (
             await self.session.execute(
                 update(
                     AgentVerificationDocument
                 )
                 .where(
-                    AgentVerificationDocument.id.in_(
+                    AgentVerificationDocument
+                    .id
+                    .in_(
                         database_ids
                     )
                 )

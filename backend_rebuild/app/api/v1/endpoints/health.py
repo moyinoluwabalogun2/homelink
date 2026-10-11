@@ -1,4 +1,9 @@
+from __future__ import annotations
+
 import asyncio
+import logging
+from time import perf_counter
+from typing import Awaitable, Callable
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -6,8 +11,10 @@ from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.core.redis import redis_client
-from app.db.session import AsyncSessionFactory
+from app.db.session import engine
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/health",
@@ -16,119 +23,125 @@ router = APIRouter(
 
 settings = get_settings()
 
-
-# ============================================================
-# LIVENESS
-#
-# Cheap check.
-#
-# No PostgreSQL.
-# No Redis.
-#
-# Safe for frontend connection detection.
-# ============================================================
+NO_STORE_HEADERS = {
+    "Cache-Control": "no-store, max-age=0",
+}
 
 
 @router.get("")
 @router.get("/live")
-async def liveness() -> dict[str, str]:
-    return {
-        "status":
-            "ok",
+async def liveness() -> JSONResponse:
+    """
+    Cheap process liveness check.
 
-        "service":
-            settings.app_name,
+    Render may call this frequently, so it intentionally performs
+    no PostgreSQL or Redis operation.
+    """
 
-        "version":
-            settings.app_version,
-    }
-
-
-# ============================================================
-# READINESS HELPERS
-# ============================================================
+    return JSONResponse(
+        status_code=200,
+        headers=NO_STORE_HEADERS,
+        content={
+            "status": "ok",
+            "service": settings.app_name,
+            "version": settings.app_version,
+            "environment": settings.environment,
+        },
+    )
 
 
 async def check_database() -> str:
     try:
-        async with asyncio.timeout(
-            3,
-        ):
-            async with AsyncSessionFactory() as session:
-                await session.execute(
-                    text(
-                        "SELECT 1"
-                    )
+        async with asyncio.timeout(3):
+            async with engine.connect() as connection:
+                await connection.execute(
+                    text("SELECT 1")
                 )
 
         return "ok"
 
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "PostgreSQL readiness check failed: %s",
+            type(exc).__name__,
+        )
+
         return "unavailable"
 
 
 async def check_redis() -> str:
     try:
-        async with asyncio.timeout(
-            3,
-        ):
-            await redis_client.ping()
+        async with asyncio.timeout(3):
+            result = await redis_client.ping()
 
-        return "ok"
+        return "ok" if result else "unavailable"
 
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "Redis readiness check failed: %s",
+            type(exc).__name__,
+        )
+
         return "unavailable"
 
 
-# ============================================================
-# READINESS
-#
-# Infrastructure/deployment check.
-#
-# This intentionally verifies PostgreSQL + Redis.
-# The frontend should NOT poll this endpoint.
-# ============================================================
+async def timed_check(
+    check: Callable[[], Awaitable[str]],
+) -> tuple[str, int]:
+    started_at = perf_counter()
+    status = await check()
+
+    elapsed_ms = max(
+        0,
+        round(
+            (perf_counter() - started_at) * 1000
+        ),
+    )
+
+    return status, elapsed_ms
 
 
 @router.get("/ready")
 async def readiness() -> JSONResponse:
-    database_status, redis_status = (
-        await asyncio.gather(
-            check_database(),
-            check_redis(),
-        )
+    """
+    Dependency readiness check.
+
+    This endpoint verifies PostgreSQL and Redis concurrently.
+    The frontend must not poll it. It is intended for deployment
+    diagnostics and external uptime monitoring.
+    """
+
+    database_result, redis_result = await asyncio.gather(
+        timed_check(check_database),
+        timed_check(check_redis),
     )
 
-    checks = {
-        "database":
-            database_status,
-
-        "redis":
-            redis_status,
-    }
+    database_status, database_latency = database_result
+    redis_status, redis_latency = redis_result
 
     ready = (
-        database_status
-        == "ok"
-        and redis_status
-        == "ok"
+        database_status == "ok"
+        and redis_status == "ok"
     )
 
     return JSONResponse(
-        status_code=(
-            200
-            if ready
-            else 503
-        ),
+        status_code=200 if ready else 503,
+        headers=NO_STORE_HEADERS,
         content={
-            "status":
-                (
-                    "ready"
-                    if ready
-                    else "not_ready"
-                ),
-
-            "checks":
-                checks,
+            "status": (
+                "ready"
+                if ready
+                else "not_ready"
+            ),
+            "checks": {
+                "database": {
+                    "status": database_status,
+                    "latency_ms": database_latency,
+                },
+                "redis": {
+                    "status": redis_status,
+                    "latency_ms": redis_latency,
+                },
+            },
         },
     )

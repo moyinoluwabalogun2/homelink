@@ -1,0 +1,814 @@
+.trigger {
+  min-height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding:
+    0
+    14px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    var(--radius-md);
+
+  color:
+    var(--text-secondary);
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    var(--shadow-xs);
+
+  font-size:
+    12px;
+
+  font-weight:
+    750;
+
+  transition:
+    color
+      var(--transition-fast),
+    border-color
+      var(--transition-fast),
+    background-color
+      var(--transition-fast),
+    transform
+      var(--transition-fast);
+}
+
+
+.trigger:hover {
+  color:
+    var(--danger-text);
+
+  border-color:
+    var(--danger-border);
+
+  background:
+    var(--danger-soft);
+
+  transform:
+    translateY(-1px);
+}
+
+
+.trigger:active {
+  transform:
+    translateY(0);
+}
+
+
+.trigger svg {
+  width:
+    15px;
+
+  height:
+    15px;
+}
+
+
+.overlay {
+  position:
+    fixed;
+
+  inset:
+    0;
+
+  z-index:
+    1200;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  padding:
+    24px;
+}
+
+
+.backdrop {
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  padding:
+    0;
+
+  border:
+    0;
+
+  background:
+    rgb(8 20 38 / 70%);
+
+  backdrop-filter:
+    blur(8px);
+}
+
+
+.dialog {
+  position:
+    relative;
+
+  z-index:
+    1;
+
+  width:
+    min(
+      100%,
+      560px
+    );
+
+  max-height:
+    min(
+      760px,
+      calc(
+        100vh -
+        48px
+      )
+    );
+
+  overflow-y:
+    auto;
+
+  padding:
+    28px;
+
+  border:
+    1px solid
+    var(--border-subtle);
+
+  border-radius:
+    var(--radius-xl);
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    var(--shadow-lg);
+
+  animation:
+    reportDialogReveal
+    220ms
+    cubic-bezier(
+      0.22,
+      1,
+      0.36,
+      1
+    )
+    both;
+}
+
+
+.heading {
+  display:
+    grid;
+
+  grid-template-columns:
+    46px
+    minmax(0, 1fr)
+    40px;
+
+  align-items:
+    center;
+
+  gap:
+    14px;
+}
+
+
+.headingIcon {
+  width:
+    46px;
+
+  height:
+    46px;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  border:
+    1px solid
+    var(--danger-border);
+
+  border-radius:
+    50%;
+
+  color:
+    var(--danger-text);
+
+  background:
+    var(--danger-soft);
+}
+
+
+.headingIcon svg {
+  width:
+    20px;
+
+  height:
+    20px;
+}
+
+
+.heading > div {
+  min-width:
+    0;
+}
+
+
+.heading > div > span {
+  display:
+    block;
+
+  margin-bottom:
+    4px;
+
+  color:
+    var(--danger-text);
+
+  font-size:
+    10px;
+
+  font-weight:
+    850;
+
+  letter-spacing:
+    0.09em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.heading h2 {
+  margin:
+    0;
+
+  font-size:
+    22px;
+
+  letter-spacing:
+    -0.035em;
+}
+
+
+.closeButton {
+  width:
+    40px;
+
+  height:
+    40px;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  padding:
+    0;
+
+  border:
+    1px solid
+    var(--border-subtle);
+
+  border-radius:
+    50%;
+
+  color:
+    var(--text-secondary);
+
+  background:
+    var(--surface-soft);
+
+  transition:
+    color
+      var(--transition-fast),
+    border-color
+      var(--transition-fast),
+    background-color
+      var(--transition-fast),
+    transform
+      var(--transition-fast);
+}
+
+
+.closeButton:hover {
+  color:
+    var(--text-primary);
+
+  border-color:
+    var(--border);
+
+  background:
+    var(--surface-hover);
+
+  transform:
+    rotate(4deg);
+}
+
+
+.closeButton svg {
+  width:
+    18px;
+
+  height:
+    18px;
+}
+
+
+.description {
+  margin:
+    22px
+    0
+    0;
+
+  color:
+    var(--text-secondary);
+
+  font-size:
+    13px;
+
+  line-height:
+    1.7;
+}
+
+
+.form {
+  display:
+    grid;
+
+  gap:
+    18px;
+
+  margin-top:
+    24px;
+}
+
+
+.form label {
+  min-width:
+    0;
+
+  display:
+    grid;
+
+  gap:
+    8px;
+}
+
+
+.form label > span {
+  color:
+    var(--text-primary);
+
+  font-size:
+    12px;
+
+  font-weight:
+    800;
+}
+
+
+.form select,
+.form textarea {
+  width:
+    100%;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    var(--radius-md);
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface);
+
+  outline:
+    none;
+
+  transition:
+    border-color
+      var(--transition-fast),
+    box-shadow
+      var(--transition-fast),
+    background-color
+      var(--transition-fast);
+}
+
+
+.form select {
+  min-height:
+    48px;
+
+  padding:
+    0
+    13px;
+}
+
+
+.form textarea {
+  min-height:
+    128px;
+
+  resize:
+    vertical;
+
+  padding:
+    13px;
+
+  line-height:
+    1.6;
+}
+
+
+.form select:focus,
+.form textarea:focus {
+  border-color:
+    var(--accent);
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    0
+    0
+    0
+    4px
+    var(--focus-ring);
+}
+
+
+.form label > small {
+  justify-self:
+    end;
+
+  color:
+    var(--text-muted);
+
+  font-size:
+    10px;
+}
+
+
+.notice {
+  display:
+    grid;
+
+  grid-template-columns:
+    20px
+    minmax(0, 1fr);
+
+  gap:
+    10px;
+
+  padding:
+    13px;
+
+  border:
+    1px solid
+    var(--warning-border);
+
+  border-radius:
+    var(--radius-md);
+
+  color:
+    var(--warning-text);
+
+  background:
+    var(--warning-soft);
+}
+
+
+.notice svg {
+  width:
+    18px;
+
+  height:
+    18px;
+
+  margin-top:
+    1px;
+}
+
+
+.notice p {
+  margin:
+    0;
+
+  color:
+    inherit;
+
+  font-size:
+    11px;
+
+  line-height:
+    1.55;
+}
+
+
+.actions {
+  display:
+    flex;
+
+  justify-content:
+    flex-end;
+
+  gap:
+    10px;
+
+  padding-top:
+    4px;
+}
+
+
+.actions button {
+  min-height:
+    44px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    0
+    16px;
+
+  border-radius:
+    var(--radius-md);
+
+  font-size:
+    12px;
+
+  font-weight:
+    800;
+
+  transition:
+    transform
+      var(--transition-fast),
+    box-shadow
+      var(--transition-fast),
+    background-color
+      var(--transition-fast);
+}
+
+
+.actions button:first-child {
+  border:
+    1px solid
+    var(--border);
+
+  color:
+    var(--text-secondary);
+
+  background:
+    var(--surface);
+}
+
+
+.actions button:first-child:hover {
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface-hover);
+}
+
+
+.actions button:last-child {
+  color:
+    #ffffff;
+
+  background:
+    var(--danger-text);
+
+  box-shadow:
+    0
+    8px
+    20px
+    rgb(180 35 24 / 18%);
+}
+
+
+.actions button:last-child:hover {
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    0
+    12px
+    25px
+    rgb(180 35 24 / 24%);
+}
+
+
+.actions button:disabled {
+  cursor:
+    wait;
+
+  opacity:
+    0.65;
+
+  transform:
+    none;
+}
+
+
+.actions button svg {
+  width:
+    15px;
+
+  height:
+    15px;
+}
+
+
+.spinner {
+  animation:
+    reportSpin
+    800ms
+    linear
+    infinite;
+}
+
+
+@keyframes reportDialogReveal {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateY(18px)
+      scale(0.98);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+
+@keyframes reportSpin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+
+@media (
+  max-width:
+    600px
+) {
+  .overlay {
+    align-items:
+      end;
+
+    padding:
+      0;
+  }
+
+  .dialog {
+    width:
+      100%;
+
+    max-height:
+      90vh;
+
+    padding:
+      23px
+      18px
+      calc(
+        23px +
+        env(
+          safe-area-inset-bottom
+        )
+      );
+
+    border-right:
+      0;
+
+    border-bottom:
+      0;
+
+    border-left:
+      0;
+
+    border-radius:
+      var(--radius-xl)
+      var(--radius-xl)
+      0
+      0;
+  }
+
+  .heading {
+    grid-template-columns:
+      42px
+      minmax(0, 1fr)
+      38px;
+
+    gap:
+      11px;
+  }
+
+  .headingIcon {
+    width:
+      42px;
+
+    height:
+      42px;
+  }
+
+  .heading h2 {
+    font-size:
+      20px;
+  }
+
+  .closeButton {
+    width:
+      38px;
+
+    height:
+      38px;
+  }
+
+  .actions {
+    display:
+      grid;
+
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+
+  .actions button {
+    width:
+      100%;
+  }
+}
+
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .dialog,
+  .trigger,
+  .closeButton,
+  .actions button {
+    animation:
+      none;
+
+    transition:
+      none;
+  }
+
+  .spinner {
+    animation:
+      reportSpin
+      800ms
+      linear
+      infinite;
+  }
+}

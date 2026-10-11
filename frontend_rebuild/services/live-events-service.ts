@@ -4,6 +4,10 @@ import {
   refreshAccessToken,
 } from "@/lib/api";
 
+import type {
+  Notification,
+} from "@/types/notification";
+
 
 /* =========================================================
    TYPES
@@ -29,10 +33,19 @@ export interface LiveMessageCreatedData {
     | "responded"
     | "closed";
 
-  message:
-    LiveMessagePayload;
+  message: LiveMessagePayload;
 
+  /**
+   * True only when the conversation changed from read to unread.
+   * This prevents the inquiry badge from overcounting.
+   */
   became_unread?: boolean;
+
+  /**
+   * The notification created for this message.
+   * It allows the notification page to update without refetching.
+   */
+  notification?: Notification;
 }
 
 
@@ -44,11 +57,8 @@ export interface LiveEvent {
 
 export interface MessageCreatedEvent
   extends LiveEvent {
-  type:
-    "message.created";
-
-  data:
-    LiveMessageCreatedData;
+  type: "message.created";
+  data: LiveMessageCreatedData;
 }
 
 
@@ -68,58 +78,30 @@ export const LIVE_STATUS_EVENT =
   "homelink:live-status";
 
 
-/*
- * Small grace period before closing the stream.
- *
- * This is useful in React development mode where a component
- * may briefly unsubscribe and immediately subscribe again.
- *
- * Without this grace period HomeLink can unnecessarily do:
- *
- * connect
- * disconnect
- * connect
- *
- * within a fraction of a second.
+/**
+ * React development mode can briefly unsubscribe and subscribe
+ * again. This grace period avoids closing and reopening the
+ * network connection unnecessarily.
  */
-const STOP_GRACE_MS =
-  500;
+const STOP_GRACE_MS = 500;
 
 
 /* =========================================================
-   SINGLETON STATE
+   SHARED CONNECTION STATE
 
-   Every dashboard subscriber shares ONE network stream.
+   Every dashboard component shares one event stream.
 ========================================================= */
 
 const listeners =
-  new Set<
-    LiveEventListener
-  >();
-
+  new Set<LiveEventListener>();
 
 let controller:
   | AbortController
   | null = null;
 
-
-let running =
-  false;
-
-
-let reconnectAttempt =
-  0;
-
-
-/*
- * Identifies the currently active connection loop.
- *
- * This prevents an OLD loop's cleanup from accidentally
- * clearing the controller belonging to a NEW loop.
- */
-let connectionGeneration =
-  0;
-
+let running = false;
+let reconnectAttempt = 0;
+let connectionGeneration = 0;
 
 let stopTimer:
   | number
@@ -127,7 +109,7 @@ let stopTimer:
 
 
 /* =========================================================
-   STATUS / EVENT HELPERS
+   STATUS AND EVENT HELPERS
 ========================================================= */
 
 function emitStatus(
@@ -136,10 +118,7 @@ function emitStatus(
     | "connected"
     | "disconnected",
 ): void {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -159,33 +138,23 @@ function emitStatus(
 function emitEvent(
   event: LiveEvent,
 ): void {
-  for (
-    const listener
-    of listeners
-  ) {
+  for (const listener of listeners) {
     try {
-      listener(
-        event,
-      );
+      listener(event);
     } catch {
-      /*
-       * One broken UI subscriber must never
-       * interrupt the global live-event service.
+      /**
+       * One broken subscriber must never interrupt the shared
+       * HomeLink live-event connection.
        */
     }
   }
 
-
-  if (
-    typeof window !==
-    "undefined"
-  ) {
+  if (typeof window !== "undefined") {
     window.dispatchEvent(
       new CustomEvent(
         LIVE_EVENT,
         {
-          detail:
-            event,
+          detail: event,
         },
       ),
     );
@@ -201,16 +170,14 @@ function isAbortError(
   error: unknown,
 ): boolean {
   return (
-    error instanceof
-      DOMException &&
-    error.name ===
-      "AbortError"
+    error instanceof DOMException
+    && error.name === "AbortError"
   );
 }
 
 
 /* =========================================================
-   SLEEP WITH ABORT SUPPORT
+   ABORTABLE RECONNECT DELAY
 ========================================================= */
 
 function sleep(
@@ -222,9 +189,7 @@ function sleep(
       resolve,
       reject,
     ) => {
-      if (
-        signal.aborted
-      ) {
+      if (signal.aborted) {
         reject(
           new DOMException(
             "Aborted",
@@ -235,7 +200,6 @@ function sleep(
         return;
       }
 
-
       const timeout =
         window.setTimeout(
           () => {
@@ -244,7 +208,6 @@ function sleep(
           },
           milliseconds,
         );
-
 
       const onAbort =
         () => {
@@ -262,7 +225,6 @@ function sleep(
           );
         };
 
-
       const cleanup =
         () => {
           signal.removeEventListener(
@@ -271,13 +233,11 @@ function sleep(
           );
         };
 
-
       signal.addEventListener(
         "abort",
         onAbort,
         {
-          once:
-            true,
+          once: true,
         },
       );
     },
@@ -286,23 +246,18 @@ function sleep(
 
 
 /* =========================================================
-   WAIT UNTIL BROWSER IS ONLINE
-
-   If the device genuinely loses internet, do NOT keep
-   attempting to reconnect to HomeLink every few seconds.
+   WAIT FOR INTERNET CONNECTION
 ========================================================= */
 
 function waitUntilOnline(
   signal: AbortSignal,
 ): Promise<void> {
   if (
-    typeof window ===
-      "undefined" ||
-    navigator.onLine
+    typeof window === "undefined"
+    || navigator.onLine
   ) {
     return Promise.resolve();
   }
-
 
   return new Promise(
     (
@@ -315,7 +270,6 @@ function waitUntilOnline(
           resolve();
         };
 
-
       const handleAbort =
         () => {
           cleanup();
@@ -327,7 +281,6 @@ function waitUntilOnline(
             ),
           );
         };
-
 
       const cleanup =
         () => {
@@ -342,23 +295,19 @@ function waitUntilOnline(
           );
         };
 
-
       window.addEventListener(
         "online",
         handleOnline,
         {
-          once:
-            true,
+          once: true,
         },
       );
-
 
       signal.addEventListener(
         "abort",
         handleAbort,
         {
-          once:
-            true,
+          once: true,
         },
       );
     },
@@ -373,38 +322,27 @@ function waitUntilOnline(
 async function openAuthenticatedStream(
   signal: AbortSignal,
 ): Promise<Response> {
-  let token =
-    getAccessToken();
+  let token = getAccessToken();
 
-
-  /*
-   * Hard refresh clears the in-memory access token.
-   *
-   * Restore the session once using the refresh cookie.
-   *
-   * refreshAccessToken() itself is deduplicated in api.ts,
-   * so multiple components cannot create multiple refresh
-   * calls simultaneously.
+  /**
+   * A hard browser refresh clears the in-memory access token.
+   * Restore the session once using the secure refresh cookie.
    */
   if (!token) {
     const refreshed =
       await refreshAccessToken();
 
-    token =
-      refreshed.access_token;
+    token = refreshed.access_token;
   }
-
 
   const request =
     (
-      accessToken:
-        string,
+      accessToken: string,
     ) =>
       fetch(
         `${API_BASE_URL}/events/stream`,
         {
-          method:
-            "GET",
+          method: "GET",
 
           headers: {
             Accept:
@@ -424,37 +362,28 @@ async function openAuthenticatedStream(
         },
       );
 
-
   let response =
-    await request(
-      token,
-    );
+    await request(token);
 
-
-  /*
-   * The access token could expire while HomeLink remains
-   * open. Refresh exactly once and reconnect.
+  /**
+   * The token can expire while the dashboard remains open.
+   * Refresh once and retry the connection.
    */
-  if (
-    response.status ===
-    401
-  ) {
+  if (response.status === 401) {
     const refreshed =
       await refreshAccessToken();
 
-    response =
-      await request(
-        refreshed.access_token,
-      );
+    response = await request(
+      refreshed.access_token,
+    );
   }
-
 
   return response;
 }
 
 
 /* =========================================================
-   SSE PARSER
+   SERVER-SENT EVENT PARSER
 ========================================================= */
 
 function parseBlock(
@@ -464,105 +393,63 @@ function parseBlock(
   data: string;
 } | null {
   const lines =
-    block.split(
-      "\n",
-    );
-
+    block.split("\n");
 
   let eventName =
     "message";
 
-
   const dataLines:
     string[] = [];
 
-
-  for (
-    const rawLine
-    of lines
-  ) {
+  for (const rawLine of lines) {
     const line =
       rawLine.trimEnd();
 
-
     if (
-      !line ||
-      line.startsWith(
-        ":",
-      )
+      !line
+      || line.startsWith(":")
     ) {
       continue;
     }
 
-
-    if (
-      line.startsWith(
-        "event:",
-      )
-    ) {
+    if (line.startsWith("event:")) {
       eventName =
-        line
-          .slice(
-            6,
-          )
-          .trim();
+        line.slice(6).trim();
 
       continue;
     }
 
-
-    if (
-      line.startsWith(
-        "data:",
-      )
-    ) {
+    if (line.startsWith("data:")) {
       dataLines.push(
-        line
-          .slice(
-            5,
-          )
-          .trimStart(),
+        line.slice(5).trimStart(),
       );
     }
   }
 
-
-  if (
-    dataLines.length ===
-    0
-  ) {
+  if (dataLines.length === 0) {
     return null;
   }
 
-
   return {
     eventName,
-
-    data:
-      dataLines.join(
-        "\n",
-      ),
+    data: dataLines.join("\n"),
   };
 }
 
 
 /* =========================================================
-   HANDLE ONE SSE EVENT
+   HANDLE ONE EVENT
 ========================================================= */
 
 function handleBlock(
   block: string,
 ): void {
   const parsed =
-    parseBlock(
-      block,
-    );
-
+    parseBlock(block);
 
   if (!parsed) {
     return;
   }
-
 
   try {
     const payload =
@@ -570,168 +457,112 @@ function handleBlock(
         parsed.data,
       ) as LiveEvent;
 
-
-    if (
-      payload.type ===
-      "connected"
-    ) {
-      emitStatus(
-        "connected",
-      );
-
-      reconnectAttempt =
-        0;
+    if (payload.type === "connected") {
+      emitStatus("connected");
+      reconnectAttempt = 0;
 
       return;
     }
 
-
-    emitEvent(
-      payload,
-    );
-
+    emitEvent(payload);
   } catch {
-    /*
-     * Ignore one malformed event.
-     *
-     * Do not terminate the entire connection because of
-     * one malformed payload.
+    /**
+     * Ignore one malformed event instead of terminating the
+     * entire live connection.
      */
   }
 }
 
 
 /* =========================================================
-   CONSUME ONE STREAM CONNECTION
+   READ ONE STREAM CONNECTION
 ========================================================= */
 
 async function consumeStream(
   signal: AbortSignal,
 ): Promise<void> {
-  emitStatus(
-    "connecting",
-  );
-
+  emitStatus("connecting");
 
   const response =
     await openAuthenticatedStream(
       signal,
     );
 
-
-  if (
-    !response.ok
-  ) {
+  if (!response.ok) {
     throw new Error(
       `Live event stream returned HTTP ${response.status}.`,
     );
   }
 
-
-  if (
-    !response.body
-  ) {
+  if (!response.body) {
     throw new Error(
       "Live event stream response has no body.",
     );
   }
 
-
   const reader =
     response.body.getReader();
-
 
   const decoder =
     new TextDecoder();
 
-
-  let buffer =
-    "";
-
+  let buffer = "";
 
   try {
-    while (
-      !signal.aborted
-    ) {
+    while (!signal.aborted) {
       const {
         done,
         value,
-      } =
-        await reader.read();
-
+      } = await reader.read();
 
       if (done) {
         break;
       }
 
-
-      buffer +=
-        decoder
-          .decode(
-            value,
-            {
-              stream:
-                true,
-            },
-          )
-          .replace(
-            /\r\n/g,
-            "\n",
-          );
-
-
-      let separatorIndex =
-        buffer.indexOf(
-          "\n\n",
+      buffer += decoder
+        .decode(
+          value,
+          {
+            stream: true,
+          },
+        )
+        .replace(
+          /\r\n/g,
+          "\n",
         );
 
+      let separatorIndex =
+        buffer.indexOf("\n\n");
 
-      while (
-        separatorIndex !==
-        -1
-      ) {
+      while (separatorIndex !== -1) {
         const block =
           buffer.slice(
             0,
             separatorIndex,
           );
 
-
         buffer =
           buffer.slice(
-            separatorIndex +
-              2,
+            separatorIndex + 2,
           );
 
-
-        handleBlock(
-          block,
-        );
-
+        handleBlock(block);
 
         separatorIndex =
-          buffer.indexOf(
-            "\n\n",
-          );
+          buffer.indexOf("\n\n");
       }
     }
-
   } finally {
     try {
       await reader.cancel();
     } catch {
-      /*
-       * Ignore cleanup errors.
-       */
+      // Ignore cleanup errors.
     }
-
 
     try {
       reader.releaseLock();
     } catch {
-      /*
-       * Ignore cleanup errors.
-       */
+      // Ignore cleanup errors.
     }
   }
 }
@@ -740,13 +571,8 @@ async function consumeStream(
 /* =========================================================
    CONNECTION LOOP
 
-   This is NOT polling.
-
-   While connected:
-       ONE HTTP stream remains open.
-
-   If it dies:
-       reconnect with exponential backoff.
+   This is not polling. One HTTP stream remains open.
+   Reconnection only happens if that stream disconnects.
 ========================================================= */
 
 async function connectionLoop(
@@ -754,119 +580,83 @@ async function connectionLoop(
   generation: number,
 ): Promise<void> {
   while (
-    running &&
-    listeners.size >
-      0 &&
-    !signal.aborted &&
-    generation ===
-      connectionGeneration
+    running
+    && listeners.size > 0
+    && !signal.aborted
+    && generation
+      === connectionGeneration
   ) {
     try {
-      /*
-       * If the user's internet is genuinely offline,
-       * wait for the browser online event instead of
-       * making useless HTTP requests.
-       */
       await waitUntilOnline(
         signal,
       );
 
-
       if (
-        signal.aborted ||
-        generation !==
-          connectionGeneration
+        signal.aborted
+        || generation
+          !== connectionGeneration
       ) {
         return;
       }
-
 
       await consumeStream(
         signal,
       );
 
-
       if (
-        signal.aborted ||
-        !running ||
-        generation !==
-          connectionGeneration
+        signal.aborted
+        || !running
+        || generation
+          !== connectionGeneration
       ) {
         return;
       }
-
 
       emitStatus(
         "disconnected",
       );
-
-    } catch (
-      error
-    ) {
+    } catch (error) {
       if (
-        signal.aborted ||
-        generation !==
-          connectionGeneration ||
-        isAbortError(
-          error,
-        )
+        signal.aborted
+        || generation
+          !== connectionGeneration
+        || isAbortError(error)
       ) {
         return;
       }
-
 
       emitStatus(
         "disconnected",
       );
     }
 
+    reconnectAttempt += 1;
 
-    reconnectAttempt +=
-      1;
-
-
-    /*
+    /**
      * Reconnect delays:
-     *
-     * 1 sec
-     * 2 sec
-     * 4 sec
-     * 8 sec
-     * 15 sec maximum
-     *
-     * This only happens after a broken stream.
+     * 1 second, 2 seconds, 4 seconds, 8 seconds,
+     * then a maximum of 15 seconds.
      */
     const delay =
       Math.min(
         15_000,
-
-        1_000 *
-          2 **
-            Math.min(
-              reconnectAttempt -
-                1,
-              4,
-            ),
+        1_000
+          * 2
+          ** Math.min(
+            reconnectAttempt - 1,
+            4,
+          ),
       );
-
 
     try {
       await sleep(
         delay,
         signal,
       );
-
-    } catch (
-      error
-    ) {
-      if (
-        isAbortError(
-          error,
-        )
-      ) {
+    } catch (error) {
+      if (isAbortError(error)) {
         return;
       }
-
 
       throw error;
     }
@@ -875,150 +665,95 @@ async function connectionLoop(
 
 
 /* =========================================================
-   STOP TIMER
+   CONNECTION LIFECYCLE
 ========================================================= */
 
-function cancelScheduledStop():
-  void {
-  if (
-    stopTimer ===
-    null
-  ) {
+function cancelScheduledStop(): void {
+  if (stopTimer === null) {
     return;
   }
-
 
   window.clearTimeout(
     stopTimer,
   );
 
-
-  stopTimer =
-    null;
+  stopTimer = null;
 }
 
 
-/* =========================================================
-   START CONNECTION
-========================================================= */
-
-function start():
-  void {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
+function start(): void {
+  if (typeof window === "undefined") {
     return;
   }
-
 
   cancelScheduledStop();
 
-
   if (
-    running ||
-    listeners.size ===
-      0
+    running
+    || listeners.size === 0
   ) {
     return;
   }
 
-
-  running =
-    true;
-
-
-  reconnectAttempt =
-    0;
-
-
-  connectionGeneration +=
-    1;
-
+  running = true;
+  reconnectAttempt = 0;
+  connectionGeneration += 1;
 
   const generation =
     connectionGeneration;
 
-
   const activeController =
     new AbortController();
 
-
   controller =
     activeController;
-
 
   void connectionLoop(
     activeController.signal,
     generation,
   ).finally(
     () => {
-      /*
-       * VERY IMPORTANT:
-       *
-       * An old connection may finish AFTER a new connection
-       * has already started.
-       *
-       * Never allow old cleanup to reset new state.
+      /**
+       * An old connection may finish after a new connection has
+       * started. Old cleanup must never reset the newer stream.
        */
       if (
-        generation !==
-        connectionGeneration
+        generation
+        !== connectionGeneration
       ) {
         return;
       }
 
-
       if (
-        controller ===
-        activeController
+        controller
+        === activeController
       ) {
-        controller =
-          null;
+        controller = null;
       }
 
-
-      running =
-        false;
+      running = false;
     },
   );
 }
 
 
-/* =========================================================
-   STOP CONNECTION IMMEDIATELY
-========================================================= */
-
-function stopNow():
-  void {
+function stopNow(): void {
   cancelScheduledStop();
 
-
-  /*
+  /**
    * Invalidate the current generation before aborting it.
    */
-  connectionGeneration +=
-    1;
-
-
-  running =
-    false;
-
+  connectionGeneration += 1;
+  running = false;
 
   const activeController =
     controller;
 
-
-  controller =
-    null;
-
+  controller = null;
 
   activeController?.abort();
 
-
-  reconnectAttempt =
-    0;
-
+  reconnectAttempt = 0;
 
   emitStatus(
     "disconnected",
@@ -1026,41 +761,19 @@ function stopNow():
 }
 
 
-/* =========================================================
-   SCHEDULE STOP
-
-   React Strict Mode can briefly:
-       subscribe
-       unsubscribe
-       subscribe
-
-   Waiting 500ms prevents pointless connection churn.
-========================================================= */
-
-function scheduleStop():
-  void {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
+function scheduleStop(): void {
+  if (typeof window === "undefined") {
     return;
   }
 
-
   cancelScheduledStop();
-
 
   stopTimer =
     window.setTimeout(
       () => {
-        stopTimer =
-          null;
+        stopTimer = null;
 
-
-        if (
-          listeners.size ===
-          0
-        ) {
+        if (listeners.size === 0) {
           stopNow();
         }
       },
@@ -1075,58 +788,35 @@ function scheduleStop():
 
 export const liveEventsService = {
   subscribe(
-    listener:
-      LiveEventListener,
+    listener: LiveEventListener,
   ): () => void {
-    listeners.add(
-      listener,
-    );
+    listeners.add(listener);
 
-
-    /*
-     * If React remounted immediately, cancel the pending
+    /**
+     * If React immediately remounted, cancel the pending
      * disconnect and keep the existing stream alive.
      */
     cancelScheduledStop();
-
-
     start();
 
-
-    let subscribed =
-      true;
-
+    let subscribed = true;
 
     return () => {
-      if (
-        !subscribed
-      ) {
+      if (!subscribed) {
         return;
       }
 
+      subscribed = false;
+      listeners.delete(listener);
 
-      subscribed =
-        false;
-
-
-      listeners.delete(
-        listener,
-      );
-
-
-      if (
-        listeners.size ===
-        0
-      ) {
+      if (listeners.size === 0) {
         scheduleStop();
       }
     };
   },
 
-
   stop(): void {
     listeners.clear();
-
     stopNow();
   },
 };
@@ -1140,31 +830,22 @@ export function isMessageCreatedEvent(
   event: LiveEvent,
 ): event is MessageCreatedEvent {
   if (
-    event.type !==
-      "message.created" ||
-    !event.data ||
-    typeof event.data !==
-      "object"
+    event.type !== "message.created"
+    || !event.data
+    || typeof event.data !== "object"
   ) {
     return false;
   }
 
-
   const data =
     event.data as
-      Partial<
-        LiveMessageCreatedData
-      >;
-
+      Partial<LiveMessageCreatedData>;
 
   return (
-    typeof data.inquiry_id ===
-      "string" &&
-
-    typeof data.message ===
-      "object" &&
-
-    data.message !==
-      null
+    typeof data.inquiry_id
+      === "string"
+    && typeof data.message
+      === "object"
+    && data.message !== null
   );
 }

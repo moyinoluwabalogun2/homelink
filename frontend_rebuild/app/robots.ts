@@ -1,14 +1,40 @@
-import type { MetadataRoute } from "next";
+import type {
+  MetadataRoute,
+} from "next";
 
-export default function robots(): MetadataRoute.Robots {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import {
+  SITE_URL,
+} from "@/lib/site-config";
 
+
+export default function robots():
+  MetadataRoute.Robots {
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: ["/admin/", "/dashboard/", "/payment/", "/post-listing/"],
-    },
-    sitemap: `${siteUrl}/sitemap.xml`,
+    rules: [
+      {
+        userAgent: "*",
+
+        allow: "/",
+
+        disallow: [
+          "/admin/",
+          "/api/",
+          "/dashboard/",
+          "/forgot-password",
+          "/login",
+          "/payment/",
+          "/post-listing/",
+          "/register",
+          "/reset-password",
+          "/verify-email",
+        ],
+      },
+    ],
+
+    sitemap:
+      `${SITE_URL}/sitemap.xml`,
+
+    host:
+      SITE_URL,
   };
 }

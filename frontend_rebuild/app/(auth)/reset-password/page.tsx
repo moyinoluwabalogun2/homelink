@@ -6,10 +6,7 @@ import {
 } from "react";
 
 import Link from "next/link";
-
-import {
-  useSearchParams,
-} from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import {
   zodResolver,
@@ -33,102 +30,89 @@ import {
   useForm,
 } from "react-hook-form";
 
-import {
-  toast,
-} from "sonner";
+import { toast } from "sonner";
+import { z } from "zod";
 
-import {
-  z,
-} from "zod";
-
-import {
-  getApiErrorMessage,
-} from "@/lib/api-errors";
-
-import {
-  authService,
-} from "@/services/auth-service";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { authService } from "@/services/auth-service";
 
 import styles from "@/components/auth/AuthForm.module.css";
 
+const passwordSchema =
+  z
+    .string()
+    .min(
+      10,
+      "Use at least 10 characters.",
+    )
+    .regex(
+      /[a-z]/,
+      "Add a lowercase letter.",
+    )
+    .regex(
+      /[A-Z]/,
+      "Add an uppercase letter.",
+    )
+    .regex(
+      /[0-9]/,
+      "Add a number.",
+    );
 
 const schema =
   z
     .object({
       password:
+        passwordSchema,
+
+      confirmPassword:
         z
           .string()
           .min(
-            10,
-            "Use at least 10 characters.",
-          )
-          .regex(
-            /[a-z]/,
-            "Add a lowercase letter.",
-          )
-          .regex(
-            /[A-Z]/,
-            "Add an uppercase letter.",
-          )
-          .regex(
-            /[0-9]/,
-            "Add a number.",
+            1,
+            "Confirm your new password.",
           ),
-
-      confirmPassword:
-        z.string(),
     })
     .refine(
-      (
-        values,
-      ) =>
+      (values) =>
         values.password ===
         values.confirmPassword,
       {
         path: [
           "confirmPassword",
         ],
-
         message:
           "Passwords do not match.",
       },
     );
 
-
 type FormValues =
-  z.infer<typeof schema>;
-
+  z.infer<
+    typeof schema
+  >;
 
 function ResetPasswordForm() {
   const searchParams =
     useSearchParams();
 
   const token =
-    searchParams.get(
-      "token",
-    ) ?? "";
-
+    searchParams
+      .get("token")
+      ?.trim() ?? "";
 
   const [
     complete,
     setComplete,
-  ] =
-    useState(false);
-
+  ] = useState(false);
 
   const [
     showPassword,
     setShowPassword,
-  ] =
-    useState(false);
-
+  ] = useState(false);
 
   const [
     showConfirmation,
     setShowConfirmation,
-  ] =
-    useState(false);
-
+  ] = useState(false);
 
   const {
     register,
@@ -139,67 +123,51 @@ function ResetPasswordForm() {
       errors,
       isSubmitting,
     },
-  } =
-    useForm<FormValues>({
-      resolver:
-        zodResolver(
-          schema,
-        ),
+  } = useForm<FormValues>({
+    resolver:
+      zodResolver(schema),
 
-      defaultValues: {
-        password: "",
-        confirmPassword: "",
-      },
-    });
-
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
   const password =
-    watch(
-      "password",
-    ) ?? "";
-
+    watch("password") ?? "";
 
   const requirements = [
     {
       label:
         "At least 10 characters",
-
       passed:
-        password.length >=
-        10,
+        password.length >= 10,
     },
-
     {
       label:
         "One uppercase letter",
-
       passed:
         /[A-Z]/.test(
           password,
         ),
     },
-
     {
       label:
         "One lowercase letter",
-
       passed:
         /[a-z]/.test(
           password,
         ),
     },
-
     {
       label:
         "At least one number",
-
       passed:
         /[0-9]/.test(
           password,
         ),
     },
   ];
-
 
   const submit =
     handleSubmit(
@@ -215,7 +183,6 @@ function ResetPasswordForm() {
           return;
         }
 
-
         try {
           await authService
             .resetPassword(
@@ -223,95 +190,60 @@ function ResetPasswordForm() {
               nextPassword,
             );
 
-          setComplete(
-            true,
+          /*
+           * Remove the one-time reset token from the visible
+           * address and browser history after it has been used.
+           */
+          window.history.replaceState(
+            {},
+            "",
+            "/reset-password",
           );
-        } catch (
-          error
-        ) {
+
+          setComplete(true);
+        } catch (error) {
           toast.error(
             getApiErrorMessage(
               error,
-              "Password reset failed.",
+              "Password reset failed. The link may be invalid or expired.",
             ),
           );
         }
       },
     );
 
-
   return (
-    <main
-      className={
-        styles.recoveryPage
-      }
-    >
-      <div
-        className={
-          styles.recoveryShell
-        }
-      >
-        <div
-          className={
-            styles.recoveryBrand
-          }
-        >
+    <main className={styles.recoveryPage}>
+      <div className={styles.recoveryShell}>
+        <div className={styles.recoveryBrand}>
           <Link href="/">
             HomeLink
           </Link>
 
           <span>
-            <ShieldCheck
-              aria-hidden="true"
-            />
-
+            <ShieldCheck aria-hidden="true" />
             Account security
           </span>
         </div>
 
-
-        <section
-          className={
-            styles.recoveryCard
-          }
-        >
+        <section className={styles.recoveryCard}>
           <Link
             href="/login"
-            className={
-              styles.recoveryBack
-            }
+            className={styles.recoveryBack}
           >
-            <ArrowLeft
-              aria-hidden="true"
-            />
-
+            <ArrowLeft aria-hidden="true" />
             Back to sign in
           </Link>
 
-
-          {!token ? (
+          {!token &&
+          !complete ? (
             <>
-              <div
-                className={
-                  styles.recoveryWarningIcon
-                }
-              >
-                <AlertTriangle
-                  aria-hidden="true"
-                />
+              <div className={styles.recoveryWarningIcon}>
+                <AlertTriangle aria-hidden="true" />
               </div>
 
-
-              <header
-                className={
-                  styles.recoveryHeader
-                }
-              >
-                <span
-                  className={
-                    styles.formEyebrow
-                  }
-                >
+              <header className={styles.recoveryHeader}>
+                <span className={styles.formEyebrow}>
                   Invalid reset link
                 </span>
 
@@ -320,47 +252,30 @@ function ResetPasswordForm() {
                 </h1>
 
                 <p>
-                  HomeLink could not find
-                  the password reset token
-                  required to continue.
-                  Request a new reset link
-                  and try again.
+                  HomeLink could not find the password
+                  reset token required to continue.
+                  Request a new reset link and try again.
                 </p>
               </header>
 
-
               <Link
                 href="/forgot-password"
-                className={
-                  styles.primaryLinkButton
-                }
+                className={styles.primaryLinkButton}
               >
                 Request a new link
               </Link>
             </>
           ) : complete ? (
             <>
-              <div
-                className={
-                  styles.recoveryStatusIcon
-                }
-              >
-                <CheckCircle2
-                  aria-hidden="true"
-                />
+              <div className={styles.recoveryStatusIcon}>
+                <CheckCircle2 aria-hidden="true" />
               </div>
 
-
               <header
-                className={
-                  styles.recoveryHeader
-                }
+                className={styles.recoveryHeader}
+                aria-live="polite"
               >
-                <span
-                  className={
-                    styles.formEyebrow
-                  }
-                >
+                <span className={styles.formEyebrow}>
                   Password updated
                 </span>
 
@@ -369,47 +284,27 @@ function ResetPasswordForm() {
                 </h1>
 
                 <p>
-                  Your HomeLink password
-                  has been changed
-                  successfully. You can
-                  now sign in using your
-                  new password.
+                  Your HomeLink password has been changed
+                  successfully. You can now sign in using
+                  your new password.
                 </p>
               </header>
 
-
               <Link
                 href="/login"
-                className={
-                  styles.primaryLinkButton
-                }
+                className={styles.primaryLinkButton}
               >
                 Sign in to HomeLink
               </Link>
             </>
           ) : (
             <>
-              <div
-                className={
-                  styles.recoveryStatusIcon
-                }
-              >
-                <KeyRound
-                  aria-hidden="true"
-                />
+              <div className={styles.recoveryStatusIcon}>
+                <KeyRound aria-hidden="true" />
               </div>
 
-
-              <header
-                className={
-                  styles.recoveryHeader
-                }
-              >
-                <span
-                  className={
-                    styles.formEyebrow
-                  }
-                >
+              <header className={styles.recoveryHeader}>
+                <span className={styles.formEyebrow}>
                   Account security
                 </span>
 
@@ -418,45 +313,26 @@ function ResetPasswordForm() {
                 </h1>
 
                 <p>
-                  Create a strong new
-                  password for your
+                  Create a strong new password for your
                   HomeLink account.
                 </p>
               </header>
 
-
               <form
-                className={
-                  styles.form
-                }
-                onSubmit={
-                  submit
-                }
+                className={styles.form}
+                onSubmit={submit}
                 noValidate
               >
-                <div
-                  className={
-                    styles.field
-                  }
-                >
-                  <label
-                    htmlFor="password"
-                  >
+                <div className={styles.field}>
+                  <label htmlFor="reset-password">
                     New password
                   </label>
 
-
-                  <div
-                    className={
-                      styles.inputWrap
-                    }
-                  >
-                    <LockKeyhole
-                      aria-hidden="true"
-                    />
+                  <div className={styles.inputWrap}>
+                    <LockKeyhole aria-hidden="true" />
 
                     <input
-                      id="password"
+                      id="reset-password"
                       type={
                         showPassword
                           ? "text"
@@ -464,67 +340,60 @@ function ResetPasswordForm() {
                       }
                       autoComplete="new-password"
                       placeholder="Enter a strong password"
-                      className={
-                        styles.passwordInput
+                      className={styles.passwordInput}
+                      aria-invalid={
+                        errors.password
+                          ? true
+                          : undefined
+                      }
+                      aria-describedby={
+                        errors.password
+                          ? "reset-password-error reset-password-requirements"
+                          : "reset-password-requirements"
                       }
                       {...register(
                         "password",
                       )}
                     />
 
-
                     <button
                       type="button"
-                      className={
-                        styles.passwordButton
-                      }
+                      className={styles.passwordButton}
                       aria-label={
                         showPassword
                           ? "Hide password"
                           : "Show password"
                       }
+                      aria-pressed={showPassword}
                       onClick={() =>
                         setShowPassword(
-                          (
-                            current,
-                          ) =>
+                          (current) =>
                             !current,
                         )
                       }
                     >
                       {showPassword ? (
-                        <EyeOff
-                          aria-hidden="true"
-                        />
+                        <EyeOff aria-hidden="true" />
                       ) : (
-                        <Eye
-                          aria-hidden="true"
-                        />
+                        <Eye aria-hidden="true" />
                       )}
                     </button>
                   </div>
 
-
                   {errors.password ? (
                     <p
-                      className={
-                        styles.error
-                      }
+                      id="reset-password-error"
+                      className={styles.error}
+                      role="alert"
                     >
-                      {
-                        errors
-                          .password
-                          .message
-                      }
+                      {errors.password.message}
                     </p>
                   ) : null}
                 </div>
 
-
                 <div
-                  className={
-                    styles.passwordRequirements
-                  }
+                  id="reset-password-requirements"
+                  className={styles.passwordRequirements}
                 >
                   <strong>
                     Password requirements
@@ -532,60 +401,33 @@ function ResetPasswordForm() {
 
                   <div>
                     {requirements.map(
-                      (
-                        requirement,
-                      ) => (
+                      (requirement) => (
                         <span
-                          key={
-                            requirement
-                              .label
-                          }
+                          key={requirement.label}
                           className={
-                            requirement
-                              .passed
-                              ? styles
-                                  .requirementPassed
+                            requirement.passed
+                              ? styles.requirementPassed
                               : undefined
                           }
                         >
-                          <Check
-                            aria-hidden="true"
-                          />
-
-                          {
-                            requirement
-                              .label
-                          }
+                          <Check aria-hidden="true" />
+                          {requirement.label}
                         </span>
                       ),
                     )}
                   </div>
                 </div>
 
-
-                <div
-                  className={
-                    styles.field
-                  }
-                >
-                  <label
-                    htmlFor="confirmPassword"
-                  >
+                <div className={styles.field}>
+                  <label htmlFor="reset-confirm-password">
                     Confirm new password
                   </label>
 
-
-                  <div
-                    className={
-                      styles.inputWrap
-                    }
-                  >
-                    <LockKeyhole
-                      aria-hidden="true"
-                    />
+                  <div className={styles.inputWrap}>
+                    <LockKeyhole aria-hidden="true" />
 
                     <input
-                      id="confirmPassword"
+                      id="reset-confirm-password"
                       type={
                         showConfirmation
                           ? "text"
@@ -593,84 +435,69 @@ function ResetPasswordForm() {
                       }
                       autoComplete="new-password"
                       placeholder="Enter it again"
-                      className={
-                        styles.passwordInput
+                      className={styles.passwordInput}
+                      aria-invalid={
+                        errors.confirmPassword
+                          ? true
+                          : undefined
+                      }
+                      aria-describedby={
+                        errors.confirmPassword
+                          ? "reset-confirm-error"
+                          : undefined
                       }
                       {...register(
                         "confirmPassword",
                       )}
                     />
 
-
                     <button
                       type="button"
-                      className={
-                        styles.passwordButton
-                      }
+                      className={styles.passwordButton}
                       aria-label={
                         showConfirmation
                           ? "Hide confirmation password"
                           : "Show confirmation password"
                       }
+                      aria-pressed={showConfirmation}
                       onClick={() =>
                         setShowConfirmation(
-                          (
-                            current,
-                          ) =>
+                          (current) =>
                             !current,
                         )
                       }
                     >
                       {showConfirmation ? (
-                        <EyeOff
-                          aria-hidden="true"
-                        />
+                        <EyeOff aria-hidden="true" />
                       ) : (
-                        <Eye
-                          aria-hidden="true"
-                        />
+                        <Eye aria-hidden="true" />
                       )}
                     </button>
                   </div>
 
-
-                  {errors
-                    .confirmPassword ? (
+                  {errors.confirmPassword ? (
                     <p
-                      className={
-                        styles.error
-                      }
+                      id="reset-confirm-error"
+                      className={styles.error}
+                      role="alert"
                     >
-                      {
-                        errors
-                          .confirmPassword
-                          .message
-                      }
+                      {errors.confirmPassword.message}
                     </p>
                   ) : null}
                 </div>
 
-
                 <button
                   type="submit"
-                  className={
-                    styles.submitButton
-                  }
-                  disabled={
-                    isSubmitting
-                  }
+                  className={styles.submitButton}
+                  disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <Loader2
-                      className={
-                        styles.spinner
-                      }
+                      className={styles.spinner}
                       aria-hidden="true"
                     />
                   ) : (
-                    <Save
-                      aria-hidden="true"
-                    />
+                    <Save aria-hidden="true" />
                   )}
 
                   {isSubmitting
@@ -682,16 +509,10 @@ function ResetPasswordForm() {
           )}
         </section>
 
-
-        <p
-          className={
-            styles.recoveryFooter
-          }
-        >
+        <p className={styles.recoveryFooter}>
           Need another reset link?{" "}
-          <Link
-            href="/forgot-password"
-          >
+
+          <Link href="/forgot-password">
             Start again
           </Link>
         </p>
@@ -700,33 +521,18 @@ function ResetPasswordForm() {
   );
 }
 
-
 function ResetPasswordFallback() {
   return (
-    <main
-      className={
-        styles.recoveryPage
-      }
-    >
-      <div
-        className={
-          styles.recoveryShell
-        }
-      >
-        <section
-          className={
-            styles.recoveryCard
-          }
-        >
+    <main className={styles.recoveryPage}>
+      <div className={styles.recoveryShell}>
+        <section className={styles.recoveryCard}>
           <div
-            className={
-              styles.recoveryLoading
-            }
+            className={styles.recoveryLoading}
+            role="status"
+            aria-live="polite"
           >
             <Loader2
-              className={
-                styles.spinner
-              }
+              className={styles.spinner}
               aria-hidden="true"
             />
 
@@ -739,7 +545,6 @@ function ResetPasswordFallback() {
     </main>
   );
 }
-
 
 export default function ResetPasswordPage() {
   return (

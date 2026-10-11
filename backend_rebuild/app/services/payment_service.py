@@ -40,13 +40,10 @@ class PaymentService:
     ) -> None:
         self.session = session
         self.credits = CreditService(session)
+
         self.notifications = NotificationService(
             session,
         )
-
-    # =========================================================
-    # PLANS / BALANCES / HISTORY
-    # =========================================================
 
     async def list_plans(
         self,
@@ -54,9 +51,7 @@ class PaymentService:
         result = await self.session.scalars(
             select(PaymentPlan)
             .where(
-                PaymentPlan.is_active.is_(
-                    True,
-                ),
+                PaymentPlan.is_active.is_(True),
             )
             .order_by(
                 PaymentPlan.sort_order,
@@ -95,20 +90,14 @@ class PaymentService:
 
         return list(result.all())
 
-    # =========================================================
-    # INITIALIZE PAYMENT
-    # =========================================================
-
     async def initialize(
         self,
         *,
         user: User,
         plan_code: str,
+        requested_provider: PaymentProvider | None = None,
     ) -> Payment:
-        if (
-            settings.payment_provider
-            == "disabled"
-        ):
+        if settings.payment_provider == "disabled":
             raise HTTPException(
                 status_code=503,
                 detail=(
@@ -126,14 +115,46 @@ class PaymentService:
         if plan is None:
             raise HTTPException(
                 status_code=404,
-                detail=(
-                    "Payment plan not found."
-                ),
+                detail="Payment plan not found.",
             )
 
-        provider = PaymentProvider(
-            settings.payment_provider,
+        configured_provider = (
+            settings.payment_provider
         )
+
+        if configured_provider == "both":
+            provider = (
+                requested_provider
+                or PaymentProvider.PAYSTACK
+            )
+
+            if provider not in {
+                PaymentProvider.PAYSTACK,
+                PaymentProvider.FLUTTERWAVE,
+            }:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Choose Paystack or "
+                        "Flutterwave for checkout."
+                    ),
+                )
+        else:
+            provider = PaymentProvider(
+                configured_provider,
+            )
+
+            if (
+                requested_provider is not None
+                and requested_provider != provider
+            ):
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "The selected payment "
+                        "provider is unavailable."
+                    ),
+                )
 
         reference = (
             f"HL-{uuid4().hex.upper()}"
@@ -149,23 +170,14 @@ class PaymentService:
             currency=plan.currency,
         )
 
-        self.session.add(
-            payment,
-        )
+        self.session.add(payment)
 
         await self.session.flush()
 
-        # -----------------------------------------------------
-        # MOCK
-        # -----------------------------------------------------
-
-        if (
-            provider
-            == PaymentProvider.MOCK
-        ):
+        if provider == PaymentProvider.MOCK:
             payment.authorization_url = (
                 f"{settings.frontend_url}"
-                f"/payment/mock"
+                "/payment/mock"
                 f"?reference={reference}"
             )
 
@@ -177,23 +189,12 @@ class PaymentService:
             )
 
         try:
-            # -------------------------------------------------
-            # PAYSTACK
-            # -------------------------------------------------
-
-            if (
-                provider
-                == PaymentProvider.PAYSTACK
-            ):
+            if provider == PaymentProvider.PAYSTACK:
                 await self._initialize_paystack(
                     payment=payment,
                     user=user,
                     plan=plan,
                 )
-
-            # -------------------------------------------------
-            # FLUTTERWAVE
-            # -------------------------------------------------
 
             elif (
                 provider
@@ -218,14 +219,10 @@ class PaymentService:
             )
 
         except Exception as exc:
-            payment.status = (
-                PaymentStatus.FAILED
-            )
+            payment.status = PaymentStatus.FAILED
 
             payment.provider_metadata = {
-                "initialization_error": str(
-                    exc,
-                ),
+                "initialization_error": str(exc),
             }
 
             await self.session.commit()
@@ -237,10 +234,6 @@ class PaymentService:
                     "Please try again."
                 ),
             ) from exc
-
-    # =========================================================
-    # PAYSTACK INITIALIZATION
-    # =========================================================
 
     async def _initialize_paystack(
         self,
@@ -258,13 +251,9 @@ class PaymentService:
                 settings.payment_callback_url
             ),
             "metadata": {
-                "payment_id": str(
-                    payment.id,
-                ),
+                "payment_id": str(payment.id),
                 "plan_code": plan.code,
-                "user_id": str(
-                    user.id,
-                ),
+                "user_id": str(user.id),
             },
         }
 
@@ -289,7 +278,6 @@ class PaymentService:
             )
 
             response.raise_for_status()
-
             body = response.json()
 
         if (
@@ -302,22 +290,14 @@ class PaymentService:
             )
 
         payment.authorization_url = (
-            body["data"][
-                "authorization_url"
-            ]
+            body["data"]["authorization_url"]
         )
 
         payment.access_code = (
-            body["data"].get(
-                "access_code",
-            )
+            body["data"].get("access_code")
         )
 
         payment.provider_metadata = body
-
-    # =========================================================
-    # FLUTTERWAVE INITIALIZATION
-    # =========================================================
 
     async def _initialize_flutterwave(
         self,
@@ -327,9 +307,7 @@ class PaymentService:
         plan: PaymentPlan,
     ) -> None:
         amount = (
-            Decimal(
-                plan.amount_kobo,
-            )
+            Decimal(plan.amount_kobo)
             / Decimal("100")
         ).quantize(
             Decimal("0.01"),
@@ -337,10 +315,7 @@ class PaymentService:
 
         payload = {
             "tx_ref": payment.reference,
-            "amount": format(
-                amount,
-                ".2f",
-            ),
+            "amount": format(amount, ".2f"),
             "currency": plan.currency,
             "redirect_url": (
                 settings.payment_callback_url
@@ -353,13 +328,9 @@ class PaymentService:
                 "description": plan.name,
             },
             "meta": {
-                "payment_id": str(
-                    payment.id,
-                ),
+                "payment_id": str(payment.id),
                 "plan_code": plan.code,
-                "user_id": str(
-                    user.id,
-                ),
+                "user_id": str(user.id),
             },
             "configurations": {
                 "session_duration": 15,
@@ -388,12 +359,9 @@ class PaymentService:
             )
 
             response.raise_for_status()
-
             body = response.json()
 
-        data = body.get(
-            "data",
-        ) or {}
+        data = body.get("data") or {}
 
         if (
             body.get("status") != "success"
@@ -404,15 +372,8 @@ class PaymentService:
                 "an invalid response."
             )
 
-        payment.authorization_url = (
-            data["link"]
-        )
-
+        payment.authorization_url = data["link"]
         payment.provider_metadata = body
-
-    # =========================================================
-    # GET PAYMENT
-    # =========================================================
 
     async def get_payment(
         self,
@@ -430,16 +391,10 @@ class PaymentService:
         if payment is None:
             raise HTTPException(
                 status_code=404,
-                detail=(
-                    "Payment not found."
-                ),
+                detail="Payment not found.",
             )
 
         return payment
-
-    # =========================================================
-    # MOCK COMPLETION
-    # =========================================================
 
     async def complete_mock(
         self,
@@ -448,8 +403,7 @@ class PaymentService:
         user: User,
     ) -> Payment:
         if (
-            settings.environment
-            == "production"
+            settings.environment == "production"
             or settings.payment_provider
             != "mock"
         ):
@@ -462,8 +416,7 @@ class PaymentService:
             )
 
         payment = (
-            await self
-            ._get_payment_for_update(
+            await self._get_payment_for_update(
                 reference,
             )
         )
@@ -491,10 +444,6 @@ class PaymentService:
             user=user,
         )
 
-    # =========================================================
-    # VERIFY PAYMENT
-    # =========================================================
-
     async def verify(
         self,
         *,
@@ -506,18 +455,10 @@ class PaymentService:
             user=user,
         )
 
-        # Already fulfilled.
-        # Do not call the provider again.
-        if (
-            payment.status
-            == PaymentStatus.SUCCESS
-        ):
+        if payment.status == PaymentStatus.SUCCESS:
             return payment
 
-        if (
-            payment.provider
-            == PaymentProvider.MOCK
-        ):
+        if payment.provider == PaymentProvider.MOCK:
             return payment
 
         if (
@@ -551,10 +492,6 @@ class PaymentService:
             user=user,
         )
 
-    # =========================================================
-    # PAYSTACK VERIFICATION
-    # =========================================================
-
     async def _verify_paystack(
         self,
         payment: Payment,
@@ -578,7 +515,6 @@ class PaymentService:
                 )
 
                 response.raise_for_status()
-
                 body = response.json()
 
         except Exception as exc:
@@ -590,28 +526,15 @@ class PaymentService:
                 ),
             ) from exc
 
-        data = body.get(
-            "data",
-        ) or {}
+        data = body.get("data") or {}
 
         provider_status = str(
-            data.get(
-                "status",
-                "",
-            ),
+            data.get("status", ""),
         ).lower()
 
-        if (
-            provider_status
-            == "success"
-        ):
+        if provider_status == "success":
             if (
-                int(
-                    data.get(
-                        "amount",
-                        -1,
-                    ),
-                )
+                int(data.get("amount", -1))
                 != payment.amount_kobo
             ):
                 raise HTTPException(
@@ -623,10 +546,7 @@ class PaymentService:
 
             if (
                 str(
-                    data.get(
-                        "currency",
-                        "",
-                    ),
+                    data.get("currency", ""),
                 ).upper()
                 != payment.currency.upper()
             ):
@@ -638,8 +558,7 @@ class PaymentService:
                 )
 
             locked = (
-                await self
-                ._get_payment_for_update(
+                await self._get_payment_for_update(
                     payment.reference,
                 )
             )
@@ -647,9 +566,7 @@ class PaymentService:
             await self._fulfil(
                 locked,
                 provider_transaction_id=(
-                    str(
-                        data.get("id"),
-                    )
+                    str(data.get("id"))
                     if data.get("id")
                     else None
                 ),
@@ -659,12 +576,13 @@ class PaymentService:
             return
 
         status_map = {
-            "abandoned":
-                PaymentStatus.ABANDONED,
-            "failed":
-                PaymentStatus.FAILED,
-            "reversed":
-                PaymentStatus.REFUNDED,
+            "abandoned": (
+                PaymentStatus.ABANDONED
+            ),
+            "failed": PaymentStatus.FAILED,
+            "reversed": (
+                PaymentStatus.REFUNDED
+            ),
         }
 
         new_status = status_map.get(
@@ -673,8 +591,7 @@ class PaymentService:
         )
 
         locked = (
-            await self
-            ._get_payment_for_update(
+            await self._get_payment_for_update(
                 payment.reference,
             )
         )
@@ -688,41 +605,23 @@ class PaymentService:
 
             if data.get("id"):
                 locked.provider_transaction_id = (
-                    str(
-                        data["id"],
-                    )
+                    str(data["id"])
                 )
-
-    # =========================================================
-    # FLUTTERWAVE VERIFICATION
-    # =========================================================
 
     async def _verify_flutterwave(
         self,
         payment: Payment,
     ) -> None:
         body = (
-            await self
-            ._fetch_flutterwave_by_reference(
+            await self._fetch_flutterwave_by_reference(
                 payment.reference,
             )
         )
 
-        data = body.get(
-            "data",
-        ) or {}
-
-        # -----------------------------------------------------
-        # Reference MUST match our HL reference
-        # -----------------------------------------------------
+        data = body.get("data") or {}
 
         if (
-            str(
-                data.get(
-                    "tx_ref",
-                    "",
-                ),
-            )
+            str(data.get("tx_ref", ""))
             != payment.reference
         ):
             raise HTTPException(
@@ -733,24 +632,12 @@ class PaymentService:
             )
 
         provider_status = str(
-            data.get(
-                "status",
-                "",
-            ),
+            data.get("status", ""),
         ).lower()
 
-        # -----------------------------------------------------
-        # SUCCESS
-        # -----------------------------------------------------
-
-        if (
-            provider_status
-            == "successful"
-        ):
+        if provider_status == "successful":
             expected_amount = (
-                Decimal(
-                    payment.amount_kobo,
-                )
+                Decimal(payment.amount_kobo)
                 / Decimal("100")
             ).quantize(
                 Decimal("0.01"),
@@ -758,11 +645,7 @@ class PaymentService:
 
             try:
                 actual_amount = Decimal(
-                    str(
-                        data.get(
-                            "amount",
-                        ),
-                    ),
+                    str(data.get("amount")),
                 ).quantize(
                     Decimal("0.01"),
                 )
@@ -779,11 +662,7 @@ class PaymentService:
                     ),
                 ) from exc
 
-            # HomeLink requires exact payment.
-            if (
-                actual_amount
-                != expected_amount
-            ):
+            if actual_amount != expected_amount:
                 raise HTTPException(
                     status_code=409,
                     detail=(
@@ -793,10 +672,7 @@ class PaymentService:
 
             if (
                 str(
-                    data.get(
-                        "currency",
-                        "",
-                    ),
+                    data.get("currency", ""),
                 ).upper()
                 != payment.currency.upper()
             ):
@@ -808,8 +684,7 @@ class PaymentService:
                 )
 
             locked = (
-                await self
-                ._get_payment_for_update(
+                await self._get_payment_for_update(
                     payment.reference,
                 )
             )
@@ -817,9 +692,7 @@ class PaymentService:
             await self._fulfil(
                 locked,
                 provider_transaction_id=(
-                    str(
-                        data.get("id"),
-                    )
+                    str(data.get("id"))
                     if data.get("id")
                     else None
                 ),
@@ -828,20 +701,17 @@ class PaymentService:
 
             return
 
-        # -----------------------------------------------------
-        # NON-SUCCESS
-        # No credit is ever granted.
-        # -----------------------------------------------------
-
         status_map = {
-            "failed":
-                PaymentStatus.FAILED,
-            "cancelled":
-                PaymentStatus.ABANDONED,
-            "canceled":
-                PaymentStatus.ABANDONED,
-            "reversed":
-                PaymentStatus.REFUNDED,
+            "failed": PaymentStatus.FAILED,
+            "cancelled": (
+                PaymentStatus.ABANDONED
+            ),
+            "canceled": (
+                PaymentStatus.ABANDONED
+            ),
+            "reversed": (
+                PaymentStatus.REFUNDED
+            ),
         }
 
         new_status = status_map.get(
@@ -850,14 +720,11 @@ class PaymentService:
         )
 
         locked = (
-            await self
-            ._get_payment_for_update(
+            await self._get_payment_for_update(
                 payment.reference,
             )
         )
 
-        # Prevent a late stale response
-        # overwriting webhook success.
         if (
             locked.status
             != PaymentStatus.SUCCESS
@@ -867,14 +734,8 @@ class PaymentService:
 
             if data.get("id"):
                 locked.provider_transaction_id = (
-                    str(
-                        data["id"],
-                    )
+                    str(data["id"])
                 )
-
-    # =========================================================
-    # FLUTTERWAVE VERIFY BY REFERENCE
-    # =========================================================
 
     async def _fetch_flutterwave_by_reference(
         self,
@@ -905,7 +766,6 @@ class PaymentService:
                 )
 
                 response.raise_for_status()
-
                 body = response.json()
 
         except Exception as exc:
@@ -931,10 +791,6 @@ class PaymentService:
 
         return body
 
-    # =========================================================
-    # PAYSTACK WEBHOOK SIGNATURE
-    # =========================================================
-
     @staticmethod
     def valid_paystack_signature(
         raw_body: bytes,
@@ -959,14 +815,6 @@ class PaymentService:
             signature,
         )
 
-    # =========================================================
-    # FLUTTERWAVE WEBHOOK SIGNATURE
-    #
-    # Supports both:
-    # - current flutterwave-signature HMAC
-    # - legacy v3 verif-hash
-    # =========================================================
-
     @staticmethod
     def valid_flutterwave_signature(
         raw_body: bytes,
@@ -980,19 +828,14 @@ class PaymentService:
         if not secret:
             return False
 
-        # Current Flutterwave webhook signature
         if signature:
             expected = base64.b64encode(
                 hmac.new(
-                    secret.encode(
-                        "utf-8",
-                    ),
+                    secret.encode("utf-8"),
                     raw_body,
                     "sha256",
                 ).digest()
-            ).decode(
-                "utf-8",
-            )
+            ).decode("utf-8")
 
             if hmac.compare_digest(
                 expected,
@@ -1000,8 +843,6 @@ class PaymentService:
             ):
                 return True
 
-        # Older Flutterwave v3 webhooks
-        # may send the raw secret hash.
         if legacy_hash:
             return hmac.compare_digest(
                 legacy_hash,
@@ -1010,36 +851,24 @@ class PaymentService:
 
         return False
 
-    # =========================================================
-    # PAYSTACK WEBHOOK
-    # =========================================================
-
     async def process_paystack_webhook(
         self,
         raw_body: bytes,
     ) -> None:
         payload = json.loads(
-            raw_body.decode(
-                "utf-8",
-            ),
+            raw_body.decode("utf-8"),
         )
 
         event_type = str(
-            payload.get(
-                "event",
-                "unknown",
-            ),
+            payload.get("event", "unknown"),
         )
 
         event_key = sha256(
-            b"paystack:"
-            + raw_body,
+            b"paystack:" + raw_body,
         ).hexdigest()
 
         inserted = await self.session.scalar(
-            insert(
-                PaymentWebhookEvent,
-            )
+            insert(PaymentWebhookEvent)
             .values(
                 provider=(
                     PaymentProvider.PAYSTACK
@@ -1049,9 +878,7 @@ class PaymentService:
                 payload=payload,
             )
             .on_conflict_do_nothing(
-                index_elements=[
-                    "event_key",
-                ],
+                index_elements=["event_key"],
             )
             .returning(
                 PaymentWebhookEvent.id,
@@ -1061,28 +888,14 @@ class PaymentService:
         if inserted is None:
             return
 
-        if (
-            event_type
-            == "charge.success"
-        ):
-            data = (
-                payload.get(
-                    "data",
-                )
-                or {}
-            )
-
-            reference = data.get(
-                "reference",
-            )
+        if event_type == "charge.success":
+            data = payload.get("data") or {}
+            reference = data.get("reference")
 
             if reference:
                 payment = (
-                    await self
-                    ._get_payment_for_update(
-                        str(
-                            reference,
-                        ),
+                    await self._get_payment_for_update(
+                        str(reference),
                         required=False,
                     )
                 )
@@ -1097,7 +910,7 @@ class PaymentService:
                             data.get(
                                 "amount",
                                 -1,
-                            ),
+                            )
                         )
                         == payment.amount_kobo
                     )
@@ -1107,7 +920,7 @@ class PaymentService:
                             data.get(
                                 "currency",
                                 "",
-                            ),
+                            )
                         ).upper()
                         == payment.currency.upper()
                     )
@@ -1120,16 +933,14 @@ class PaymentService:
                             payment,
                             provider_transaction_id=(
                                 str(
-                                    data.get(
-                                        "id",
-                                    ),
+                                    data.get("id")
                                 )
-                                if data.get(
-                                    "id",
-                                )
+                                if data.get("id")
                                 else None
                             ),
-                            provider_metadata=payload,
+                            provider_metadata=(
+                                payload
+                            ),
                         )
 
         event = await self.session.get(
@@ -1139,43 +950,29 @@ class PaymentService:
 
         if event is not None:
             event.processed_at = (
-                datetime.now(
-                    UTC,
-                )
+                datetime.now(UTC)
             )
 
         await self.session.commit()
-
-    # =========================================================
-    # FLUTTERWAVE WEBHOOK
-    # =========================================================
 
     async def process_flutterwave_webhook(
         self,
         raw_body: bytes,
     ) -> None:
         payload = json.loads(
-            raw_body.decode(
-                "utf-8",
-            ),
+            raw_body.decode("utf-8"),
         )
 
         event_type = str(
-            payload.get(
-                "event",
-                "unknown",
-            ),
+            payload.get("event", "unknown"),
         )
 
         event_key = sha256(
-            b"flutterwave:"
-            + raw_body,
+            b"flutterwave:" + raw_body,
         ).hexdigest()
 
         inserted = await self.session.scalar(
-            insert(
-                PaymentWebhookEvent,
-            )
+            insert(PaymentWebhookEvent)
             .values(
                 provider=(
                     PaymentProvider.FLUTTERWAVE
@@ -1185,9 +982,7 @@ class PaymentService:
                 payload=payload,
             )
             .on_conflict_do_nothing(
-                index_elements=[
-                    "event_key",
-                ],
+                index_elements=["event_key"],
             )
             .returning(
                 PaymentWebhookEvent.id,
@@ -1197,26 +992,14 @@ class PaymentService:
         if inserted is None:
             return
 
-        data = (
-            payload.get(
-                "data",
-            )
-            or {}
-        )
-
-        reference = data.get(
-            "tx_ref",
-        )
+        data = payload.get("data") or {}
+        reference = data.get("tx_ref")
 
         if reference:
             payment = await self.session.scalar(
-                select(
-                    Payment,
-                ).where(
+                select(Payment).where(
                     Payment.reference
-                    == str(
-                        reference,
-                    ),
+                    == str(reference),
                     Payment.provider
                     == PaymentProvider.FLUTTERWAVE,
                 )
@@ -1224,17 +1007,8 @@ class PaymentService:
 
             if payment is not None:
                 provider_status = str(
-                    data.get(
-                        "status",
-                        "",
-                    ),
+                    data.get("status", ""),
                 ).lower()
-
-                # ---------------------------------------------
-                # Successful webhook:
-                # NEVER trust webhook amount alone.
-                # Verify independently with Flutterwave.
-                # ---------------------------------------------
 
                 if (
                     event_type
@@ -1246,17 +1020,9 @@ class PaymentService:
                         payment,
                     )
 
-                # ---------------------------------------------
-                # Failure
-                # ---------------------------------------------
-
-                elif (
-                    provider_status
-                    == "failed"
-                ):
+                elif provider_status == "failed":
                     locked = (
-                        await self
-                        ._get_payment_for_update(
+                        await self._get_payment_for_update(
                             payment.reference,
                         )
                     )
@@ -1275,9 +1041,7 @@ class PaymentService:
 
                         if data.get("id"):
                             locked.provider_transaction_id = (
-                                str(
-                                    data["id"],
-                                )
+                                str(data["id"])
                             )
 
         event = await self.session.get(
@@ -1287,16 +1051,10 @@ class PaymentService:
 
         if event is not None:
             event.processed_at = (
-                datetime.now(
-                    UTC,
-                )
+                datetime.now(UTC)
             )
 
         await self.session.commit()
-
-    # =========================================================
-    # PAYMENT LOCK
-    # =========================================================
 
     async def _get_payment_for_update(
         self,
@@ -1306,8 +1064,7 @@ class PaymentService:
         payment = await self.session.scalar(
             select(Payment)
             .where(
-                Payment.reference
-                == reference,
+                Payment.reference == reference,
             )
             .with_for_update()
         )
@@ -1318,16 +1075,10 @@ class PaymentService:
         ):
             raise HTTPException(
                 status_code=404,
-                detail=(
-                    "Payment not found."
-                ),
+                detail="Payment not found.",
             )
 
         return payment
-
-    # =========================================================
-    # FULFIL PAYMENT
-    # =========================================================
 
     async def _fulfil(
         self,
@@ -1344,15 +1095,14 @@ class PaymentService:
         request can transition this payment to SUCCESS.
         """
 
-        now = datetime.now(
-            UTC,
-        )
+        now = datetime.now(UTC)
 
         values: dict = {
             "status": PaymentStatus.SUCCESS,
             "paid_at": now,
-            "provider_transaction_id":
-                provider_transaction_id,
+            "provider_transaction_id": (
+                provider_transaction_id
+            ),
         }
 
         if provider_metadata is not None:
@@ -1360,31 +1110,27 @@ class PaymentService:
                 provider_metadata
             )
 
-        claimed_payment_id = await self.session.scalar(
-            update(Payment)
-            .where(
-                Payment.id == payment.id,
-                Payment.status.in_(
-                    [
-                        PaymentStatus.PENDING,
-                        PaymentStatus.FAILED,
-                        PaymentStatus.ABANDONED,
-                    ]
-                ),
-            )
-            .values(
-                **values,
-            )
-            .returning(
-                Payment.id,
-            )
-            .execution_options(
-                synchronize_session=False,
+        claimed_payment_id = (
+            await self.session.scalar(
+                update(Payment)
+                .where(
+                    Payment.id == payment.id,
+                    Payment.status.in_(
+                        [
+                            PaymentStatus.PENDING,
+                            PaymentStatus.FAILED,
+                            PaymentStatus.ABANDONED,
+                        ]
+                    ),
+                )
+                .values(**values)
+                .returning(Payment.id)
+                .execution_options(
+                    synchronize_session=False,
+                )
             )
         )
 
-        # Another request already fulfilled this payment,
-        # so NEVER add the credits again.
         if claimed_payment_id is None:
             return
 
@@ -1393,10 +1139,7 @@ class PaymentService:
             plan=payment.plan,
         )
 
-        payment.status = (
-            PaymentStatus.SUCCESS
-        )
-
+        payment.status = PaymentStatus.SUCCESS
         payment.paid_at = now
 
         payment.provider_transaction_id = (
@@ -1418,6 +1161,12 @@ class PaymentService:
             else "credits"
         )
 
+        verb = (
+            "was"
+            if quantity == 1
+            else "were"
+        )
+
         self.notifications.create(
             user_id=payment.user_id,
             notification_type=(
@@ -1425,16 +1174,15 @@ class PaymentService:
             ),
             title="Payment successful",
             message=(
-                f"Your payment for "
+                "Your payment for "
                 f"{payment.plan.name} "
-                f"was successful. "
+                "was successful. "
                 f"{quantity} posting "
-                f"{credit_word} "
-                f"{'was' if quantity == 1 else 'were'} "
-                f"added."
+                f"{credit_word} {verb} added."
             ),
             data={
-                "payment_reference":
-                    payment.reference,
+                "payment_reference": (
+                    payment.reference
+                ),
             },
         )

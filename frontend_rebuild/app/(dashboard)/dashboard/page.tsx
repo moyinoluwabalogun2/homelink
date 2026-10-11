@@ -1,7 +1,10 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -45,30 +48,61 @@ import styles from "@/components/dashboard/DashboardPage.module.css";
 
 const quickActions = [
   {
-    label: "Browse rentals",
-    text: "Find rooms and homes around OOU.",
-    href: "/rentals",
-    icon: Store,
+    label:
+      "Browse rentals",
+
+    text:
+      "Find rooms and homes around OOU.",
+
+    href:
+      "/rentals",
+
+    icon:
+      Store,
   },
+
   {
-    label: "Post marketplace item",
-    text: "Create a listing and submit it for review.",
-    href: "/post-listing/marketplace",
-    icon: Plus,
+    label:
+      "Post marketplace item",
+
+    text:
+      "Create a listing and submit it for review.",
+
+    href:
+      "/post-listing/marketplace",
+
+    icon:
+      Plus,
   },
+
   {
-    label: "Review inquiries",
-    text: "See your messages and property inquiries.",
-    href: "/dashboard/inquiries",
-    icon: MessageSquare,
+    label:
+      "Review inquiries",
+
+    text:
+      "See your messages and property inquiries.",
+
+    href:
+      "/dashboard/inquiries",
+
+    icon:
+      MessageSquare,
   },
+
   {
-    label: "Manage listings",
-    text: "Check drafts, pending posts and live listings.",
-    href: "/dashboard/listings",
-    icon: List,
+    label:
+      "Manage listings",
+
+    text:
+      "Check drafts, pending posts and live listings.",
+
+    href:
+      "/dashboard/listings",
+
+    icon:
+      List,
   },
-];
+] as const;
 
 
 export default function DashboardPage() {
@@ -76,105 +110,192 @@ export default function DashboardPage() {
     user,
   } = useAuth();
 
+  const requestVersionRef =
+    useRef(0);
+
   const [
     summary,
     setSummary,
-  ] =
-    useState<UserDashboardSummary | null>(
-      null,
-    );
+  ] = useState<
+    UserDashboardSummary | null
+  >(null);
 
   const [
     error,
     setError,
-  ] =
-    useState("");
+  ] = useState("");
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+
+  const loadSummary =
+    useCallback(
+      async () => {
+        const requestVersion =
+          ++requestVersionRef.current;
+
+        setLoading(true);
+        setError("");
+
+        try {
+          const record =
+            await dashboardService
+              .getSummary();
+
+          if (
+            requestVersion !==
+            requestVersionRef.current
+          ) {
+            return;
+          }
+
+          setSummary(record);
+        } catch (reason) {
+          if (
+            requestVersion !==
+            requestVersionRef.current
+          ) {
+            return;
+          }
+
+          setError(
+            getApiErrorMessage(
+              reason,
+              "Dashboard summary could not be loaded.",
+            ),
+          );
+        } finally {
+          if (
+            requestVersion ===
+            requestVersionRef.current
+          ) {
+            setLoading(false);
+          }
+        }
+      },
+      [],
+    );
 
 
   useEffect(() => {
-    let active = true;
-
-    dashboardService
-      .getSummary()
-      .then((record) => {
-        if (!active) {
-          return;
-        }
-
-        setSummary(record);
-        setError("");
-      })
-      .catch((reason) => {
-        if (!active) {
-          return;
-        }
-
-        setError(
-          getApiErrorMessage(
-            reason,
-            "Dashboard summary could not be loaded.",
-          ),
-        );
-      });
+    void loadSummary();
 
     return () => {
-      active = false;
+      requestVersionRef.current +=
+        1;
     };
-  }, []);
+  }, [
+    loadSummary,
+  ]);
 
 
   const firstName =
     user?.full_name
       ?.trim()
-      .split(" ")[0] ??
+      .split(/\s+/)[0] ||
     "there";
 
 
   const stats =
-    summary
-      ? [
-          {
-            label: "Saved listings",
-            value:
-              summary.saved_listings,
-            href: "/dashboard/saved",
-            icon: Bookmark,
-          },
-          {
-            label: "Sent inquiries",
-            value:
-              summary.sent_inquiries,
-            href: "/dashboard/inquiries",
-            icon: Send,
-          },
-          {
-            label: "Received inquiries",
-            value:
-              summary.received_inquiries,
-            href: "/dashboard/inquiries",
-            icon: MessageSquare,
-          },
-          {
-            label: "Unread notifications",
-            value:
-              summary.unread_notifications,
-            href: "/dashboard/notifications",
-            icon: Bell,
-          },
-        ]
-      : [];
+    useMemo(
+      () =>
+        summary
+          ? [
+              {
+                label:
+                  "Saved listings",
+
+                value:
+                  summary
+                    .saved_listings,
+
+                href:
+                  "/dashboard/saved",
+
+                icon:
+                  Bookmark,
+              },
+
+              {
+                label:
+                  "Sent inquiries",
+
+                value:
+                  summary
+                    .sent_inquiries,
+
+                href:
+                  "/dashboard/inquiries",
+
+                icon:
+                  Send,
+              },
+
+              {
+                label:
+                  "Received inquiries",
+
+                value:
+                  summary
+                    .received_inquiries,
+
+                href:
+                  "/dashboard/inquiries",
+
+                icon:
+                  MessageSquare,
+              },
+
+              {
+                label:
+                  "Unread notifications",
+
+                value:
+                  summary
+                    .unread_notifications,
+
+                href:
+                  "/dashboard/notifications",
+
+                icon:
+                  Bell,
+              },
+            ]
+          : [],
+      [
+        summary,
+      ],
+    );
+
+
+  const listingStatuses =
+    useMemo(
+      () =>
+        summary
+          ? Object.entries(
+              summary
+                .listings_by_status,
+            ).sort(
+              (
+                [firstStatus],
+                [secondStatus],
+              ) =>
+                firstStatus.localeCompare(
+                  secondStatus,
+                ),
+            )
+          : [],
+      [
+        summary,
+      ],
+    );
 
 
   return (
-    <div
-      className={
-        styles.page
-      }
-    >
-      {/* ===================================================
-          HEADER
-      ==================================================== */}
-
+    <div className={styles.page}>
       <header
         className={
           styles.pageHeader
@@ -208,13 +329,11 @@ export default function DashboardPage() {
           </h1>
 
           <p>
-            Your saved places,
-            inquiries, listings
-            and posting balance
+            Your saved places, inquiries,
+            listings and posting balance
             are organised here.
           </p>
         </div>
-
 
         {user?.role !==
         "admin" ? (
@@ -234,37 +353,43 @@ export default function DashboardPage() {
       </header>
 
 
-      {/* ===================================================
-          ERROR
-      ==================================================== */}
-
       {error ? (
         <div
-          className={
-            styles.error
-          }
+          className={styles.error}
           role="alert"
+          aria-live="polite"
         >
           <strong>
-            Couldn&apos;t load
-            everything.
+            Couldn&apos;t load everything.
           </strong>
 
           <span>
             {error}
           </span>
+
+          <button
+            type="button"
+            className={
+              styles.errorRetry
+            }
+            onClick={() => {
+              void loadSummary();
+            }}
+            disabled={loading}
+          >
+            {loading
+              ? "Trying again…"
+              : "Try again"}
+          </button>
         </div>
       ) : null}
 
-
-      {/* ===================================================
-          SUMMARY
-      ==================================================== */}
 
       <section
         className={
           styles.summarySection
         }
+        aria-labelledby="dashboard-summary-heading"
       >
         <div
           className={
@@ -275,35 +400,49 @@ export default function DashboardPage() {
             At a glance
           </span>
 
-          <h2>
-            Your HomeLink
-            activity.
+          <h2 id="dashboard-summary-heading">
+            Your HomeLink activity.
           </h2>
         </div>
 
-
-        {!summary ? (
+        {loading &&
+        !summary ? (
           <div
             className={
               styles.loadingGrid
             }
+            role="status"
             aria-label="Loading dashboard summary"
+            aria-live="polite"
+            aria-busy="true"
           >
             {Array.from(
               {
                 length: 4,
               },
-              (_, index) => (
+              (
+                _,
+                index,
+              ) => (
                 <div
-                  key={
-                    index
-                  }
+                  key={index}
                   className={
                     styles.skeleton
                   }
+                  aria-hidden="true"
                 />
               ),
             )}
+          </div>
+        ) : !summary ? (
+          <div
+            className={
+              styles.summaryUnavailable
+            }
+          >
+            Activity totals are unavailable
+            right now. Use Try again above
+            to reload them.
           </div>
         ) : (
           <div
@@ -327,6 +466,7 @@ export default function DashboardPage() {
                     className={
                       styles.statCard
                     }
+                    aria-label={`${stat.label}: ${stat.value}`}
                   >
                     <div
                       className={
@@ -364,10 +504,6 @@ export default function DashboardPage() {
       </section>
 
 
-      {/* ===================================================
-          ACTIONS + CREDITS
-      ==================================================== */}
-
       <section
         className={
           styles.workspaceGrid
@@ -389,12 +525,10 @@ export default function DashboardPage() {
               </span>
 
               <h2>
-                What do you
-                want to do?
+                What do you want to do?
               </h2>
             </div>
           </div>
-
 
           <div
             className={
@@ -424,15 +558,11 @@ export default function DashboardPage() {
 
                     <div>
                       <strong>
-                        {
-                          action.label
-                        }
+                        {action.label}
                       </strong>
 
                       <span>
-                        {
-                          action.text
-                        }
+                        {action.text}
                       </span>
                     </div>
 
@@ -478,23 +608,26 @@ export default function DashboardPage() {
             </div>
           </div>
 
-
           <div
             className={
               styles.creditList
             }
+            aria-live="polite"
           >
             {(summary?.credits ??
               []).map(
               (credit) => {
                 const total =
-                  credit.free_remaining +
-                  credit.paid_remaining;
+                  credit
+                    .free_remaining +
+                  credit
+                    .paid_remaining;
 
                 return (
                   <div
                     key={
-                      credit.credit_type
+                      credit
+                        .credit_type
                     }
                     className={
                       styles.creditRow
@@ -503,17 +636,20 @@ export default function DashboardPage() {
                     <div>
                       <strong>
                         {titleCase(
-                          credit.credit_type,
+                          credit
+                            .credit_type,
                         )}
                       </strong>
 
                       <span>
                         {
-                          credit.free_remaining
+                          credit
+                            .free_remaining
                         }{" "}
                         free ·{" "}
                         {
-                          credit.paid_remaining
+                          credit
+                            .paid_remaining
                         }{" "}
                         paid
                       </span>
@@ -527,7 +663,6 @@ export default function DashboardPage() {
               },
             )}
 
-
             {summary &&
             summary.credits
               .length === 0 ? (
@@ -536,30 +671,42 @@ export default function DashboardPage() {
                   styles.emptyCredits
                 }
               >
-                No posting
-                balances have
-                been created yet.
+                No posting balances
+                have been created yet.
               </p>
             ) : null}
 
-
-            {!summary ? (
+            {loading &&
+            !summary ? (
               <>
                 <div
                   className={
                     styles.creditSkeleton
                   }
+                  aria-hidden="true"
                 />
 
                 <div
                   className={
                     styles.creditSkeleton
                   }
+                  aria-hidden="true"
                 />
               </>
             ) : null}
-          </div>
 
+            {!loading &&
+            !summary ? (
+              <p
+                className={
+                  styles.emptyCredits
+                }
+              >
+                Credit balances are
+                unavailable right now.
+              </p>
+            ) : null}
+          </div>
 
           <Link
             href="/dashboard/credits"
@@ -577,18 +724,13 @@ export default function DashboardPage() {
       </section>
 
 
-      {/* ===================================================
-          LISTING STATUS
-      ==================================================== */}
-
-      {summary &&
-      Object.keys(
-        summary.listings_by_status,
-      ).length > 0 ? (
+      {listingStatuses.length >
+      0 ? (
         <section
           className={
             styles.listingsSection
           }
+          aria-labelledby="dashboard-listings-heading"
         >
           <div
             className={
@@ -600,37 +742,32 @@ export default function DashboardPage() {
                 Your posts
               </span>
 
-              <h2>
-                Listings by
-                status.
+              <h2 id="dashboard-listings-heading">
+                Listings by status.
               </h2>
             </div>
 
             <Link href="/dashboard/listings">
               View all
+
               <ArrowRight
                 aria-hidden="true"
               />
             </Link>
           </div>
 
-
           <div
             className={
               styles.statusList
             }
           >
-            {Object.entries(
-              summary.listings_by_status,
-            ).map(
+            {listingStatuses.map(
               ([
                 status,
                 count,
               ]) => (
                 <div
-                  key={
-                    status
-                  }
+                  key={status}
                   className={
                     styles.statusRow
                   }
@@ -650,8 +787,7 @@ export default function DashboardPage() {
                     </strong>
 
                     <span>
-                      Current
-                      listing count
+                      Current listing count
                     </span>
                   </div>
 

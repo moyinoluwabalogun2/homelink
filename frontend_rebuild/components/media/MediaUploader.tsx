@@ -3,17 +3,20 @@
 import {
   type ChangeEvent,
   type DragEvent,
+  useId,
   useRef,
   useState,
 } from "react";
 
 import Image from "next/image";
+
 import axios from "axios";
 
 import {
+  ArrowLeft,
+  ArrowRight,
   FileVideo2,
   ImagePlus,
-  Link2,
   Trash2,
   UploadCloud,
 } from "lucide-react";
@@ -32,63 +35,134 @@ import type {
   MediaValue,
 } from "@/types/media";
 
-import styles from "./MediaUploader.module.css";
+import styles
+  from "./MediaUploader.module.css";
 
 
 interface MediaUploaderProps {
   label: string;
   helperText: string;
-
   value: MediaValue[];
 
   onChange: (
     items: MediaValue[],
   ) => void;
 
-  resourceType:
-    MediaResourceType;
-
+  resourceType: MediaResourceType;
   scope: MediaScope;
-
   accept: string;
-
   maxFiles: number;
-
   maxBytes: number;
-
   disabled?: boolean;
-}
-
-
-function isHttpUrl(
-  value: string,
-): boolean {
-  try {
-    const url =
-      new URL(value);
-
-    return (
-      url.protocol ===
-        "http:" ||
-      url.protocol ===
-        "https:"
-    );
-  } catch {
-    return false;
-  }
 }
 
 
 function formatMegabytes(
   bytes: number,
 ): string {
+  const megabytes =
+    bytes / 1024 / 1024;
+
   return `${
-    Math.round(
-      bytes /
-        1024 /
-        1024,
+    Number.isInteger(
+      megabytes,
     )
+      ? megabytes
+      : megabytes.toFixed(1)
   } MB`;
+}
+
+
+function formatFileCount(
+  count: number,
+): string {
+  return `${count} ${
+    count === 1
+      ? "file"
+      : "files"
+  }`;
+}
+
+
+function acceptedMimePatterns(
+  accept: string,
+): string[] {
+  return accept
+    .split(",")
+    .map(
+      (item) =>
+        item
+          .trim()
+          .toLowerCase(),
+    )
+    .filter(
+      (item) =>
+        item.startsWith(
+          "image/",
+        )
+        || item.startsWith(
+          "video/",
+        ),
+    );
+}
+
+
+function fileMatchesAccept(
+  file: File,
+  accept: string,
+  resourceType: MediaResourceType,
+): boolean {
+  const mimeType =
+    file.type
+      .trim()
+      .toLowerCase();
+
+  if (!mimeType) {
+    return false;
+  }
+
+  const correctResourceType =
+    resourceType === "image"
+      ? mimeType.startsWith(
+          "image/",
+        )
+      : mimeType.startsWith(
+          "video/",
+        );
+
+  if (!correctResourceType) {
+    return false;
+  }
+
+  const patterns =
+    acceptedMimePatterns(
+      accept,
+    );
+
+  if (patterns.length === 0) {
+    return true;
+  }
+
+  return patterns.some(
+    (pattern) => {
+      if (
+        pattern.endsWith(
+          "/*",
+        )
+      ) {
+        return mimeType.startsWith(
+          pattern.slice(
+            0,
+            -1,
+          ),
+        );
+      }
+
+      return (
+        mimeType === pattern
+      );
+    },
+  );
 }
 
 
@@ -104,124 +178,235 @@ export default function MediaUploader({
   maxBytes,
   disabled = false,
 }: MediaUploaderProps) {
+  const generatedId =
+    useId();
+
   const inputRef =
     useRef<HTMLInputElement>(
       null,
     );
 
+  /*
+   * React state is asynchronous. This ref prevents two rapid
+   * clicks or drops from starting overlapping upload batches.
+   */
+  const uploadLockRef =
+    useRef(false);
+
+  /*
+   * Drag events fire when moving across children inside the
+   * dropzone. A depth counter prevents visible flickering.
+   */
+  const dragDepthRef =
+    useRef(0);
 
   const [
     dragging,
     setDragging,
-  ] =
-    useState(false);
+  ] = useState(false);
 
   const [
     uploading,
     setUploading,
-  ] =
-    useState(false);
+  ] = useState(false);
 
   const [
     progress,
     setProgress,
-  ] =
-    useState(0);
+  ] = useState(0);
 
   const [
-    manualUrl,
-    setManualUrl,
-  ] =
-    useState("");
+    currentFile,
+    setCurrentFile,
+  ] = useState("");
+
+  const [
+    currentFileNumber,
+    setCurrentFileNumber,
+  ] = useState(0);
+
+  const [
+    uploadTotal,
+    setUploadTotal,
+  ] = useState(0);
 
   const [
     error,
     setError,
-  ] =
-    useState("");
+  ] = useState("");
 
   const [
     cloudinaryUnavailable,
     setCloudinaryUnavailable,
-  ] =
-    useState(false);
+  ] = useState(false);
 
+  const inputId = (
+    `${scope}-` +
+    `${resourceType}-` +
+    generatedId.replace(
+      /:/g,
+      "",
+    )
+  );
+
+  const helperId =
+    `${inputId}-helper`;
+
+  const errorId =
+    `${inputId}-error`;
 
   const remainingSlots =
     Math.max(
-      maxFiles -
-        value.length,
+      maxFiles - value.length,
       0,
     );
+
+  const uploadDisabled =
+    disabled
+    || uploading
+    || remainingSlots === 0;
+
+
+  const resetFileInput =
+    () => {
+      if (inputRef.current) {
+        inputRef.current.value =
+          "";
+      }
+    };
 
 
   const validateFiles = (
     files: File[],
   ): File[] => {
-    if (
-      files.length >
-      remainingSlots
-    ) {
+    setError("");
+
+    if (files.length === 0) {
+      return [];
+    }
+
+    if (remainingSlots === 0) {
       setError(
-        `You can add ${remainingSlots} more ${
-          remainingSlots === 1
-            ? "file"
-            : "files"
-        }.`,
+        `The maximum of ${maxFiles} ${
+          resourceType === "image"
+            ? "images"
+            : "videos"
+        } has been reached.`,
       );
 
       return [];
     }
 
+    if (
+      files.length >
+      remainingSlots
+    ) {
+      setError(
+        `You selected ${
+          formatFileCount(
+            files.length,
+          )
+        }, but only ${
+          remainingSlots
+        } ${
+          remainingSlots === 1
+            ? "slot is"
+            : "slots are"
+        } available.`,
+      );
 
-    const oversized =
+      return [];
+    }
+
+    const emptyFile =
+      files.find(
+        (file) =>
+          file.size === 0,
+      );
+
+    if (emptyFile) {
+      setError(
+        `${emptyFile.name} is empty and cannot be uploaded.`,
+      );
+
+      return [];
+    }
+
+    const oversizedFile =
       files.find(
         (file) =>
           file.size >
           maxBytes,
       );
 
-    if (oversized) {
+    if (oversizedFile) {
       setError(
-        `${oversized.name} is larger than ${formatMegabytes(
-          maxBytes,
-        )}.`,
+        `${oversizedFile.name} is larger than the ${
+          formatMegabytes(
+            maxBytes,
+          )
+        } limit.`,
       );
 
       return [];
     }
-
 
     const wrongType =
       files.find(
-        (file) => {
-          if (
-            resourceType ===
-            "image"
-          ) {
-            return !file.type.startsWith(
-              "image/",
-            );
-          }
-
-          return !file.type.startsWith(
-            "video/",
-          );
-        },
+        (file) =>
+          !fileMatchesAccept(
+            file,
+            accept,
+            resourceType,
+          ),
       );
-
 
     if (wrongType) {
       setError(
-        resourceType ===
-          "image"
-          ? "Only image files are allowed here."
-          : "Only video files are allowed here.",
+        resourceType === "image"
+          ? `${wrongType.name} is not a supported image file.`
+          : `${wrongType.name} is not a supported video file.`,
       );
 
       return [];
     }
 
+    const seenFiles =
+      new Set<string>();
+
+    const duplicateFile =
+      files.find(
+        (file) => {
+          const signature = [
+            file.name,
+            file.size,
+            file.lastModified,
+            file.type,
+          ].join(":");
+
+          if (
+            seenFiles.has(
+              signature,
+            )
+          ) {
+            return true;
+          }
+
+          seenFiles.add(
+            signature,
+          );
+
+          return false;
+        },
+      );
+
+    if (duplicateFile) {
+      setError(
+        `${duplicateFile.name} was selected more than once.`,
+      );
+
+      return [];
+    }
 
     return files;
   };
@@ -230,7 +415,14 @@ export default function MediaUploader({
   const uploadFiles =
     async (
       files: File[],
-    ) => {
+    ): Promise<void> => {
+      if (
+        uploadLockRef.current
+        || disabled
+      ) {
+        return;
+      }
+
       const validFiles =
         validateFiles(
           files,
@@ -239,30 +431,57 @@ export default function MediaUploader({
       if (
         validFiles.length === 0
       ) {
+        resetFileInput();
+
         return;
       }
 
+      uploadLockRef.current =
+        true;
 
       setUploading(true);
-      setError("");
+      setProgress(0);
+
+      setUploadTotal(
+        validFiles.length,
+      );
+
+      setCurrentFileNumber(
+        0,
+      );
+
       setCloudinaryUnavailable(
         false,
       );
 
-
       /*
-       * Keep successful files even if a later
-       * file in the same batch fails.
+       * Completed files remain available if a later file in
+       * the same batch fails. Unclaimed Cloudinary assets are
+       * handled by the backend cleanup queue.
        */
-      const nextValue: MediaValue[] =
-        [...value];
-
+      const nextValue:
+        MediaValue[] = [
+        ...value,
+      ];
 
       try {
         for (
-          const file of
-          validFiles
+          let index = 0;
+          index <
+          validFiles.length;
+          index += 1
         ) {
+          const file =
+            validFiles[index];
+
+          setCurrentFile(
+            file.name,
+          );
+
+          setCurrentFileNumber(
+            index + 1,
+          );
+
           setProgress(0);
 
           const uploaded =
@@ -270,34 +489,58 @@ export default function MediaUploader({
               file,
               resourceType,
               scope,
-              onProgress:
-                setProgress,
+              onProgress: (
+                nextProgress,
+              ) => {
+                setProgress(
+                  Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      nextProgress,
+                    ),
+                  ),
+                );
+              },
             });
 
+          const alreadyIncluded =
+            nextValue.some(
+              (item) =>
+                item.url ===
+                  uploaded.url
+                || (
+                  item.publicId !==
+                    null
+                  && item.publicId ===
+                    uploaded.publicId
+                ),
+            );
 
-          nextValue.push({
-            url: uploaded.url,
+          if (
+            !alreadyIncluded
+          ) {
+            nextValue.push({
+              url:
+                uploaded.url,
 
-            publicId:
-              uploaded.publicId,
-          });
+              publicId:
+                uploaded.publicId,
+            });
 
-
-          /*
-           * Update after every successful upload.
-           * This prevents a successful first file
-           * becoming invisible if file #2 fails.
-           */
-          onChange([
-            ...nextValue,
-          ]);
+            onChange([
+              ...nextValue,
+            ]);
+          }
         }
+
+        setError("");
       } catch (reason) {
         if (
           axios.isAxiosError(
             reason,
-          ) &&
-          reason.response
+          )
+          && reason.response
             ?.status === 503
         ) {
           setCloudinaryUnavailable(
@@ -305,27 +548,23 @@ export default function MediaUploader({
           );
         }
 
-
         setError(
           getApiErrorMessage(
             reason,
-            "The media upload could not be completed.",
+            "The media upload could not be completed. Any files that finished uploading have been kept.",
           ),
         );
       } finally {
+        uploadLockRef.current =
+          false;
+
+        setUploading(false);
         setProgress(0);
+        setCurrentFile("");
+        setCurrentFileNumber(0);
+        setUploadTotal(0);
 
-        setUploading(
-          false,
-        );
-
-
-        if (
-          inputRef.current
-        ) {
-          inputRef.current.value =
-            "";
-        }
+        resetFileInput();
       }
     };
 
@@ -336,8 +575,8 @@ export default function MediaUploader({
   ) => {
     void uploadFiles(
       Array.from(
-        event.target.files ??
-          [],
+        event.target.files
+        ?? [],
       ),
     );
   };
@@ -349,17 +588,15 @@ export default function MediaUploader({
   ) => {
     event.preventDefault();
 
+    dragDepthRef.current = 0;
     setDragging(false);
 
-
     if (
-      disabled ||
-      uploading ||
-      remainingSlots === 0
+      uploadDisabled
+      || uploadLockRef.current
     ) {
       return;
     }
-
 
     void uploadFiles(
       Array.from(
@@ -370,128 +607,117 @@ export default function MediaUploader({
   };
 
 
-  const addManualUrl =
-    () => {
-      if (
-        disabled ||
-        uploading
-      ) {
-        return;
-      }
-
-
-      const normalized =
-        manualUrl.trim();
-
-
-      if (
-        !isHttpUrl(
-          normalized,
-        )
-      ) {
-        setError(
-          "Enter a complete URL beginning with http:// or https://.",
-        );
-
-        return;
-      }
-
-
-      if (
-        value.some(
-          (item) =>
-            item.url ===
-            normalized,
-        )
-      ) {
-        setError(
-          "That media URL is already in the list.",
-        );
-
-        return;
-      }
-
-
-      if (
-        remainingSlots === 0
-      ) {
-        setError(
-          `The maximum of ${maxFiles} files has been reached.`,
-        );
-
-        return;
-      }
-
-
-      onChange([
-        ...value,
-        {
-          url: normalized,
-          publicId: null,
-        },
-      ]);
-
-      setManualUrl("");
-
-      setError("");
-    };
-
-
   const removeItem = (
-    url: string,
+    index: number,
   ) => {
     if (
-      disabled ||
-      uploading
+      disabled
+      || uploading
+      || uploadLockRef.current
     ) {
       return;
     }
 
     onChange(
       value.filter(
-        (item) =>
-          item.url !== url,
+        (
+          _,
+          itemIndex,
+        ) =>
+          itemIndex !== index,
       ),
     );
+
+    setError("");
   };
 
 
-  const inputId =
-    `${scope}-${resourceType}-upload`;
+  const moveItem = (
+    index: number,
+    direction: -1 | 1,
+  ) => {
+    if (
+      disabled
+      || uploading
+      || uploadLockRef.current
+    ) {
+      return;
+    }
+
+    const nextIndex =
+      index + direction;
+
+    if (
+      nextIndex < 0
+      || nextIndex >=
+        value.length
+    ) {
+      return;
+    }
+
+    const reordered = [
+      ...value,
+    ];
+
+    const current =
+      reordered[index];
+
+    reordered[index] =
+      reordered[nextIndex];
+
+    reordered[nextIndex] =
+      current;
+
+    onChange(
+      reordered,
+    );
+
+    setError("");
+  };
+
+
+  const dropzoneText =
+    remainingSlots === 0
+      ? "Maximum files added"
+      : uploading
+        ? "Uploading securely…"
+        : resourceType === "image"
+          ? "Choose images or drag them here"
+          : "Choose a video or drag it here";
 
 
   return (
-    <div
-      className={
-        styles.field
+    <section
+      className={styles.field}
+      aria-labelledby={
+        `${inputId}-label`
       }
+      aria-busy={uploading}
     >
       <div
-        className={
-          styles.heading
-        }
+        className={styles.heading}
       >
         <div>
-          <strong>
+          <strong
+            id={`${inputId}-label`}
+          >
             {label}
           </strong>
 
-          <span>
+          <span id={helperId}>
             {helperText}
           </span>
         </div>
 
-
         <span
-          className={
-            styles.count
+          className={styles.count}
+          aria-label={
+            `${value.length} of ${maxFiles} files added`
           }
         >
-          {value.length}/
-          {maxFiles}
+          {value.length}/{maxFiles}
         </span>
       </div>
-
 
       <input
         ref={inputRef}
@@ -505,98 +731,141 @@ export default function MediaUploader({
           maxFiles > 1
         }
         disabled={
-          disabled ||
-          uploading ||
-          remainingSlots ===
-            0
+          uploadDisabled
+        }
+        aria-describedby={
+          error
+            ? `${helperId} ${errorId}`
+            : helperId
         }
         onChange={
           handleInput
         }
       />
 
-
       <button
         type="button"
-        className={`${styles.dropzone} ${
+        className={[
+          styles.dropzone,
+
           dragging
             ? styles.dragging
-            : ""
-        }`}
+            : "",
+
+          uploading
+            ? styles.uploading
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         disabled={
-          disabled ||
-          uploading ||
-          remainingSlots ===
-            0
+          uploadDisabled
+        }
+        aria-describedby={
+          helperId
         }
         onClick={() =>
-          inputRef.current?.click()
+          inputRef.current
+            ?.click()
         }
         onDragEnter={(
           event,
         ) => {
           event.preventDefault();
 
-          setDragging(
-            true,
-          );
+          if (
+            uploadDisabled
+            || uploadLockRef
+              .current
+          ) {
+            return;
+          }
+
+          dragDepthRef.current +=
+            1;
+
+          setDragging(true);
         }}
         onDragOver={(
           event,
-        ) =>
-          event.preventDefault()
-        }
-        onDragLeave={() =>
-          setDragging(
-            false,
-          )
-        }
+        ) => {
+          event.preventDefault();
+
+          if (
+            event.dataTransfer
+          ) {
+            event.dataTransfer
+              .dropEffect =
+              uploadDisabled
+                ? "none"
+                : "copy";
+          }
+        }}
+        onDragLeave={(
+          event,
+        ) => {
+          event.preventDefault();
+
+          dragDepthRef.current =
+            Math.max(
+              0,
+              dragDepthRef.current
+                - 1,
+            );
+
+          if (
+            dragDepthRef.current
+            === 0
+          ) {
+            setDragging(false);
+          }
+        }}
         onDrop={
           handleDrop
         }
       >
-        {resourceType ===
-        "image" ? (
-          <ImagePlus
-            aria-hidden="true"
-          />
-        ) : (
-          <UploadCloud
-            aria-hidden="true"
-          />
-        )}
-
+        <span
+          className={
+            styles.dropIcon
+          }
+        >
+          {resourceType ===
+          "image" ? (
+            <ImagePlus
+              aria-hidden="true"
+            />
+          ) : (
+            <UploadCloud
+              aria-hidden="true"
+            />
+          )}
+        </span>
 
         <strong>
-          {remainingSlots === 0
-            ? "Maximum files added"
-            : uploading
-              ? "Uploading securely…"
-              : "Choose files or drag them here"}
+          {dropzoneText}
         </strong>
-
 
         <span>
           Maximum{" "}
           {formatMegabytes(
             maxBytes,
           )}{" "}
-          per file ·{" "}
+          per file
+          {" · "}
           {remainingSlots}{" "}
-          slot
           {remainingSlots === 1
-            ? ""
-            : "s"}{" "}
+            ? "slot"
+            : "slots"}{" "}
           remaining
         </span>
       </button>
-
 
       {uploading ? (
         <div
           className={
             styles.progress
           }
+          role="status"
           aria-live="polite"
         >
           <div
@@ -604,19 +873,39 @@ export default function MediaUploader({
               styles.progressHeader
             }
           >
-            <span>
-              Uploading media
-            </span>
+            <div>
+              <span>
+                Uploading file{" "}
+                {currentFileNumber}{" "}
+                of {uploadTotal}
+              </span>
 
-            <strong>
+              <strong
+                title={
+                  currentFile
+                }
+              >
+                {currentFile}
+              </strong>
+            </div>
+
+            <b>
               {progress}%
-            </strong>
+            </b>
           </div>
-
 
           <div
             className={
               styles.progressTrack
+            }
+            role="progressbar"
+            aria-label={
+              `Uploading ${currentFile}`
+            }
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={
+              progress
             }
           >
             <span
@@ -626,178 +915,213 @@ export default function MediaUploader({
               }}
             />
           </div>
+
+          <p>
+            Keep this page open
+            until the current upload
+            finishes.
+          </p>
         </div>
       ) : null}
-
 
       {cloudinaryUnavailable ? (
         <p
           className={
             styles.notice
           }
+          role="status"
         >
-          Direct file uploads
-          are not configured
-          yet. You can still
-          use a public media URL
-          while testing.
+          Direct uploads are
+          temporarily unavailable.
+          Please retry shortly.
         </p>
       ) : null}
 
-
       {error ? (
         <p
+          id={errorId}
           className={
             styles.error
           }
+          role="alert"
         >
           {error}
         </p>
       ) : null}
-
 
       {value.length > 0 ? (
         <div
           className={
             styles.mediaGrid
           }
+          aria-label={
+            `${label} currently added`
+          }
+          role="list"
         >
           {value.map(
-            (item) => (
+            (
+              item,
+              index,
+            ) => (
               <article
                 key={
-                  item.url
+                  item.publicId
+                  ?? item.url
                 }
                 className={
                   styles.mediaItem
                 }
+                role="listitem"
               >
-                {resourceType ===
-                "image" ? (
-                  <Image
-                    className={
-                      styles.preview
+                <div
+                  className={
+                    styles.previewFrame
+                  }
+                >
+                  {resourceType ===
+                  "image" ? (
+                    <Image
+                      className={
+                        styles.preview
+                      }
+                      src={item.url}
+                      alt={
+                        index === 0
+                          ? "Listing cover image"
+                          : `Listing image ${index + 1}`
+                      }
+                      width={420}
+                      height={280}
+                      sizes="(max-width: 360px) 100vw, (max-width: 680px) 46vw, 180px"
+                    />
+                  ) : (
+                    <div
+                      className={
+                        styles.videoPreview
+                      }
+                    >
+                      <FileVideo2
+                        aria-hidden="true"
+                      />
+
+                      <span
+                        title={
+                          item.url
+                        }
+                      >
+                        Video{" "}
+                        {index + 1}
+                      </span>
+                    </div>
+                  )}
+
+                  {resourceType ===
+                    "image"
+                  && index === 0 ? (
+                    <span
+                      className={
+                        styles.coverBadge
+                      }
+                    >
+                      Cover
+                    </span>
+                  ) : (
+                    <span
+                      className={
+                        styles.orderBadge
+                      }
+                    >
+                      {index + 1}
+                    </span>
+                  )}
+                </div>
+
+                <div
+                  className={
+                    styles.mediaActions
+                  }
+                  aria-label={
+                    `Actions for media ${index + 1}`
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      moveItem(
+                        index,
+                        -1,
+                      )
                     }
-                    src={
-                      item.url
+                    disabled={
+                      disabled
+                      || uploading
+                      || index === 0
                     }
-                    alt="Uploaded listing media"
-                    width={420}
-                    height={280}
-                    sizes="(max-width: 560px) 45vw, 160px"
-                    unoptimized
-                  />
-                ) : (
-                  <div
-                    className={
-                      styles.videoPreview
+                    aria-label={
+                      `Move media ${index + 1} earlier`
                     }
+                    title="Move earlier"
                   >
-                    <FileVideo2
+                    <ArrowLeft
                       aria-hidden="true"
                     />
+                  </button>
 
-                    <span>
-                      {
-                        item.url
-                      }
-                    </span>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      moveItem(
+                        index,
+                        1,
+                      )
+                    }
+                    disabled={
+                      disabled
+                      || uploading
+                      || index ===
+                        value.length
+                        - 1
+                    }
+                    aria-label={
+                      `Move media ${index + 1} later`
+                    }
+                    title="Move later"
+                  >
+                    <ArrowRight
+                      aria-hidden="true"
+                    />
+                  </button>
 
-
-                <button
-                  type="button"
-                  className={
-                    styles.removeButton
-                  }
-                  onClick={() =>
-                    removeItem(
-                      item.url,
-                    )
-                  }
-                  disabled={
-                    disabled ||
-                    uploading
-                  }
-                  aria-label="Remove media"
-                >
-                  <Trash2
-                    aria-hidden="true"
-                  />
-                </button>
+                  <button
+                    type="button"
+                    className={
+                      styles.removeButton
+                    }
+                    onClick={() =>
+                      removeItem(
+                        index,
+                      )
+                    }
+                    disabled={
+                      disabled
+                      || uploading
+                    }
+                    aria-label={
+                      `Remove media ${index + 1}`
+                    }
+                    title="Remove media"
+                  >
+                    <Trash2
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
               </article>
             ),
           )}
         </div>
       ) : null}
-
-
-      <div
-        className={
-          styles.manual
-        }
-      >
-        <input
-          type="url"
-          value={
-            manualUrl
-          }
-          onChange={(
-            event,
-          ) =>
-            setManualUrl(
-              event.target
-                .value,
-            )
-          }
-          placeholder={
-            resourceType ===
-            "image"
-              ? "Paste a public image URL"
-              : "Paste a public video URL"
-          }
-          disabled={
-            disabled ||
-            uploading ||
-            remainingSlots ===
-              0
-          }
-          onKeyDown={(
-            event,
-          ) => {
-            if (
-              event.key ===
-              "Enter"
-            ) {
-              event.preventDefault();
-
-              addManualUrl();
-            }
-          }}
-        />
-
-
-        <button
-          type="button"
-          disabled={
-            !manualUrl.trim() ||
-            disabled ||
-            uploading ||
-            remainingSlots ===
-              0
-          }
-          onClick={
-            addManualUrl
-          }
-        >
-          <Link2
-            aria-hidden="true"
-          />
-
-          Add URL
-        </button>
-      </div>
-    </div>
+    </section>
   );
 }

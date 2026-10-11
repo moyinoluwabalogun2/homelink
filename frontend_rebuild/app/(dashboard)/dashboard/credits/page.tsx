@@ -1,17 +1,24 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
   ArrowRight,
+  Check,
   CheckCircle2,
   CreditCard,
   Loader2,
+  LockKeyhole,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
+  WalletCards,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -33,191 +40,461 @@ import type {
   CreditBalance,
   Payment,
   PaymentPlan,
+  PaymentProvider,
 } from "@/types/payment";
 
 import styles from "./page.module.css";
+
+
+const paymentDateFormatter =
+  new Intl.DateTimeFormat(
+    "en-NG",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  );
+
+
+interface ProviderCopy {
+  label: string;
+  description: string;
+}
+
+
+const providerCopy: Partial<
+  Record<
+    PaymentProvider,
+    ProviderCopy
+  >
+> = {
+  mock: {
+    label: "Test checkout",
+    description:
+      "Local development only. No real payment will be collected.",
+  },
+
+  paystack: {
+    label: "Paystack",
+    description:
+      "Recommended for a quick Nigerian card or bank checkout.",
+  },
+
+  flutterwave: {
+    label: "Flutterwave",
+    description:
+      "A secure alternative for card and supported bank payments.",
+  },
+};
+
+
+function formatPaymentDate(
+  value: string,
+): string {
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return "Date unavailable";
+  }
+
+  return paymentDateFormatter.format(
+    date,
+  );
+}
+
+
+function isSafeCheckoutUrl(
+  value: string,
+): boolean {
+  try {
+    const url =
+      new URL(
+        value,
+        window.location.origin,
+      );
+
+    if (
+      url.origin ===
+      window.location.origin
+    ) {
+      return true;
+    }
+
+    return (
+      url.protocol ===
+      "https:"
+    );
+  } catch {
+    return false;
+  }
+}
 
 
 export default function CreditsPage() {
   const [
     credits,
     setCredits,
-  ] =
-    useState<CreditBalance[]>([]);
+  ] = useState<
+    CreditBalance[]
+  >([]);
 
   const [
     plans,
     setPlans,
-  ] =
-    useState<PaymentPlan[]>([]);
+  ] = useState<
+    PaymentPlan[]
+  >([]);
 
   const [
     payments,
     setPayments,
-  ] =
-    useState<Payment[]>([]);
+  ] = useState<
+    Payment[]
+  >([]);
+
+  const [
+    providers,
+    setProviders,
+  ] = useState<
+    PaymentProvider[]
+  >([]);
+
+  const [
+    selectedProvider,
+    setSelectedProvider,
+  ] = useState<
+    PaymentProvider | null
+  >(null);
 
   const [
     loading,
     setLoading,
-  ] =
-    useState(true);
+  ] = useState(true);
 
   const [
     historyLoading,
     setHistoryLoading,
-  ] =
-    useState(true);
+  ] = useState(true);
 
   const [
     buyingCode,
     setBuyingCode,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  ] = useState<
+    string | null
+  >(null);
 
   const [
     checkingReference,
     setCheckingReference,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  ] = useState<
+    string | null
+  >(null);
 
   const [
     error,
     setError,
-  ] =
-    useState("");
+  ] = useState("");
+
+  const [
+    providerError,
+    setProviderError,
+  ] = useState("");
 
   const [
     historyError,
     setHistoryError,
-  ] =
-    useState("");
+  ] = useState("");
+
+  const mainRequestId =
+    useRef(0);
+
+  const historyRequestId =
+    useRef(0);
 
 
-  /* =========================================================
-     LOAD CREDITS + PAYMENT PLANS
-  ========================================================= */
+  const visibleProviders =
+    useMemo(
+      () =>
+        providers.filter(
+          (
+            provider,
+          ): provider is PaymentProvider =>
+            providerCopy[
+              provider
+            ] !== undefined,
+        ),
+      [
+        providers,
+      ],
+    );
 
-  useEffect(() => {
-    let active = true;
 
-    const loadMainData =
+  const totalCredits =
+    useMemo(
+      () =>
+        credits.reduce(
+          (
+            total,
+            credit,
+          ) =>
+            total +
+            credit.free_remaining +
+            credit.paid_remaining,
+          0,
+        ),
+      [
+        credits,
+      ],
+    );
+
+
+  const loadMainData =
+    useCallback(
       async () => {
-        try {
-          const [
-            creditItems,
-            planItems,
-          ] =
-            await Promise.all([
-              paymentService.listCredits(),
-              paymentService.listPlans(),
-            ]);
+        const requestId =
+          ++mainRequestId.current;
 
-          if (!active) {
-            return;
-          }
+        setLoading(true);
+        setError("");
+        setProviderError("");
 
-          setCredits(
-            creditItems,
+        const [
+          creditResult,
+          planResult,
+          providerResult,
+        ] =
+          await Promise.allSettled(
+            [
+              paymentService
+                .listCredits(),
+
+              paymentService
+                .listPlans(),
+
+              paymentService
+                .listProviders(),
+            ],
           );
 
-          setPlans(
-            planItems,
-          );
-
-          setError("");
-        } catch (
-          reason
+        if (
+          requestId !==
+          mainRequestId.current
         ) {
-          if (!active) {
-            return;
-          }
+          return;
+        }
+
+        if (
+          creditResult.status ===
+          "fulfilled"
+        ) {
+          setCredits(
+            creditResult.value,
+          );
+        }
+
+        if (
+          planResult.status ===
+          "fulfilled"
+        ) {
+          setPlans(
+            planResult.value,
+          );
+        }
+
+        if (
+          providerResult.status ===
+          "fulfilled"
+        ) {
+          const availableProviders =
+            providerResult.value
+              .providers.filter(
+                (
+                  provider,
+                ): provider is PaymentProvider =>
+                  providerCopy[
+                    provider
+                  ] !== undefined,
+              );
+
+          const defaultProvider =
+            providerResult.value
+              .default_provider;
+
+          setProviders(
+            availableProviders,
+          );
+
+          setSelectedProvider(
+            (
+              currentProvider,
+            ) => {
+              if (
+                currentProvider !==
+                  null &&
+                availableProviders
+                  .includes(
+                    currentProvider,
+                  )
+              ) {
+                return currentProvider;
+              }
+
+              if (
+                defaultProvider !==
+                  null &&
+                availableProviders
+                  .includes(
+                    defaultProvider,
+                  )
+              ) {
+                return defaultProvider;
+              }
+
+              return (
+                availableProviders[
+                  0
+                ] ?? null
+              );
+            },
+          );
+        } else {
+          setProviders([]);
+          setSelectedProvider(
+            null,
+          );
+
+          setProviderError(
+            getApiErrorMessage(
+              providerResult.reason,
+              "Payment gateways could not be loaded.",
+            ),
+          );
+        }
+
+        const coreFailures = [
+          creditResult,
+          planResult,
+        ].filter(
+          (result) =>
+            result.status ===
+            "rejected",
+        );
+
+        if (
+          coreFailures.length >
+          0
+        ) {
+          const firstFailure =
+            coreFailures[
+              0
+            ] as PromiseRejectedResult;
 
           setError(
             getApiErrorMessage(
-              reason,
-              "Credits and payment plans could not be loaded.",
+              firstFailure.reason,
+              "Credits and payment packages could not be fully loaded.",
             ),
           );
-        } finally {
-          if (active) {
-            setLoading(
-              false,
-            );
-          }
         }
-      };
+
+        setLoading(false);
+      },
+      [],
+    );
 
 
-    /* =======================================================
-       HISTORY LOADS INDEPENDENTLY
-    ======================================================= */
+  const loadHistory =
+    useCallback(
+      async (
+        force = false,
+      ) => {
+        const requestId =
+          ++historyRequestId.current;
 
-    const loadHistory =
-      async () => {
+        setHistoryLoading(
+          true,
+        );
+
+        setHistoryError("");
+
         try {
           const paymentItems =
-            await paymentService.listHistory(
-              {
+            await paymentService
+              .listHistory({
                 limit: 10,
-              },
-            );
+                force,
+              });
 
-          if (!active) {
+          if (
+            requestId !==
+            historyRequestId.current
+          ) {
             return;
           }
 
           setPayments(
             paymentItems,
           );
-
-          setHistoryError("");
-        } catch (
-          reason
-        ) {
-          if (!active) {
-            return;
+        } catch (reason) {
+          if (
+            requestId ===
+            historyRequestId.current
+          ) {
+            setHistoryError(
+              getApiErrorMessage(
+                reason,
+                "Payment history could not be loaded.",
+              ),
+            );
           }
-
-          setHistoryError(
-            getApiErrorMessage(
-              reason,
-              "Payment history could not be loaded.",
-            ),
-          );
         } finally {
-          if (active) {
+          if (
+            requestId ===
+            historyRequestId.current
+          ) {
             setHistoryLoading(
               false,
             );
           }
         }
-      };
+      },
+      [],
+    );
 
 
+  useEffect(() => {
     void loadMainData();
     void loadHistory();
 
-
     return () => {
-      active = false;
+      mainRequestId.current +=
+        1;
+
+      historyRequestId.current +=
+        1;
     };
-  }, []);
+  }, [
+    loadHistory,
+    loadMainData,
+  ]);
 
-
-  /* =========================================================
-     START CHECKOUT
-  ========================================================= */
 
   const buy =
     async (
       plan: PaymentPlan,
     ) => {
-      if (buyingCode) {
+      if (
+        buyingCode !== null ||
+        checkingReference !==
+          null ||
+        selectedProvider ===
+          null
+      ) {
         return;
       }
 
@@ -227,33 +504,43 @@ export default function CreditsPage() {
 
       try {
         const result =
-          await paymentService.initialize(
-            plan.code,
-          );
+          await paymentService
+            .initialize(
+              plan.code,
+              selectedProvider,
+            );
 
-        const url =
+        if (
+          !isSafeCheckoutUrl(
+            result.authorization_url,
+          )
+        ) {
+          throw new Error(
+            "The payment provider returned an invalid checkout address.",
+          );
+        }
+
+        const checkoutUrl =
           new URL(
             result.authorization_url,
             window.location.origin,
           );
 
         if (
-          url.origin ===
+          checkoutUrl.origin ===
           window.location.origin
         ) {
           window.location.assign(
-            `${url.pathname}${url.search}`,
+            `${checkoutUrl.pathname}${checkoutUrl.search}${checkoutUrl.hash}`,
           );
 
           return;
         }
 
         window.location.assign(
-          result.authorization_url,
+          checkoutUrl.toString(),
         );
-      } catch (
-        reason
-      ) {
+      } catch (reason) {
         toast.error(
           getApiErrorMessage(
             reason,
@@ -268,18 +555,14 @@ export default function CreditsPage() {
     };
 
 
-  /* =========================================================
-     CHECK A PENDING PAYMENT
-
-     Manual only. No polling.
-  ========================================================= */
-
   const checkPayment =
     async (
       payment: Payment,
     ) => {
       if (
-        checkingReference
+        checkingReference !==
+          null ||
+        buyingCode !== null
       ) {
         return;
       }
@@ -290,19 +573,17 @@ export default function CreditsPage() {
 
       try {
         const updated =
-          await paymentService.verify(
-            payment.reference,
-          );
+          await paymentService
+            .verify(
+              payment.reference,
+            );
 
         setPayments(
-          (
-            current,
-          ) =>
+          (current) =>
             current.map(
-              (
-                item,
-              ) =>
-                item.id === updated.id
+              (item) =>
+                item.id ===
+                updated.id
                   ? updated
                   : item,
             ),
@@ -313,11 +594,10 @@ export default function CreditsPage() {
           "success"
         ) {
           const refreshedCredits =
-            await paymentService.listCredits(
-              {
+            await paymentService
+              .listCredits({
                 force: true,
-              },
-            );
+              });
 
           setCredits(
             refreshedCredits,
@@ -354,9 +634,7 @@ export default function CreditsPage() {
         }
 
         setHistoryError("");
-      } catch (
-        reason
-      ) {
+      } catch (reason) {
         toast.error(
           getApiErrorMessage(
             reason,
@@ -372,7 +650,7 @@ export default function CreditsPage() {
 
 
   return (
-    <div
+    <main
       className={
         styles.page
       }
@@ -382,13 +660,17 @@ export default function CreditsPage() {
           styles.header
         }
       >
-        <div>
+        <div
+          className={
+            styles.headerCopy
+          }
+        >
           <span
             className={
               styles.eyebrow
             }
           >
-            <CreditCard
+            <WalletCards
               aria-hidden="true"
             />
 
@@ -396,19 +678,42 @@ export default function CreditsPage() {
           </span>
 
           <h1>
-            Credits and
-            payments.
+            Credits that keep
+            your listings moving.
           </h1>
 
           <p>
-            Keep track of your
-            posting allowance and
-            add more credits when
-            you need them.
+            See your free and
+            purchased allowance,
+            choose the right
+            listing package, and
+            pay through a secure
+            gateway.
           </p>
         </div>
-      </header>
 
+        <div
+          className={
+            styles.headerAssurance
+          }
+        >
+          <LockKeyhole
+            aria-hidden="true"
+          />
+
+          <div>
+            <strong>
+              Secure checkout
+            </strong>
+
+            <span>
+              Credits are released
+              only after server
+              verification.
+            </span>
+          </div>
+        </div>
+      </header>
 
       {error ? (
         <div
@@ -417,25 +722,45 @@ export default function CreditsPage() {
           }
           role="alert"
         >
-          <strong>
-            Something went wrong.
-          </strong>
+          <div>
+            <strong>
+              Some information
+              could not be loaded.
+            </strong>
 
-          <span>
-            {error}
-          </span>
+            <span>
+              {error}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() =>
+              void loadMainData()
+            }
+          >
+            <RefreshCw
+              aria-hidden="true"
+              className={
+                loading
+                  ? styles.spinner
+                  : undefined
+              }
+            />
+
+            {loading
+              ? "Trying again…"
+              : "Try again"}
+          </button>
         </div>
       ) : null}
-
-
-      {/* =====================================================
-          BALANCES
-      ====================================================== */}
 
       <section
         className={
           styles.balanceSection
         }
+        aria-labelledby="balance-title"
       >
         <div
           className={
@@ -447,27 +772,66 @@ export default function CreditsPage() {
               Current balance
             </span>
 
-            <h2>
+            <h2
+              id="balance-title"
+            >
               Your posting
               credits.
             </h2>
           </div>
 
           <p>
-            Free credits are used
-            before purchased
-            credits when you
-            submit a listing.
+            Your free allowance
+            is always used first.
+            Purchased credits
+            remain available for
+            the matching listing
+            category.
           </p>
         </div>
 
+        {!loading &&
+        credits.length > 0 ? (
+          <div
+            className={
+              styles.balanceSummary
+            }
+            aria-live="polite"
+          >
+            <span>
+              Total available
+            </span>
 
-        {loading ? (
+            <strong>
+              {totalCredits}
+            </strong>
+
+            <span>
+              {totalCredits === 1
+                ? "posting credit"
+                : "posting credits"}
+            </span>
+          </div>
+        ) : null}
+
+        {loading &&
+        credits.length === 0 ? (
           <div
             className={
               styles.creditGrid
             }
+            aria-busy="true"
+            aria-label="Loading credit balances"
           >
+            <span
+              className={
+                styles.srOnly
+              }
+            >
+              Loading credit
+              balances…
+            </span>
+
             {Array.from(
               {
                 length: 3,
@@ -477,47 +841,52 @@ export default function CreditsPage() {
                 index,
               ) => (
                 <div
-                  key={
-                    index
-                  }
+                  key={index}
                   className={
-                    styles.creditSkeleton
+                    styles
+                      .creditSkeleton
                   }
+                  aria-hidden="true"
                 />
               ),
             )}
           </div>
-        ) : (
+        ) : credits.length >
+          0 ? (
           <div
             className={
               styles.creditGrid
             }
           >
             {credits.map(
-              (
-                credit,
-              ) => {
+              (credit) => {
                 const total =
-                  credit.free_remaining +
-                  credit.paid_remaining;
+                  credit
+                    .free_remaining +
+                  credit
+                    .paid_remaining;
 
                 return (
                   <article
                     key={
-                      credit.credit_type
+                      credit
+                        .credit_type
                     }
                     className={
-                      styles.creditCard
+                      styles
+                        .creditCard
                     }
                   >
                     <div
                       className={
-                        styles.creditTop
+                        styles
+                          .creditTop
                       }
                     >
                       <span>
                         {titleCase(
-                          credit.credit_type,
+                          credit
+                            .credit_type,
                         )}
                       </span>
 
@@ -526,23 +895,27 @@ export default function CreditsPage() {
                       />
                     </div>
 
-                    <strong>
-                      {total}
-                    </strong>
-
-                    <span
+                    <div
                       className={
-                        styles.creditLabel
+                        styles
+                          .creditTotal
                       }
                     >
-                      {total === 1
-                        ? "credit available"
-                        : "credits available"}
-                    </span>
+                      <strong>
+                        {total}
+                      </strong>
+
+                      <span>
+                        {total === 1
+                          ? "credit available"
+                          : "credits available"}
+                      </span>
+                    </div>
 
                     <div
                       className={
-                        styles.creditBreakdown
+                        styles
+                          .creditBreakdown
                       }
                     >
                       <div>
@@ -552,7 +925,8 @@ export default function CreditsPage() {
 
                         <strong>
                           {
-                            credit.free_remaining
+                            credit
+                              .free_remaining
                           }
                         </strong>
                       </div>
@@ -564,7 +938,8 @@ export default function CreditsPage() {
 
                         <strong>
                           {
-                            credit.paid_remaining
+                            credit
+                              .paid_remaining
                           }
                         </strong>
                       </div>
@@ -574,18 +949,31 @@ export default function CreditsPage() {
               },
             )}
           </div>
+        ) : (
+          <div
+            className={
+              styles.emptyState
+            }
+          >
+            <strong>
+              No credit balances
+              found.
+            </strong>
+
+            <span>
+              Refresh the page or
+              contact HomeLink
+              support.
+            </span>
+          </div>
         )}
       </section>
-
-
-      {/* =====================================================
-          PACKAGES
-      ====================================================== */}
 
       <section
         className={
           styles.packageSection
         }
+        aria-labelledby="packages-title"
       >
         <div
           className={
@@ -598,26 +986,27 @@ export default function CreditsPage() {
                 styles.eyebrow
               }
             >
-              <ShieldCheck
+              <Sparkles
                 aria-hidden="true"
               />
 
               Available packages
             </span>
 
-            <h2>
-              Buy additional
-              credits.
+            <h2
+              id="packages-title"
+            >
+              Choose what you want
+              to post.
             </h2>
 
             <p>
-              Choose a package for
-              the type of listing
-              you want to post.
-              Credits are added
-              only after a
-              successful payment
-              is confirmed.
+              Each package belongs
+              to one listing
+              category. Your
+              credits are added
+              automatically after
+              payment confirmation.
             </p>
           </div>
 
@@ -632,28 +1021,229 @@ export default function CreditsPage() {
 
             <div>
               <strong>
-                Secure
-                confirmation
+                Verified before
+                fulfilment
               </strong>
 
               <span>
-                HomeLink verifies
-                a completed
-                payment before
-                adding purchased
-                credits.
+                HomeLink checks the
+                provider, amount,
+                currency and
+                reference before
+                releasing credits.
               </span>
             </div>
           </div>
         </div>
 
+        <div
+          className={
+            styles.gatewayPanel
+          }
+        >
+          <div
+            className={
+              styles.gatewayHeading
+            }
+          >
+            <div>
+              <span>
+                Step 1
+              </span>
 
-        {loading ? (
+              <h3>
+                Choose your payment
+                gateway
+              </h3>
+            </div>
+
+            <p>
+              Use either approved
+              provider. Paystack is
+              recommended.
+            </p>
+          </div>
+
+          {providerError ? (
+            <div
+              className={
+                styles.gatewayError
+              }
+              role="alert"
+            >
+              <span>
+                {providerError}
+              </span>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() =>
+                  void loadMainData()
+                }
+              >
+                {loading
+                  ? "Trying again…"
+                  : "Retry"}
+              </button>
+            </div>
+          ) : visibleProviders
+              .length > 0 ? (
+            <div
+              className={
+                styles.providerOptions
+              }
+              role="radiogroup"
+              aria-label="Payment gateway"
+            >
+              {visibleProviders.map(
+                (provider) => {
+                  const content =
+                    providerCopy[
+                      provider
+                    ];
+
+                  const active =
+                    selectedProvider ===
+                    provider;
+
+                  if (!content) {
+                    return null;
+                  }
+
+                  return (
+                    <button
+                      key={provider}
+                      type="button"
+                      role="radio"
+                      aria-checked={
+                        active
+                      }
+                      className={
+                        active
+                          ? styles
+                              .activeProvider
+                          : undefined
+                      }
+                      disabled={
+                        buyingCode !==
+                          null ||
+                        checkingReference !==
+                          null
+                      }
+                      onClick={() =>
+                        setSelectedProvider(
+                          provider,
+                        )
+                      }
+                    >
+                      <span
+                        className={
+                          styles
+                            .providerMark
+                        }
+                        aria-hidden="true"
+                      >
+                        {active ? (
+                          <Check />
+                        ) : (
+                          <CreditCard />
+                        )}
+                      </span>
+
+                      <span
+                        className={
+                          styles
+                            .providerText
+                        }
+                      >
+                        <span>
+                          <strong>
+                            {
+                              content
+                                .label
+                            }
+                          </strong>
+
+                          {provider ===
+                          "paystack" ? (
+                            <small>
+                              Recommended
+                            </small>
+                          ) : null}
+                        </span>
+
+                        <span>
+                          {
+                            content
+                              .description
+                          }
+                        </span>
+                      </span>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          ) : loading ? (
+            <div
+              className={
+                styles
+                  .providerSkeleton
+              }
+              aria-label="Loading payment gateways"
+              aria-busy="true"
+            />
+          ) : (
+            <div
+              className={
+                styles
+                  .gatewayUnavailable
+              }
+              role="status"
+            >
+              Checkout is
+              temporarily
+              unavailable. Your
+              existing credits are
+              not affected.
+            </div>
+          )}
+        </div>
+
+        <div
+          className={
+            styles.packageStep
+          }
+        >
+          <span>
+            Step 2
+          </span>
+
+          <h3>
+            Select a credit
+            package
+          </h3>
+        </div>
+
+        {loading &&
+        plans.length === 0 ? (
           <div
             className={
               styles.planGrid
             }
+            aria-label="Loading payment packages"
+            aria-busy="true"
           >
+            <span
+              className={
+                styles.srOnly
+              }
+            >
+              Loading payment
+              packages…
+            </span>
+
             {Array.from(
               {
                 length: 3,
@@ -663,59 +1253,68 @@ export default function CreditsPage() {
                 index,
               ) => (
                 <div
-                  key={
-                    index
-                  }
+                  key={index}
                   className={
-                    styles.planSkeleton
+                    styles
+                      .planSkeleton
                   }
+                  aria-hidden="true"
                 />
               ),
             )}
           </div>
-        ) : plans.length ? (
+        ) : plans.length >
+          0 ? (
           <div
             className={
               styles.planGrid
             }
           >
             {plans.map(
-              (
-                plan,
-              ) => {
+              (plan) => {
                 const selected =
                   buyingCode ===
                   plan.code;
 
+                const unitPrice =
+                  plan.amount_kobo /
+                  plan
+                    .credit_quantity /
+                  100;
+
                 return (
                   <article
-                    key={
-                      plan.id
-                    }
+                    key={plan.id}
                     className={
-                      styles.planCard
+                      styles
+                        .planCard
                     }
                   >
                     <div
                       className={
-                        styles.planTop
+                        styles
+                          .planTop
                       }
                     >
                       <span>
                         {titleCase(
-                          plan.credit_type,
+                          plan
+                            .credit_type,
                         )}
                       </span>
 
                       <span
                         className={
-                          styles.quantity
+                          styles
+                            .quantity
                         }
                       >
                         {
-                          plan.credit_quantity
+                          plan
+                            .credit_quantity
                         }{" "}
-                        {plan.credit_quantity ===
+                        {plan
+                          .credit_quantity ===
                         1
                           ? "credit"
                           : "credits"}
@@ -734,12 +1333,12 @@ export default function CreditsPage() {
 
                     <div
                       className={
-                        styles.planPrice
+                        styles
+                          .planPrice
                       }
                     >
                       <span>
-                        Package
-                        price
+                        Package price
                       </span>
 
                       <strong>
@@ -749,25 +1348,40 @@ export default function CreditsPage() {
                           plan.currency,
                         )}
                       </strong>
+
+                      {plan
+                        .credit_quantity >
+                      1 ? (
+                        <small>
+                          {formatCurrency(
+                            unitPrice,
+                            plan.currency,
+                          )}{" "}
+                          per credit
+                        </small>
+                      ) : null}
                     </div>
 
                     <button
                       type="button"
                       disabled={
                         buyingCode !==
-                        null
+                          null ||
+                        checkingReference !==
+                          null ||
+                        selectedProvider ===
+                          null
                       }
                       onClick={() =>
-                        void buy(
-                          plan,
-                        )
+                        void buy(plan)
                       }
                     >
                       {selected ? (
                         <>
                           <Loader2
                             className={
-                              styles.spinner
+                              styles
+                                .spinner
                             }
                             aria-hidden="true"
                           />
@@ -777,8 +1391,12 @@ export default function CreditsPage() {
                         </>
                       ) : (
                         <>
-                          Choose
-                          package
+                          Continue with{" "}
+                          {selectedProvider
+                            ? titleCase(
+                                selectedProvider,
+                              )
+                            : "gateway"}
 
                           <ArrowRight
                             aria-hidden="true"
@@ -794,7 +1412,7 @@ export default function CreditsPage() {
         ) : (
           <div
             className={
-              styles.emptyPlans
+              styles.emptyState
             }
           >
             <strong>
@@ -803,23 +1421,19 @@ export default function CreditsPage() {
             </strong>
 
             <span>
-              Payment plans have
-              not been made
+              Payment packages
+              have not been made
               available yet.
             </span>
           </div>
         )}
       </section>
 
-
-      {/* =====================================================
-          PAYMENT HISTORY
-      ====================================================== */}
-
       <section
         className={
           styles.historySection
         }
+        aria-labelledby="history-title"
       >
         <div
           className={
@@ -831,123 +1445,152 @@ export default function CreditsPage() {
               Transaction history
             </span>
 
-            <h2>
+            <h2
+              id="history-title"
+            >
               Recent payments.
             </h2>
           </div>
 
           <p>
-            Review your recent
-            HomeLink credit
-            purchases and payment
-            status.
+            Review your latest
+            purchases. Pending
+            payments are checked
+            only when requested,
+            so this page does not
+            constantly poll the
+            API.
           </p>
         </div>
-
 
         {historyError ? (
           <div
             className={
               styles.historyError
             }
-            role="status"
+            role="alert"
           >
-            {historyError}
+            <span>
+              {historyError}
+            </span>
+
+            <button
+              type="button"
+              disabled={
+                historyLoading
+              }
+              onClick={() =>
+                void loadHistory(
+                  true,
+                )
+              }
+            >
+              <RefreshCw
+                aria-hidden="true"
+                className={
+                  historyLoading
+                    ? styles.spinner
+                    : undefined
+                }
+              />
+
+              {historyLoading
+                ? "Trying again…"
+                : "Retry"}
+            </button>
           </div>
         ) : null}
 
-
-        {historyLoading ? (
+        {historyLoading &&
+        payments.length === 0 ? (
           <div
             className={
-              styles.historySkeleton
+              styles
+                .historySkeleton
             }
+            aria-label="Loading payment history"
+            aria-busy="true"
           />
-        ) : payments.length ? (
+        ) : payments.length >
+          0 ? (
           <div
             className={
               styles.historyList
             }
           >
             {payments.map(
-              (
-                payment,
-              ) => {
+              (payment) => {
                 const checking =
                   checkingReference ===
                   payment.reference;
 
                 return (
                   <article
-                    key={
-                      payment.id
-                    }
+                    key={payment.id}
                     className={
-                      styles.historyItem
+                      styles
+                        .historyItem
                     }
                   >
                     <div
                       className={
-                        styles.historyMain
+                        styles
+                          .historyMain
                       }
                     >
                       <strong>
                         {
-                          payment.plan.name
+                          payment.plan
+                            .name
                         }
                       </strong>
 
                       <span>
-                        {new Intl.DateTimeFormat(
-                          "en-NG",
-                          {
-                            dateStyle:
-                              "medium",
-
-                            timeStyle:
-                              "short",
-                          },
-                        ).format(
-                          new Date(
-                            payment.paid_at ??
-                              payment.created_at,
-                          ),
+                        {formatPaymentDate(
+                          payment.paid_at ??
+                            payment
+                              .created_at,
                         )}
                       </span>
                     </div>
 
-
                     <div
                       className={
-                        styles.historyMeta
+                        styles
+                          .historyMeta
                       }
                     >
                       <span
                         title={
-                          payment.reference
+                          payment
+                            .reference
                         }
                       >
                         {
-                          payment.reference
+                          payment
+                            .reference
                         }
                       </span>
 
                       <span>
+                        Paid with{" "}
                         {titleCase(
-                          payment.provider,
+                          payment
+                            .provider,
                         )}
                       </span>
                     </div>
 
-
                     <div
                       className={
-                        styles.historyAmount
+                        styles
+                          .historyAmount
                       }
                     >
                       <strong>
                         {formatCurrency(
-                          payment.amount_kobo /
+                          payment
+                            .amount_kobo /
                             100,
                           payment.currency,
                         )}
@@ -968,11 +1611,14 @@ export default function CreditsPage() {
                         <button
                           type="button"
                           className={
-                            styles.checkStatusButton
+                            styles
+                              .checkStatusButton
                           }
                           disabled={
                             checkingReference !==
-                            null
+                              null ||
+                            buyingCode !==
+                              null
                           }
                           onClick={() =>
                             void checkPayment(
@@ -984,7 +1630,8 @@ export default function CreditsPage() {
                             <>
                               <Loader2
                                 className={
-                                  styles.spinner
+                                  styles
+                                    .spinner
                                 }
                                 aria-hidden="true"
                               />
@@ -1011,7 +1658,7 @@ export default function CreditsPage() {
         ) : (
           <div
             className={
-              styles.emptyPlans
+              styles.emptyState
             }
           >
             <strong>
@@ -1019,13 +1666,13 @@ export default function CreditsPage() {
             </strong>
 
             <span>
-              Your credit
-              purchases will
-              appear here.
+              Your completed and
+              pending purchases
+              will appear here.
             </span>
           </div>
         )}
       </section>
-    </div>
+    </main>
   );
 }

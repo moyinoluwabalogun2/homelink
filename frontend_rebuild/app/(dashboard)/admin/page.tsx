@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -14,6 +15,7 @@ import {
   CircleDollarSign,
   FileCheck2,
   Flag,
+  RefreshCw,
   Settings,
   ShieldCheck,
   Users,
@@ -34,7 +36,7 @@ import {
 } from "@/services/admin-service";
 
 import type {
-  AdminDashboardSummary,
+  AdminBusinessDashboard,
 } from "@/types/admin";
 
 import styles from "./page.module.css";
@@ -42,9 +44,18 @@ import styles from "./page.module.css";
 
 const adminActions = [
   {
+    label: "Advertisement review",
+    text:
+      "Review paid campaigns, request corrections and control when adverts go live.",
+    href: "/admin/advertisements",
+    icon: CircleDollarSign,
+    eyebrow: "Revenue",
+  },
+
+  {
     label: "Listing moderation",
     text:
-      "Review pending property and marketplace submissions before they go live.",
+      "Review pending rental, property and marketplace submissions before publication.",
     href: "/admin/listings",
     icon: CheckSquare,
     eyebrow: "Moderation",
@@ -71,7 +82,7 @@ const adminActions = [
   {
     label: "User management",
     text:
-      "Review accounts, roles and platform access status.",
+      "Review accounts, roles and platform-access status.",
     href: "/admin/users",
     icon: Users,
     eyebrow: "Accounts",
@@ -97,14 +108,59 @@ const adminActions = [
 ];
 
 
+function formatNumber(
+  value: number | undefined,
+): string {
+  return new Intl.NumberFormat(
+    "en-NG",
+  ).format(
+    value ?? 0,
+  );
+}
+
+
+function formatGeneratedAt(
+  value: string | undefined,
+): string {
+  if (!value) {
+    return "Not available";
+  }
+
+  const parsed =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      parsed.getTime(),
+    )
+  ) {
+    return "Not available";
+  }
+
+  return parsed.toLocaleString(
+    "en-NG",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  );
+}
+
+
 export default function AdminOverviewPage() {
   const [
-    summary,
-    setSummary,
+    dashboard,
+    setDashboard,
   ] =
-    useState<AdminDashboardSummary | null>(
-      null,
-    );
+    useState<
+      AdminBusinessDashboard | null
+    >(null);
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true);
 
   const [
     error,
@@ -113,35 +169,85 @@ export default function AdminOverviewPage() {
     useState("");
 
 
-  useEffect(() => {
-    adminService
-      .getDashboardSummary()
-      .then(
-        setSummary,
-      )
-      .catch(
-        (reason) => {
+  const loadDashboard =
+    useCallback(
+      async () => {
+        setLoading(true);
+        setError("");
+
+        try {
+          const result =
+            await adminService
+              .getBusinessDashboard();
+
+          setDashboard(result);
+
+        } catch (reason) {
           setError(
             getApiErrorMessage(
               reason,
-              "The admin summary could not be loaded.",
+              "The admin dashboard could not be loaded.",
             ),
           );
-        },
-      );
-  }, []);
+
+        } finally {
+          setLoading(false);
+        }
+      },
+      [],
+    );
+
+
+  useEffect(() => {
+    void loadDashboard();
+  }, [
+    loadDashboard,
+  ]);
+
+
+  const currentWorkload =
+    dashboard
+      ? (
+          dashboard.listings.pending
+          +
+          dashboard.agents.pending
+          +
+          dashboard.advertisements
+            .pending_review
+          +
+          dashboard.advertisements
+            .changes_requested
+        )
+      : 0;
+
+  const liveAndScheduledAds =
+    dashboard
+      ? (
+          dashboard.advertisements.live
+          +
+          dashboard.advertisements
+            .scheduled
+        )
+      : 0;
+
+  const advertisingEngagement =
+    dashboard
+      ? (
+          dashboard.advertisements
+            .impressions
+          +
+          dashboard.advertisements
+            .clicks
+        )
+      : 0;
 
 
   return (
     <div
       className={
-        shared.page
+        `${shared.page} ${styles.page}`
       }
     >
-      {/* =====================================================
-          HERO
-      ====================================================== */}
-
       <section
         className={
           styles.hero
@@ -165,14 +271,15 @@ export default function AdminOverviewPage() {
           </span>
 
           <h1>
-            Keep the marketplace
-            trustworthy.
+            Operate HomeLink
+            with clarity.
           </h1>
 
           <p>
-            Review what enters HomeLink,
-            verify property providers and
-            keep moderation decisions clear,
+            Monitor revenue, users,
+            listings and sponsored
+            campaigns while keeping every
+            moderation decision secure,
             consistent and traceable.
           </p>
         </div>
@@ -188,21 +295,25 @@ export default function AdminOverviewPage() {
           </span>
 
           <strong>
-            {summary
-              ? (
-                  summary.pending_listings
-                  +
-                  summary.pending_agent_applications
-                  +
-                  summary.open_reports
-                )
-              : "—"}
+            {loading
+              ? "—"
+              : formatNumber(
+                  currentWorkload,
+                )}
           </strong>
 
           <p>
-            items currently need
-            administrative attention
+            items currently require
+            administrative review
           </p>
+
+          <small>
+            Updated{" "}
+            {formatGeneratedAt(
+              dashboard
+                ?.generated_at,
+            )}
+          </small>
         </div>
       </section>
 
@@ -210,36 +321,55 @@ export default function AdminOverviewPage() {
       {error ? (
         <div
           className={
-            shared.error
+            styles.error
           }
+          role="alert"
         >
-          {error}
+          <div>
+            <strong>
+              Dashboard unavailable
+            </strong>
+
+            <span>
+              {error}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              void loadDashboard();
+            }}
+          >
+            <RefreshCw
+              aria-hidden="true"
+            />
+
+            Try again
+          </button>
         </div>
       ) : null}
 
 
-      {/* =====================================================
-          PRIMARY STATS
-      ====================================================== */}
-
-      {!summary ? (
+      {loading ? (
         <div
           className={
             styles.statsGrid
           }
+          aria-label={
+            "Loading dashboard statistics"
+          }
         >
           {Array.from(
             {
-              length: 4,
+              length: 6,
             },
             (
               _,
               index,
             ) => (
               <div
-                key={
-                  index
-                }
+                key={index}
                 className={
                   styles.statSkeleton
                 }
@@ -247,10 +377,13 @@ export default function AdminOverviewPage() {
             ),
           )}
         </div>
-      ) : (
+      ) : dashboard ? (
         <section
           className={
             styles.statsGrid
+          }
+          aria-label={
+            "Platform statistics"
           }
         >
           <Link
@@ -271,7 +404,10 @@ export default function AdminOverviewPage() {
 
             <div>
               <strong>
-                {summary.users}
+                {formatNumber(
+                  dashboard
+                    .users.total,
+                )}
               </strong>
 
               <span>
@@ -303,9 +439,10 @@ export default function AdminOverviewPage() {
 
             <div>
               <strong>
-                {
-                  summary.pending_listings
-                }
+                {formatNumber(
+                  dashboard
+                    .listings.pending,
+                )}
               </strong>
 
               <span>
@@ -337,9 +474,10 @@ export default function AdminOverviewPage() {
 
             <div>
               <strong>
-                {
-                  summary.pending_agent_applications
-                }
+                {formatNumber(
+                  dashboard
+                    .agents.pending,
+                )}
               </strong>
 
               <span>
@@ -354,7 +492,42 @@ export default function AdminOverviewPage() {
 
 
           <Link
-            href="/admin/reports"
+            href="/admin/advertisements"
+            className={
+              `${styles.stat} ${styles.statGold}`
+            }
+          >
+            <span
+              className={
+                styles.statIcon
+              }
+            >
+              <CircleDollarSign
+                aria-hidden="true"
+              />
+            </span>
+
+            <div>
+              <strong>
+                {formatNumber(
+                  dashboard
+                    .advertisements
+                    .pending_review,
+                )}
+              </strong>
+
+              <span>
+                Ad reviews
+              </span>
+            </div>
+
+            <ArrowRight
+              aria-hidden="true"
+            />
+          </Link>
+
+
+          <div
             className={
               styles.stat
             }
@@ -364,34 +537,225 @@ export default function AdminOverviewPage() {
                 styles.statIcon
               }
             >
-              <Flag
+              <CircleDollarSign
                 aria-hidden="true"
               />
             </span>
 
             <div>
               <strong>
-                {
-                  summary.open_reports
-                }
+                {formatNumber(
+                  dashboard
+                    .revenue
+                    .successful_transactions,
+                )}
               </strong>
 
               <span>
-                Open reports
+                Successful payments
               </span>
             </div>
+          </div>
 
-            <ArrowRight
-              aria-hidden="true"
-            />
-          </Link>
+
+          <div
+            className={
+              styles.stat
+            }
+          >
+            <span
+              className={
+                styles.statIcon
+              }
+            >
+              <Activity
+                aria-hidden="true"
+              />
+            </span>
+
+            <div>
+              <strong>
+                {formatNumber(
+                  liveAndScheduledAds,
+                )}
+              </strong>
+
+              <span>
+                Active ad campaigns
+              </span>
+            </div>
+          </div>
         </section>
-      )}
+      ) : null}
 
 
-      {/* =====================================================
-          OPERATIONS
-      ====================================================== */}
+      <section
+        className={
+          styles.revenueSection
+        }
+      >
+        <div
+          className={
+            styles.revenueIntro
+          }
+        >
+          <span>
+            Business overview
+          </span>
+
+          <div>
+            <h2>
+              Revenue at a glance
+            </h2>
+
+            <p>
+              Successful HomeLink listing
+              credit and sponsored
+              advertisement payments.
+            </p>
+          </div>
+        </div>
+
+
+        <div
+          className={
+            styles.revenueGrid
+          }
+        >
+          <article
+            className={
+              styles.primaryRevenue
+            }
+          >
+            <span>
+              Total successful revenue
+            </span>
+
+            <strong>
+              {formatCurrency(
+                (
+                  dashboard
+                    ?.revenue
+                    .total_kobo
+                  ?? 0
+                ) / 100,
+              )}
+            </strong>
+
+            <p>
+              Combined listing-credit and
+              advertising income recorded
+              by the platform.
+            </p>
+          </article>
+
+
+          <article
+            className={
+              styles.revenueCard
+            }
+          >
+            <span>
+              Listing credits
+            </span>
+
+            <strong>
+              {formatCurrency(
+                (
+                  dashboard
+                    ?.revenue
+                    .listing_credit_kobo
+                  ?? 0
+                ) / 100,
+              )}
+            </strong>
+
+            <small>
+              Rental, property and
+              marketplace credits
+            </small>
+          </article>
+
+
+          <article
+            className={
+              styles.revenueCard
+            }
+          >
+            <span>
+              Advertisements
+            </span>
+
+            <strong>
+              {formatCurrency(
+                (
+                  dashboard
+                    ?.revenue
+                    .advertisement_kobo
+                  ?? 0
+                ) / 100,
+              )}
+            </strong>
+
+            <small>
+              Sponsored campaign revenue
+            </small>
+          </article>
+
+
+          <article
+            className={
+              styles.revenueCard
+            }
+          >
+            <span>
+              Paystack
+            </span>
+
+            <strong>
+              {formatCurrency(
+                (
+                  dashboard
+                    ?.revenue
+                    .paystack_kobo
+                  ?? 0
+                ) / 100,
+              )}
+            </strong>
+
+            <small>
+              Successful Paystack value
+            </small>
+          </article>
+
+
+          <article
+            className={
+              styles.revenueCard
+            }
+          >
+            <span>
+              Flutterwave
+            </span>
+
+            <strong>
+              {formatCurrency(
+                (
+                  dashboard
+                    ?.revenue
+                    .flutterwave_kobo
+                  ?? 0
+                ) / 100,
+              )}
+            </strong>
+
+            <small>
+              Successful Flutterwave value
+            </small>
+          </article>
+        </div>
+      </section>
+
 
       <section
         className={
@@ -419,9 +783,9 @@ export default function AdminOverviewPage() {
             </div>
 
             <p>
-              Jump directly into the
-              part of HomeLink that needs
-              review.
+              Move directly into the
+              HomeLink area that requires
+              attention.
             </p>
           </div>
 
@@ -464,7 +828,6 @@ export default function AdminOverviewPage() {
                       )}
                     </span>
 
-
                     <span
                       className={
                         styles.actionIcon
@@ -474,7 +837,6 @@ export default function AdminOverviewPage() {
                         aria-hidden="true"
                       />
                     </span>
-
 
                     <div
                       className={
@@ -500,7 +862,6 @@ export default function AdminOverviewPage() {
                       </p>
                     </div>
 
-
                     <ArrowRight
                       className={
                         styles.actionArrow
@@ -514,10 +875,6 @@ export default function AdminOverviewPage() {
           </div>
         </div>
 
-
-        {/* ===================================================
-            SIDE COLUMN
-        ==================================================== */}
 
         <aside
           className={
@@ -539,11 +896,11 @@ export default function AdminOverviewPage() {
                   aria-hidden="true"
                 />
 
-                Payments
+                Transactions
               </span>
 
               <h2>
-                Transaction snapshot
+                Payment health
               </h2>
             </div>
 
@@ -560,7 +917,9 @@ export default function AdminOverviewPage() {
               <strong>
                 {formatCurrency(
                   (
-                    summary?.successful_payment_value_kobo
+                    dashboard
+                      ?.revenue
+                      .total_kobo
                     ?? 0
                   ) / 100,
                 )}
@@ -575,27 +934,159 @@ export default function AdminOverviewPage() {
             >
               <div>
                 <span>
-                  Successful payments
+                  Successful
                 </span>
 
                 <strong>
-                  {
-                    summary?.successful_payments
-                    ?? 0
-                  }
+                  {formatNumber(
+                    dashboard
+                      ?.revenue
+                      .successful_transactions,
+                  )}
                 </strong>
               </div>
 
               <div>
                 <span>
-                  Status
+                  Pending
                 </span>
 
                 <strong>
-                  Tracking
+                  {formatNumber(
+                    dashboard
+                      ?.revenue
+                      .pending_transactions,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Failed
+                </span>
+
+                <strong>
+                  {formatNumber(
+                    dashboard
+                      ?.revenue
+                      .failed_transactions,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Refunded
+                </span>
+
+                <strong>
+                  {formatNumber(
+                    dashboard
+                      ?.revenue
+                      .refunded_transactions,
+                  )}
                 </strong>
               </div>
             </div>
+          </section>
+
+
+          <section
+            className={
+              styles.advertPanel
+            }
+          >
+            <span
+              className={
+                styles.panelEyebrow
+              }
+            >
+              Sponsored campaigns
+            </span>
+
+            <h2>
+              Advertisement activity
+            </h2>
+
+            <div
+              className={
+                styles.compactMetrics
+              }
+            >
+              <div>
+                <span>
+                  Total campaigns
+                </span>
+
+                <strong>
+                  {formatNumber(
+                    dashboard
+                      ?.advertisements
+                      .total,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Live
+                </span>
+
+                <strong>
+                  {formatNumber(
+                    dashboard
+                      ?.advertisements
+                      .live,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Impressions
+                </span>
+
+                <strong>
+                  {formatNumber(
+                    dashboard
+                      ?.advertisements
+                      .impressions,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Clicks
+                </span>
+
+                <strong>
+                  {formatNumber(
+                    dashboard
+                      ?.advertisements
+                      .clicks,
+                  )}
+                </strong>
+              </div>
+            </div>
+
+            <p>
+              {formatNumber(
+                advertisingEngagement,
+              )}{" "}
+              recorded advertisement
+              interactions.
+            </p>
+
+            <Link
+              href="/admin/advertisements"
+            >
+              Review campaigns
+
+              <ArrowRight
+                aria-hidden="true"
+              />
+            </Link>
           </section>
 
 
@@ -606,7 +1097,7 @@ export default function AdminOverviewPage() {
           >
             <span
               className={
-                styles.priorityEyebrow
+                styles.panelEyebrow
               }
             >
               Moderation standard
@@ -619,12 +1110,12 @@ export default function AdminOverviewPage() {
 
             <p>
               Confirm listing quality,
-              location information and
+              location details and
               supporting evidence before
-              publishing. Agent verification
-              should always include review
-              of the current protected
-              document submission.
+              publication. Verification
+              means HomeLink reviewed the
+              submitted information—it is
+              not a transaction guarantee.
             </p>
 
             <Link

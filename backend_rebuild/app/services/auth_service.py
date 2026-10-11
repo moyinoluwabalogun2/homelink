@@ -297,6 +297,13 @@ class AuthService:
         user.last_failed_login_at = None
         user.last_login_at = now
 
+        # TimestampMixin uses a SQL expression for updated_at. If
+        # SQLAlchemy supplies that expression during UPDATE, the ORM
+        # expires the attribute and reading it after commit can trigger
+        # asynchronous I/O during response serialization. Keep the value
+        # explicit so AuthResponse can be built with no refresh query.
+        user.updated_at = now
+
         if password_needs_rehash(
             user.password_hash,
         ):

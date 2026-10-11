@@ -1,5 +1,13 @@
-export type CreditType = "marketplace" | "rental" | "buy_property";
-export type PaymentProvider = "mock" | "paystack"| "flutterwave";
+export type CreditType =
+  | "marketplace"
+  | "rental"
+  | "buy_property";
+
+export type PaymentProvider =
+  | "mock"
+  | "paystack"
+  | "flutterwave";
+
 export type PaymentStatus =
   | "pending"
   | "success"
@@ -40,4 +48,9 @@ export interface Payment {
 export interface PaymentInitializeResponse {
   payment: Payment;
   authorization_url: string;
+}
+
+export interface PaymentProviders {
+  providers: PaymentProvider[];
+  default_provider: PaymentProvider | null;
 }

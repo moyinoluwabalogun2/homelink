@@ -1,10 +1,22 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Response
+from fastapi import (
+    APIRouter,
+    Query,
+    Response,
+)
 
-from app.api.auth_dependencies import CurrentUser
-from app.api.dependencies import DbSession
+from app.api.auth_dependencies import (
+    CurrentUser,
+)
+from app.api.dependencies import (
+    DbSession,
+    RedisClient,
+)
+from app.core.rate_limit import (
+    protect_endpoint,
+)
 from app.schemas.engagement import (
     InquiryCreate,
     InquiryInboxItemRead,
@@ -17,10 +29,19 @@ from app.schemas.engagement import (
     ListingReportRead,
     SavedListingRead,
 )
-from app.services.engagement_service import EngagementService
+from app.services.engagement_query_service import (
+    EngagementQueryService,
+)
+from app.services.engagement_service import (
+    EngagementService,
+)
 
 
-router = APIRouter(tags=["engagements"])
+router = APIRouter(
+    tags=[
+        "engagements",
+    ],
+)
 
 
 # ============================================================
@@ -30,16 +51,31 @@ router = APIRouter(tags=["engagements"])
 
 @router.get(
     "/saved-listings",
-    response_model=list[SavedListingRead],
+    response_model=list[
+        SavedListingRead
+    ],
 )
 async def list_saved_listings(
     session: DbSession,
     current_user: CurrentUser,
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+    ),
 ) -> list[SavedListingRead]:
-    records = await EngagementService(
-        session
-    ).list_saved(
-        current_user
+    records = await (
+        EngagementQueryService(
+            session
+        ).list_saved(
+            user=current_user,
+            limit=limit,
+            offset=offset,
+        )
     )
 
     return [
@@ -67,8 +103,11 @@ async def save_listing(
         listing_id=listing_id,
     )
 
-    return SavedListingRead.model_validate(
-        record
+    return (
+        SavedListingRead
+        .model_validate(
+            record
+        )
     )
 
 
@@ -103,8 +142,19 @@ async def create_inquiry(
     listing_id: UUID,
     payload: InquiryCreate,
     session: DbSession,
+    redis: RedisClient,
     current_user: CurrentUser,
 ) -> Response:
+    await protect_endpoint(
+        redis,
+        key=(
+            "inquiry-create:"
+            f"user:{current_user.id}"
+        ),
+        limit=10,
+        window_seconds=600,
+    )
+
     await EngagementService(
         session
     ).create_inquiry(
@@ -142,10 +192,9 @@ async def list_inbox(
     ),
 ) -> list[InquiryInboxItemRead]:
     """
-    Lightweight combined inbox.
+    Return the user's lightweight combined inbox.
 
-    One request replaces the old frontend pattern of requesting
-    sent and received inquiries separately.
+    One request replaces separate sent and received requests.
     """
 
     return await EngagementService(
@@ -160,23 +209,38 @@ async def list_inbox(
 # ============================================================
 # LEGACY SENT / RECEIVED
 #
-# Kept temporarily so old frontend code continues working while
-# we switch the UI over to the new Messages inbox.
+# Retained while older frontend areas move to the combined inbox.
+# Both endpoints remain bounded.
 # ============================================================
 
 
 @router.get(
     "/inquiries/sent",
-    response_model=list[InquiryRead],
+    response_model=list[
+        InquiryRead
+    ],
 )
 async def list_sent_inquiries(
     session: DbSession,
     current_user: CurrentUser,
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+    ),
 ) -> list[InquiryRead]:
-    records = await EngagementService(
-        session
-    ).list_sent(
-        current_user
+    records = await (
+        EngagementQueryService(
+            session
+        ).list_sent(
+            user=current_user,
+            limit=limit,
+            offset=offset,
+        )
     )
 
     return [
@@ -189,16 +253,31 @@ async def list_sent_inquiries(
 
 @router.get(
     "/inquiries/received",
-    response_model=list[InquiryRead],
+    response_model=list[
+        InquiryRead
+    ],
 )
 async def list_received_inquiries(
     session: DbSession,
     current_user: CurrentUser,
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+    ),
 ) -> list[InquiryRead]:
-    records = await EngagementService(
-        session
-    ).list_received(
-        current_user
+    records = await (
+        EngagementQueryService(
+            session
+        ).list_received(
+            user=current_user,
+            limit=limit,
+            offset=offset,
+        )
     )
 
     return [
@@ -232,7 +311,7 @@ async def get_inquiry_thread(
     ),
 ) -> InquiryThreadRead:
     """
-    Load one conversation and only a bounded page of messages.
+    Load one conversation and a bounded page of messages.
     """
 
     return await EngagementService(
@@ -252,18 +331,31 @@ async def get_inquiry_thread(
 
 @router.post(
     "/inquiries/{inquiry_id}/messages",
-    response_model=InquiryMessageRead,
+    response_model=(
+        InquiryMessageRead
+    ),
     status_code=201,
 )
 async def send_inquiry_message(
     inquiry_id: UUID,
     payload: InquiryMessageCreate,
     session: DbSession,
+    redis: RedisClient,
     current_user: CurrentUser,
 ) -> InquiryMessageRead:
     """
     Send a reply inside an existing conversation.
     """
+
+    await protect_endpoint(
+        redis,
+        key=(
+            "inquiry-message:"
+            f"user:{current_user.id}"
+        ),
+        limit=30,
+        window_seconds=60,
+    )
 
     return await EngagementService(
         session
@@ -338,15 +430,28 @@ async def update_inquiry(
 
 @router.post(
     "/listings/{listing_id}/reports",
-    response_model=ListingReportRead,
+    response_model=(
+        ListingReportRead
+    ),
     status_code=201,
 )
 async def report_listing(
     listing_id: UUID,
     payload: ListingReportCreate,
     session: DbSession,
+    redis: RedisClient,
     current_user: CurrentUser,
 ) -> ListingReportRead:
+    await protect_endpoint(
+        redis,
+        key=(
+            "listing-report:"
+            f"user:{current_user.id}"
+        ),
+        limit=5,
+        window_seconds=3600,
+    )
+
     report = await EngagementService(
         session
     ).create_report(
@@ -355,8 +460,11 @@ async def report_listing(
         payload=payload,
     )
 
-    return ListingReportRead.model_validate(
-        report
+    return (
+        ListingReportRead
+        .model_validate(
+            report
+        )
     )
 
 
@@ -369,11 +477,24 @@ async def report_listing(
 async def list_my_reports(
     session: DbSession,
     current_user: CurrentUser,
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+    ),
 ) -> list[ListingReportRead]:
-    records = await EngagementService(
-        session
-    ).list_my_reports(
-        current_user
+    records = await (
+        EngagementQueryService(
+            session
+        ).list_my_reports(
+            user=current_user,
+            limit=limit,
+            offset=offset,
+        )
     )
 
     return [

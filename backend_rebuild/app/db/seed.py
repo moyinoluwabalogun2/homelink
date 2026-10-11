@@ -1,13 +1,9 @@
-from app.core.asyncio_compat import (
-    run_async,
-)
 from typing import Any, TypeVar
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-)
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.asyncio_compat import run_async
 from app.db.base import Base
 from app.db.session import (
     AsyncSessionFactory,
@@ -35,34 +31,33 @@ async def get_or_create(
     defaults: dict[str, Any] | None = None,
     **filters: Any,
 ) -> ModelType:
-    statement = select(model).filter_by(
-        **filters
+    statement = (
+        select(model)
+        .filter_by(
+            **filters
+        )
     )
 
     existing = await session.scalar(
         statement
     )
 
-    values = defaults or {}
-
     if existing is not None:
-        for field_name, value in values.items():
-            setattr(
-                existing,
-                field_name,
-                value,
-            )
-
-        await session.flush()
-
+        # Production seed runs must preserve all existing
+        # values, including addresses and coordinates.
         return existing
 
     instance = model(
         **filters,
-        **values,
+        **(
+            defaults
+            or {}
+        ),
     )
 
-    session.add(instance)
+    session.add(
+        instance
+    )
 
     await session.flush()
 
@@ -101,11 +96,11 @@ async def seed_locations(
             "slug": "ijebu-igbo",
             "sort_order": 3,
         },
-            {
-        "name": "Oru",
-        "slug": "oru",
-        "sort_order": 4,
-    },
+        {
+            "name": "Oru",
+            "slug": "oru",
+            "sort_order": 4,
+        },
         {
             "name": "Ibogun",
             "slug": "ibogun",
@@ -115,6 +110,11 @@ async def seed_locations(
             "name": "Shagamu",
             "slug": "shagamu",
             "sort_order": 6,
+        },
+        {
+            "name": "Aiyetoro",
+            "slug": "aiyetoro",
+            "sort_order": 7,
         },
     ]
 
@@ -252,17 +252,17 @@ async def seed_locations(
             "sort_order": 3,
         },
         {
-    "city_slug": "oru",
-    "campus_slug": None,
-    "name": "Oru",
-    "slug": "oru",
-    "description": (
-        "Rentals, properties and "
-        "marketplace listings "
-        "across Oru."
-    ),
-    "sort_order": 4,
-},
+            "city_slug": "oru",
+            "campus_slug": None,
+            "name": "Oru",
+            "slug": "oru",
+            "description": (
+                "Rentals, properties and "
+                "marketplace listings "
+                "across Oru."
+            ),
+            "sort_order": 4,
+        },
         {
             "city_slug": "ibogun",
             "campus_slug": "ibogun",
@@ -285,6 +285,18 @@ async def seed_locations(
                 "campus."
             ),
             "sort_order": 6,
+        },
+        {
+            "city_slug": "aiyetoro",
+            "campus_slug": None,
+            "name": "Aiyetoro",
+            "slug": "aiyetoro",
+            "description": (
+                "Rentals, properties and "
+                "marketplace listings "
+                "across Aiyetoro."
+            ),
+            "sort_order": 7,
         },
     ]
 

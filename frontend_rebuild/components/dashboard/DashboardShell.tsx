@@ -1,11 +1,12 @@
 "use client";
 
 import {
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
-  type ReactNode,
 } from "react";
 
 import Link from "next/link";
@@ -22,6 +23,7 @@ import {
   Building2,
   CheckSquare,
   ChevronRight,
+  CircleDollarSign,
   CreditCard,
   FileCheck2,
   Flag,
@@ -29,6 +31,7 @@ import {
   Inbox,
   LayoutDashboard,
   List,
+  Loader2,
   LogOut,
   Menu,
   MessageSquare,
@@ -44,12 +47,18 @@ import {
 import { toast } from "sonner";
 
 import HomeLinkLogo from "@/components/brand/HomeLinkLogo";
-
 import CreditBadge from "@/components/dashboard/CreditBadge";
 
 import { useAuth } from "@/context/AuthContext";
 
-import { dashboardService } from "@/services/dashboard-service";
+import {
+  initials,
+  titleCase,
+} from "@/lib/formatters";
+
+import {
+  dashboardService,
+} from "@/services/dashboard-service";
 
 import {
   isMessageCreatedEvent,
@@ -60,14 +69,13 @@ import {
   CREDITS_CHANGED_EVENT,
 } from "@/services/payment-service";
 
-import {
-  initials,
-  titleCase,
-} from "@/lib/formatters";
-
 import type {
   UserRole,
 } from "@/types/auth";
+
+import type {
+  CreditBalance,
+} from "@/types/payment";
 
 import styles from "./DashboardShell.module.css";
 
@@ -92,175 +100,142 @@ interface NavigationGroup {
 }
 
 
-const memberItems:
-  NavigationItem[] = [
-    {
-      label: "Overview",
-      href: "/dashboard",
-      icon: Home,
-    },
-
-    {
-      label: "Saved",
-      href: "/dashboard/saved",
-      icon: Bookmark,
-    },
-
-    {
-      label: "Messages",
-      href: "/dashboard/inquiries",
-      icon: MessageSquare,
-    },
-
-    {
-      label: "My listings",
-      href: "/dashboard/listings",
-      icon: List,
-    },
-
-    {
-      label: "Notifications",
-      href: "/dashboard/notifications",
-      icon: Bell,
-    },
-
-    {
-      label: "Credits & payments",
-      href: "/dashboard/credits",
-      icon: CreditCard,
-    },
-  ];
+const memberItems: NavigationItem[] = [
+  {
+    label: "Overview",
+    href: "/dashboard",
+    icon: Home,
+  },
+  {
+    label: "Saved",
+    href: "/dashboard/saved",
+    icon: Bookmark,
+  },
+  {
+    label: "Messages",
+    href: "/dashboard/inquiries",
+    icon: MessageSquare,
+  },
+  {
+    label: "My listings",
+    href: "/dashboard/listings",
+    icon: List,
+  },
+  {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: Bell,
+  },
+  {
+    label: "Credits & payments",
+    href: "/dashboard/credits",
+    icon: CreditCard,
+  },
+];
 
 
-const agentItems:
-  NavigationItem[] = [
-    {
-      label: "Agent overview",
-      href: "/dashboard/agent",
-      icon: LayoutDashboard,
-    },
-
-    {
-      label: "Incoming leads",
-      href: "/dashboard/leads",
-      icon: Inbox,
-    },
-
-    {
-      label: "Post rental",
-      href: "/post-listing/rental",
-      icon: Home,
-    },
-
-    {
-      label: "Post property",
-      href: "/post-listing/property",
-      icon: Building2,
-    },
-  ];
+const agentItems: NavigationItem[] = [
+  {
+    label: "Agent overview",
+    href: "/dashboard/agent",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Incoming leads",
+    href: "/dashboard/leads",
+    icon: Inbox,
+  },
+  {
+    label: "Post rental",
+    href: "/post-listing/rental",
+    icon: Home,
+  },
+  {
+    label: "Post property",
+    href: "/post-listing/property",
+    icon: Building2,
+  },
+];
 
 
-const adminItems:
-  NavigationItem[] = [
-    {
-      label: "Admin overview",
-      href: "/admin",
-      icon: LayoutDashboard,
-    },
-
-    {
-      label: "Pending listings",
-      href: "/admin/listings",
-      icon: CheckSquare,
-    },
-
-    {
-      label: "Agent applications",
-      href: "/admin/agents",
-      icon: FileCheck2,
-    },
-
-    {
-      label: "Reports",
-      href: "/admin/reports",
-      icon: Flag,
-    },
-
-    {
-      label: "Users",
-      href: "/admin/users",
-      icon: Users,
-    },
-
-    {
-      label: "Audit logs",
-      href: "/admin/audit",
-      icon: Activity,
-    },
-
-    {
-      label: "System",
-      href: "/admin/system",
-      icon: Settings,
-    },
-  ];
+const adminItems: NavigationItem[] = [
+  {
+    label: "Admin overview",
+    href: "/admin",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Advertisements",
+    href: "/admin/advertisements",
+    icon: CircleDollarSign,
+  },
+  {
+    label: "Pending listings",
+    href: "/admin/listings",
+    icon: CheckSquare,
+  },
+  {
+    label: "Agent applications",
+    href: "/admin/agents",
+    icon: FileCheck2,
+  },
+  {
+    label: "Reports",
+    href: "/admin/reports",
+    icon: Flag,
+  },
+  {
+    label: "Users",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    label: "Audit logs",
+    href: "/admin/audit",
+    icon: Activity,
+  },
+  {
+    label: "System",
+    href: "/admin/system",
+    icon: Settings,
+  },
+];
 
 
-const accountItems:
-  NavigationItem[] = [
-    {
-      label: "Agent verification",
-      href: "/dashboard/agent-application",
-      icon: FileCheck2,
-    },
-
-    {
-      label: "Account",
-      href: "/dashboard/account",
-      icon: User,
-    },
-  ];
+const accountItems: NavigationItem[] = [
+  {
+    label: "Agent verification",
+    href: "/dashboard/agent-application",
+    icon: FileCheck2,
+  },
+  {
+    label: "Account",
+    href: "/dashboard/account",
+    icon: User,
+  },
+];
 
 
 function getNavigationGroups(
-  role:
-    | UserRole
-    | undefined,
+  role: UserRole | undefined,
 ): NavigationGroup[] {
-  if (
-    role === "admin"
-  ) {
+  if (role === "admin") {
     return [
       {
-        label:
-          "Administration",
-
-        items:
-          adminItems,
+        label: "Administration",
+        items: adminItems,
       },
-
       {
-        label:
-          "Account",
-
+        label: "Account",
         items: [
           {
-            label:
-              "Member dashboard",
-
-            href:
-              "/dashboard",
-
+            label: "Member dashboard",
+            href: "/dashboard",
             icon: Store,
           },
-
           {
-            label:
-              "Account",
-
-            href:
-              "/dashboard/account",
-
+            label: "Account",
+            href: "/dashboard/account",
             icon: User,
           },
         ],
@@ -268,48 +243,32 @@ function getNavigationGroups(
     ];
   }
 
+  const groups: NavigationGroup[] = [
+    {
+      label: "Workspace",
+      items: memberItems,
+    },
+  ];
 
-  const groups:
-    NavigationGroup[] = [
-      {
-        label:
-          "Workspace",
-
-        items:
-          memberItems,
-      },
-    ];
-
-
-  if (
-    role === "agent"
-  ) {
+  if (role === "agent") {
     groups.push({
-      label:
-        "Agent tools",
-
-      items:
-        agentItems,
+      label: "Agent tools",
+      items: agentItems,
     });
   }
 
-
   groups.push({
-    label:
-      "Profile",
+    label: "Profile",
 
     items:
       role === "agent"
         ? accountItems.filter(
-            (
-              item,
-            ) =>
+            (item) =>
               item.href !==
               "/dashboard/agent-application",
           )
         : accountItems,
   });
-
 
   return groups;
 }
@@ -329,218 +288,234 @@ export default function DashboardShell({
   const {
     user,
     logout,
-  } =
-    useAuth();
+  } = useAuth();
+
+
+  const currentUserId =
+    user?.id;
+
+  const currentUserRole =
+    user?.role;
 
 
   const [
     mobileOpen,
     setMobileOpen,
-  ] =
-    useState(false);
+  ] = useState(false);
 
+  const [
+    loggingOut,
+    setLoggingOut,
+  ] = useState(false);
 
   const [
     unreadNotifications,
     setUnreadNotifications,
-  ] =
-    useState(0);
-
+  ] = useState(0);
 
   const [
     unreadMessages,
     setUnreadMessages,
-  ] =
-    useState(0);
-
+  ] = useState(0);
 
   const [
-    marketplaceCredits,
-    setMarketplaceCredits,
-  ] =
-    useState<number | null>(
-      null,
-    );
-
+    creditBalances,
+    setCreditBalances,
+  ] = useState<
+    CreditBalance[] | null
+  >(null);
 
   const [
     shellLoading,
     setShellLoading,
-  ] =
-    useState(true);
+  ] = useState(true);
 
 
-  /* =========================================================
-     MOBILE NAV
-  ========================================================= */
+  const menuButtonRef =
+    useRef<HTMLButtonElement>(
+      null,
+    );
+
+  const closeButtonRef =
+    useRef<HTMLButtonElement>(
+      null,
+    );
+
+  const summaryRequestRef =
+    useRef(0);
+
 
   useEffect(() => {
-    setMobileOpen(
-      false,
-    );
+    setMobileOpen(false);
   }, [
     pathname,
   ]);
 
 
   useEffect(() => {
-    if (
-      !mobileOpen
-    ) {
+    if (!mobileOpen) {
       return;
     }
 
-    const oldOverflow =
+    const previousOverflow =
       document.body.style.overflow;
 
     document.body.style.overflow =
       "hidden";
 
+    closeButtonRef
+      .current
+      ?.focus();
+
+    const handleEscape = (
+      event: KeyboardEvent,
+    ) => {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        setMobileOpen(false);
+
+        menuButtonRef
+          .current
+          ?.focus();
+      }
+    };
+
+    document.addEventListener(
+      "keydown",
+      handleEscape,
+    );
+
     return () => {
       document.body.style.overflow =
-        oldOverflow;
+        previousOverflow;
+
+      document.removeEventListener(
+        "keydown",
+        handleEscape,
+      );
     };
   }, [
     mobileOpen,
   ]);
 
 
-  /* =========================================================
-     DASHBOARD SUMMARY
-  ========================================================= */
-
   const loadShellSummary =
     useCallback(
       async (
         force = false,
       ) => {
+        const requestVersion =
+          ++summaryRequestRef.current;
+
         if (
-          !user ||
-          user.role ===
+          !currentUserId ||
+          currentUserRole ===
             "admin"
         ) {
-          setUnreadNotifications(
-            0,
-          );
-
-          setUnreadMessages(
-            0,
-          );
-
-          setMarketplaceCredits(
-            null,
-          );
-
-          setShellLoading(
-            false,
-          );
+          setUnreadNotifications(0);
+          setUnreadMessages(0);
+          setCreditBalances(null);
+          setShellLoading(false);
 
           return;
         }
 
+        setShellLoading(true);
+
         try {
           const summary =
-            await dashboardService.getSummary(
-              {
+            await dashboardService
+              .getSummary({
                 force,
-              },
-            );
+              });
+
+          if (
+            requestVersion !==
+            summaryRequestRef.current
+          ) {
+            return;
+          }
 
           setUnreadNotifications(
-            summary.unread_notifications,
+            summary
+              .unread_notifications,
           );
 
           setUnreadMessages(
             summary.unread_messages,
           );
 
-          const marketplace =
-            summary.credits.find(
-              (
-                balance,
-              ) =>
-                balance.credit_type ===
-                "marketplace",
-            );
-
-          setMarketplaceCredits(
-            marketplace
-              ? marketplace.free_remaining +
-                  marketplace.paid_remaining
-              : 0,
+          setCreditBalances(
+            summary.credits,
           );
         } catch {
-          setMarketplaceCredits(
-            null,
-          );
+          if (
+            requestVersion !==
+            summaryRequestRef.current
+          ) {
+            return;
+          }
+
+          setCreditBalances(null);
         } finally {
-          setShellLoading(
-            false,
-          );
+          if (
+            requestVersion ===
+            summaryRequestRef.current
+          ) {
+            setShellLoading(false);
+          }
         }
       },
       [
-        user,
+        currentUserId,
+        currentUserRole,
       ],
     );
 
 
   useEffect(() => {
-    setShellLoading(
-      true,
-    );
-
     void loadShellSummary();
+
+    return () => {
+      summaryRequestRef.current +=
+        1;
+    };
   }, [
     loadShellSummary,
   ]);
 
 
-  /* =========================================================
-     CREDIT + NOTIFICATION REFRESH
-  ========================================================= */
-
   useEffect(() => {
-    const refreshCredits =
-      () => {
-        dashboardService.invalidateSummary();
+    const refreshSummary = () => {
+      dashboardService
+        .invalidateSummary();
 
-        void loadShellSummary(
-          true,
-        );
-      };
-
-
-    const refreshNotifications =
-      () => {
-        dashboardService.invalidateSummary();
-
-        void loadShellSummary(
-          true,
-        );
-      };
-
+      void loadShellSummary(
+        true,
+      );
+    };
 
     window.addEventListener(
       CREDITS_CHANGED_EVENT,
-      refreshCredits,
+      refreshSummary,
     );
 
     window.addEventListener(
       NOTIFICATIONS_CHANGED_EVENT,
-      refreshNotifications,
+      refreshSummary,
     );
-
 
     return () => {
       window.removeEventListener(
         CREDITS_CHANGED_EVENT,
-        refreshCredits,
+        refreshSummary,
       );
 
       window.removeEventListener(
         NOTIFICATIONS_CHANGED_EVENT,
-        refreshNotifications,
+        refreshSummary,
       );
     };
   }, [
@@ -548,34 +523,18 @@ export default function DashboardShell({
   ]);
 
 
-  /* =========================================================
-     GLOBAL LIVE EVENTS
-
-     DashboardShell persists across dashboard navigation.
-
-     That means HomeLink keeps ONE shared authenticated stream
-     alive while the member moves between Overview, Saved,
-     Listings, Credits, Messages, etc.
-
-     No polling.
-     No summary refetch per message.
-  ========================================================= */
-
   useEffect(() => {
     if (
-      !user ||
-      user.role ===
+      !currentUserId ||
+      currentUserRole ===
         "admin"
     ) {
       return;
     }
 
-
     const unsubscribe =
       liveEventsService.subscribe(
-        (
-          event,
-        ) => {
+        (event) => {
           if (
             !isMessageCreatedEvent(
               event,
@@ -584,89 +543,47 @@ export default function DashboardShell({
             return;
           }
 
-
           const data =
             event.data;
 
-
-          /*
-           * Every message event also corresponds to the
-           * NEW_INQUIRY notification currently created by
-           * the backend.
-           *
-           * We know exactly one unread notification was added,
-           * so update locally rather than reloading summary.
-           */
           setUnreadNotifications(
-            (
-              current,
-            ) =>
+            (current) =>
               current + 1,
           );
 
-
-          /*
-           * The backend calculates this while it holds the
-           * Inquiry row lock.
-           *
-           * became_unread = true:
-           *   this conversation changed read -> unread.
-           *
-           * became_unread = false:
-           *   it was already unread, so another message must
-           *   NOT increase the conversation badge again.
-           */
           const becameUnread =
-            "became_unread" in
-              data
+            "became_unread" in data
               ? data.became_unread ===
                 true
               : true;
 
-
-          if (
-            becameUnread
-          ) {
+          if (becameUnread) {
             setUnreadMessages(
-              (
-                current,
-              ) =>
+              (current) =>
                 current + 1,
             );
           }
 
-
-          /*
-           * The Messages page has its own subscriber for
-           * updating bubbles/inbox rows instantly.
-           *
-           * Do not duplicate its toast while the member is
-           * already inside Messages.
-           */
           const insideMessages =
-            window.location.pathname.startsWith(
-              "/dashboard/inquiries",
-            );
+            window.location.pathname
+              .startsWith(
+                "/dashboard/inquiries",
+              );
 
-
-          if (
-            !insideMessages
-          ) {
+          if (!insideMessages) {
             toast.info(
               `New message about "${data.listing_title}".`,
               {
                 action: {
-                  label:
-                    "Open",
+                  label: "Open",
 
-                  onClick:
-                    () => {
-                      router.push(
-                        `/dashboard/inquiries?thread=${encodeURIComponent(
-                          data.inquiry_id,
-                        )}`,
-                      );
-                    },
+                  onClick: () => {
+                    router.push(
+                      `/dashboard/inquiries?thread=${encodeURIComponent(
+                        data.inquiry_id,
+                      )}`,
+                    );
+                  },
                 },
               },
             );
@@ -674,32 +591,19 @@ export default function DashboardShell({
         },
       );
 
-
-    return () => {
-      unsubscribe();
-    };
+    return unsubscribe;
   }, [
-    user?.id,
-    user?.role,
+    currentUserId,
+    currentUserRole,
     router,
   ]);
 
-
-  /* =========================================================
-     LOCAL MESSAGE READ UPDATE
-
-     Opening/reading a conversation does NOT refetch dashboard
-     summary. We already know exactly one unread conversation
-     became read, so decrement locally.
-  ========================================================= */
 
   useEffect(() => {
     const handleMessageRead =
       () => {
         setUnreadMessages(
-          (
-            current,
-          ) =>
+          (current) =>
             Math.max(
               0,
               current - 1,
@@ -707,12 +611,10 @@ export default function DashboardShell({
         );
       };
 
-
     window.addEventListener(
       MESSAGE_READ_EVENT,
       handleMessageRead,
     );
-
 
     return () => {
       window.removeEventListener(
@@ -723,18 +625,14 @@ export default function DashboardShell({
   }, []);
 
 
-  /* =========================================================
-     NAVIGATION
-  ========================================================= */
-
   const groups =
     useMemo(
       () =>
         getNavigationGroups(
-          user?.role,
+          currentUserRole,
         ),
       [
-        user?.role,
+        currentUserRole,
       ],
     );
 
@@ -744,40 +642,41 @@ export default function DashboardShell({
   ): boolean =>
     pathname === href ||
     (
-      href !==
-        "/dashboard" &&
+      href !== "/dashboard" &&
       pathname.startsWith(
         `${href}/`,
       )
     );
 
 
-  /* =========================================================
-     LOGOUT
-  ========================================================= */
-
   const handleLogout =
     async () => {
-      dashboardService.invalidateSummary();
+      if (loggingOut) {
+        return;
+      }
 
-      await logout().catch(
-        () =>
-          undefined,
-      );
+      setLoggingOut(true);
 
-      toast.success(
-        "You have been signed out.",
-      );
+      dashboardService
+        .invalidateSummary();
 
-      router.replace(
-        "/",
-      );
+      try {
+        await logout();
+      } catch {
+        /*
+         * Local credentials are cleared by
+         * the authentication layer even if
+         * server-side revocation is down.
+         */
+      } finally {
+        toast.success(
+          "You have been signed out.",
+        );
+
+        router.replace("/");
+      }
     };
 
-
-  /* =========================================================
-     NAV CONTENT
-  ========================================================= */
 
   const navContent = (
     <>
@@ -788,14 +687,14 @@ export default function DashboardShell({
       >
         <HomeLinkLogo
           href={
-            user?.role ===
+            currentUserRole ===
             "admin"
               ? "/admin"
               : "/dashboard"
           }
           size="medium"
           subtitle={
-            user?.role ===
+            currentUserRole ===
             "admin"
               ? "Control centre"
               : "Member space"
@@ -803,16 +702,13 @@ export default function DashboardShell({
         />
       </div>
 
-
       <div
         className={
           styles.profileCard
         }
       >
         <span
-          className={
-            styles.avatar
-          }
+          className={styles.avatar}
         >
           {initials(
             user?.full_name ??
@@ -828,7 +724,7 @@ export default function DashboardShell({
 
           <span>
             {titleCase(
-              user?.role ??
+              currentUserRole ??
                 "user",
             )}
           </span>
@@ -839,21 +735,18 @@ export default function DashboardShell({
         />
       </div>
 
-
       <nav
         className={
           styles.navigation
         }
-        aria-label="Dashboard navigation"
+        aria-label={
+          "Dashboard navigation"
+        }
       >
         {groups.map(
-          (
-            group,
-          ) => (
+          (group) => (
             <div
-              key={
-                group.label
-              }
+              key={group.label}
               className={
                 styles.navGroup
               }
@@ -863,19 +756,18 @@ export default function DashboardShell({
                   styles.groupLabel
                 }
               >
-                {
-                  group.label
-                }
+                {group.label}
               </span>
 
-
               {group.items.map(
-                (
-                  item,
-                ) => {
+                (item) => {
                   const Icon =
                     item.icon;
 
+                  const isActive =
+                    active(
+                      item.href,
+                    );
 
                   const badgeCount =
                     item.href ===
@@ -886,45 +778,39 @@ export default function DashboardShell({
                         ? unreadMessages
                         : 0;
 
-
-                  const showBadge =
-                    badgeCount >
-                    0;
-
-
                   return (
                     <Link
-                      key={
-                        item.href
+                      key={item.href}
+                      href={item.href}
+                      aria-current={
+                        isActive
+                          ? "page"
+                          : undefined
                       }
-                      href={
-                        item.href
-                      }
-                      className={`${styles.navItem} ${
-                        active(
-                          item.href,
-                        )
-                          ? styles.activeNavItem
-                          : ""
-                      }`}
+                      className={`
+                        ${styles.navItem}
+                        ${
+                          isActive
+                            ? styles.activeNavItem
+                            : ""
+                        }
+                      `}
                     >
                       <Icon
                         aria-hidden="true"
                       />
 
                       <span>
-                        {
-                          item.label
-                        }
+                        {item.label}
                       </span>
-
 
                       <span
                         className={
                           styles.navTail
                         }
                       >
-                        {showBadge ? (
+                        {badgeCount >
+                        0 ? (
                           <span
                             className={
                               styles.navBadge
@@ -956,13 +842,12 @@ export default function DashboardShell({
         )}
       </nav>
 
-
       <div
         className={
           styles.sidebarFooter
         }
       >
-        {user?.role !==
+        {currentUserRole !==
         "admin" ? (
           <Link
             href="/post-listing"
@@ -978,21 +863,32 @@ export default function DashboardShell({
           </Link>
         ) : null}
 
-
         <button
           type="button"
           className={
             styles.logoutButton
           }
-          onClick={
-            handleLogout
+          onClick={() =>
+            void handleLogout()
           }
+          disabled={loggingOut}
         >
-          <LogOut
-            aria-hidden="true"
-          />
+          {loggingOut ? (
+            <Loader2
+              className={
+                styles.spinner
+              }
+              aria-hidden="true"
+            />
+          ) : (
+            <LogOut
+              aria-hidden="true"
+            />
+          )}
 
-          Sign out
+          {loggingOut
+            ? "Signing out…"
+            : "Sign out"}
         </button>
       </div>
     </>
@@ -1000,19 +896,12 @@ export default function DashboardShell({
 
 
   return (
-    <div
-      className={
-        styles.shell
-      }
-    >
+    <div className={styles.shell}>
       <aside
-        className={
-          styles.sidebar
-        }
+        className={styles.sidebar}
       >
         {navContent}
       </aside>
-
 
       <header
         className={
@@ -1021,29 +910,26 @@ export default function DashboardShell({
       >
         <HomeLinkLogo
           href={
-            user?.role ===
+            currentUserRole ===
             "admin"
               ? "/admin"
               : "/dashboard"
           }
           size="small"
-          showText={
-            false
-          }
+          showText={false}
           priority
         />
-
 
         <div
           className={
             styles.mobileActions
           }
         >
-          {user?.role !==
+          {currentUserRole !==
           "admin" ? (
             <CreditBadge
-              marketplaceCredits={
-                marketplaceCredits
+              credits={
+                creditBalances
               }
               loading={
                 shellLoading
@@ -1051,18 +937,24 @@ export default function DashboardShell({
             />
           ) : null}
 
-
           <button
+            ref={menuButtonRef}
             type="button"
             className={
               styles.menuButton
             }
             onClick={() =>
-              setMobileOpen(
-                true,
-              )
+              setMobileOpen(true)
             }
-            aria-label="Open dashboard navigation"
+            aria-label={
+              "Open dashboard navigation"
+            }
+            aria-expanded={
+              mobileOpen
+            }
+            aria-controls={
+              "dashboard-mobile-navigation"
+            }
           >
             <Menu
               aria-hidden="true"
@@ -1071,7 +963,6 @@ export default function DashboardShell({
         </div>
       </header>
 
-
       {mobileOpen ? (
         <>
           <button
@@ -1079,31 +970,48 @@ export default function DashboardShell({
             className={
               styles.backdrop
             }
-            onClick={() =>
-              setMobileOpen(
-                false,
-              )
+            onClick={() => {
+              setMobileOpen(false);
+
+              menuButtonRef
+                .current
+                ?.focus();
+            }}
+            aria-label={
+              "Close dashboard navigation"
             }
-            aria-label="Close dashboard navigation"
+            tabIndex={-1}
           />
 
-
           <aside
+            id={
+              "dashboard-mobile-navigation"
+            }
             className={
               styles.mobileDrawer
             }
+            role="dialog"
+            aria-modal="true"
+            aria-label={
+              "Dashboard navigation"
+            }
           >
             <button
+              ref={closeButtonRef}
               type="button"
               className={
                 styles.closeButton
               }
-              onClick={() =>
-                setMobileOpen(
-                  false,
-                )
+              onClick={() => {
+                setMobileOpen(false);
+
+                menuButtonRef
+                  .current
+                  ?.focus();
+              }}
+              aria-label={
+                "Close dashboard navigation"
               }
-              aria-label="Close dashboard navigation"
             >
               <X
                 aria-hidden="true"
@@ -1114,7 +1022,6 @@ export default function DashboardShell({
           </aside>
         </>
       ) : null}
-
 
       <div
         className={
@@ -1132,7 +1039,7 @@ export default function DashboardShell({
             }
           >
             <span>
-              {user?.role ===
+              {currentUserRole ===
               "admin"
                 ? "Administrator"
                 : "HomeLink account"}
@@ -1143,17 +1050,16 @@ export default function DashboardShell({
             </strong>
           </div>
 
-
           <div
             className={
               styles.topbarActions
             }
           >
-            {user?.role !==
+            {currentUserRole !==
             "admin" ? (
               <CreditBadge
-                marketplaceCredits={
-                  marketplaceCredits
+                credits={
+                  creditBalances
                 }
                 loading={
                   shellLoading
@@ -1163,11 +1069,8 @@ export default function DashboardShell({
           </div>
         </div>
 
-
         <main
-          className={
-            styles.main
-          }
+          className={styles.main}
         >
           {children}
         </main>

@@ -1,0 +1,177 @@
+services:
+  - type: web
+    name: homelink
+    runtime: python
+    region: frankfurt
+    plan: free
+    rootDir: backend_rebuild
+
+    buildCommand: >-
+      python -m pip install --upgrade pip &&
+      python -m pip install .
+
+    preDeployCommand: >-
+      python -m alembic upgrade head
+
+    startCommand: >-
+      python -m uvicorn app.main:app
+      --host 0.0.0.0
+      --port $PORT
+      --workers 1
+      --proxy-headers
+      --forwarded-allow-ips=*
+
+    healthCheckPath: /api/v1/health/live
+
+    autoDeploy: true
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.7
+
+      - key: ENVIRONMENT
+        value: production
+
+      - key: DEBUG
+        value: "false"
+
+      - key: SQL_ECHO
+        value: "false"
+
+      - key: DB_POOL_SIZE
+        value: "5"
+
+      - key: DB_MAX_OVERFLOW
+        value: "5"
+
+      - key: DB_POOL_TIMEOUT_SECONDS
+        value: "5"
+
+      - key: DB_POOL_RECYCLE_SECONDS
+        value: "300"
+
+      - key: DB_CONNECT_TIMEOUT_SECONDS
+        value: "10"
+
+      - key: DB_STATEMENT_TIMEOUT_MS
+        value: "15000"
+
+      - key: REDIS_MAX_CONNECTIONS
+        value: "20"
+
+      - key: REDIS_CONNECT_TIMEOUT_SECONDS
+        value: "3"
+
+      - key: REDIS_SOCKET_TIMEOUT_SECONDS
+        value: "5"
+
+      - key: REDIS_HEALTH_CHECK_INTERVAL_SECONDS
+        value: "30"
+
+      - key: MAX_REQUEST_BODY_BYTES
+        value: "1048576"
+
+      - key: LOG_LEVEL
+        value: INFO
+
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+
+      - key: FRONTEND_URL
+        value: https://homelinkk.netlify.app
+
+      - key: BACKEND_PUBLIC_URL
+        value: https://homelink-vo5e.onrender.com
+
+      - key: CORS_ORIGINS
+        value: '["https://homelinkk.netlify.app"]'
+
+      - key: ALLOWED_HOSTS
+        value: '["homelink-vo5e.onrender.com"]'
+
+      - key: PAYMENT_CALLBACK_URL
+        value: https://homelinkk.netlify.app/payment/callback
+
+      - key: REFRESH_COOKIE_SECURE
+        value: "true"
+
+      - key: REFRESH_COOKIE_SAMESITE
+        value: lax
+
+      - key: REFRESH_COOKIE_PATH
+        value: /api/v1/auth
+
+      - key: REFRESH_COOKIE_DOMAIN
+        value: ""
+
+      - key: EMAIL_VERIFICATION_REQUIRED
+        value: "false"
+
+      - key: LEGAL_DOCUMENTS_ARE_DRAFTS
+        value: "false"
+
+      - key: CLOUDINARY_ENABLED
+        value: "true"
+
+      - key: FREE_MARKETPLACE_LISTINGS
+        value: "1"
+
+      - key: FREE_RENTAL_LISTINGS
+        value: "1"
+
+      - key: FREE_BUY_PROPERTY_LISTINGS
+        value: "1"
+
+      - key: DATABASE_URL
+        sync: false
+
+      - key: REDIS_URL
+        sync: false
+
+      - key: SECRET_KEY
+        sync: false
+
+      - key: SMTP_HOST
+        sync: false
+
+      - key: SMTP_PORT
+        value: "587"
+
+      - key: SMTP_USERNAME
+        sync: false
+
+      - key: SMTP_PASSWORD
+        sync: false
+
+      - key: SMTP_FROM_EMAIL
+        sync: false
+
+      - key: PAYMENT_PROVIDER
+        sync: false
+
+      - key: PAYSTACK_MODE
+        sync: false
+
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+
+      - key: FLUTTERWAVE_MODE
+        sync: false
+
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+
+      - key: FLUTTERWAVE_WEBHOOK_SECRET
+        sync: false
+
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+
+      - key: CLOUDINARY_API_KEY
+        sync: false
+
+      - key: CLOUDINARY_API_SECRET
+        sync: false

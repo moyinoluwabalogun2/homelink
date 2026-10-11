@@ -18,15 +18,30 @@ EXPECTED_PATHS = {
     "/api/v1/dashboard/summary",
     "/api/v1/admin/dashboard/summary",
     "/api/v1/payments/plans",
+    "/api/v1/payments/providers",
     "/api/v1/payments/credits/me",
     "/api/v1/payments/initialize",
     "/api/v1/payments/paystack/webhook",
+    "/api/v1/payments/flutterwave/webhook",
     "/api/v1/payments/mock/{reference}/complete",
+    "/api/v1/payments/history",
     "/api/v1/payments/{reference}/verify",
+    "/api/v1/payments/{reference}",
     "/api/v1/media/upload-signature",
 }
 
 
-def test_chunks_6_8_routes_are_registered() -> None:
-    paths = set(app.openapi().get("paths", {}).keys())
-    assert EXPECTED_PATHS.issubset(paths)
+def test_chunks_6_8_routes_are_registered(
+) -> None:
+    paths = set(
+        app.openapi()
+        .get(
+            "paths",
+            {},
+        )
+        .keys()
+    )
+
+    assert EXPECTED_PATHS.issubset(
+        paths,
+    )

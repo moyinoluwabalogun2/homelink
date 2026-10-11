@@ -90,7 +90,9 @@ class PropertyCategory(StrEnum):
 class PropertyCondition(StrEnum):
     NEW = "new"
     GOOD = "good"
-    RENOVATION_REQUIRED = "renovation_required"
+    RENOVATION_REQUIRED = (
+        "renovation_required"
+    )
 
 
 class MarketplaceCategory(StrEnum):
@@ -178,8 +180,38 @@ class PaymentStatus(StrEnum):
     REFUNDED = "refunded"
 
 
-EnumType = TypeVar("EnumType", bound=StrEnum)
+class AdvertisementPlacement(StrEnum):
+    HOMEPAGE = "homepage"
+    DISCOVERY = "discovery"
+    MARKETPLACE = "marketplace"
+    LISTING_DETAIL = "listing_detail"
 
 
-def enum_values(enum_class: type[EnumType]) -> list[str]:
-    return [member.value for member in enum_class]
+class AdvertisementStatus(StrEnum):
+    PAYMENT_PENDING = "payment_pending"
+    PENDING_REVIEW = "pending_review"
+    CHANGES_REQUESTED = (
+        "changes_requested"
+    )
+    APPROVED = "approved"
+    SCHEDULED = "scheduled"
+    LIVE = "live"
+    COMPLETED = "completed"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
+
+
+EnumType = TypeVar(
+    "EnumType",
+    bound=StrEnum,
+)
+
+
+def enum_values(
+    enum_class: type[EnumType],
+) -> list[str]:
+    return [
+        member.value
+        for member in enum_class
+    ]

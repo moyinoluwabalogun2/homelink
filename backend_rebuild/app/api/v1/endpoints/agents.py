@@ -1,46 +1,82 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Query,
+)
 
-from app.api.auth_dependencies import CurrentUser
-from app.api.dependencies import DbSession
-from app.models.enums import AgentApplicationStatus
-from app.repositories.agent_repository import AgentRepository
+from app.api.auth_dependencies import (
+    CurrentUser,
+)
+
+from app.api.dependencies import (
+    DbSession,
+)
+
+from app.models.enums import (
+    AgentApplicationStatus,
+)
+
+from app.repositories.agent_repository import (
+    AgentRepository,
+)
+
 from app.schemas.agent import (
     AgentApplyRequest,
     AgentDocumentCreate,
     AgentProfilePublicRead,
     AgentProfileRead,
 )
-from app.services.agent_service import AgentService
+
+from app.services.agent_service import (
+    AgentService,
+)
 
 
 router = APIRouter(
     prefix="/agents",
-    tags=["agents"],
+    tags=[
+        "agents",
+    ],
 )
 
 
 # ============================================================
-# PUBLIC AGENT DIRECTORY
-#
-# Verification documents are intentionally excluded.
+# PUBLIC APPROVED AGENT DIRECTORY
 # ============================================================
 
 
 @router.get(
     "",
-    response_model=list[AgentProfilePublicRead],
+    response_model=list[
+        AgentProfilePublicRead
+    ],
 )
 async def list_approved_agents(
     session: DbSession,
+    limit: int = Query(
+        default=24,
+        ge=1,
+        le=100,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+    ),
 ) -> list[AgentProfilePublicRead]:
-    records = await AgentRepository(
-        session
-    ).list_approved()
+    records = (
+        await AgentRepository(
+            session
+        ).list_approved(
+            limit=limit,
+            offset=offset,
+        )
+    )
 
     return [
-        AgentProfilePublicRead.model_validate(
+        AgentProfilePublicRead
+        .model_validate(
             item
         )
         for item in records
@@ -48,9 +84,7 @@ async def list_approved_agents(
 
 
 # ============================================================
-# PRIVATE CURRENT-USER APPLICATION
-#
-# The applicant may see their own verification metadata.
+# CURRENT USER AGENT APPLICATION
 # ============================================================
 
 
@@ -62,17 +96,20 @@ async def get_my_agent_profile(
     session: DbSession,
     current_user: CurrentUser,
 ) -> AgentProfileRead:
-    profile = await AgentRepository(
-        session
-    ).get_by_user_id(
-        current_user.id
+    profile = (
+        await AgentRepository(
+            session
+        ).get_by_user_id(
+            current_user.id
+        )
     )
 
     if profile is None:
         raise HTTPException(
             status_code=404,
             detail=(
-                "Agent application not found."
+                "Agent application "
+                "not found."
             ),
         )
 
@@ -82,7 +119,7 @@ async def get_my_agent_profile(
 
 
 # ============================================================
-# APPLICATION
+# AGENT APPLICATION
 # ============================================================
 
 
@@ -109,7 +146,7 @@ async def apply_as_agent(
 
 
 # ============================================================
-# PRIVATE VERIFICATION DOCUMENT REGISTRATION
+# VERIFICATION DOCUMENT REGISTRATION
 # ============================================================
 
 
@@ -136,10 +173,10 @@ async def add_agent_document(
 
 
 # ============================================================
-# PUBLIC AGENT PROFILE
+# PUBLIC SINGLE AGENT PROFILE
 #
-# Keep this AFTER the static /me routes so "me" can never be
-# interpreted as a UUID profile ID.
+# Keep this after the static /me routes so FastAPI never
+# interprets "me" as a UUID profile ID.
 # ============================================================
 
 
@@ -151,10 +188,12 @@ async def get_public_agent(
     profile_id: UUID,
     session: DbSession,
 ) -> AgentProfilePublicRead:
-    profile = await AgentRepository(
-        session
-    ).get_by_id(
-        profile_id
+    profile = (
+        await AgentRepository(
+            session
+        ).get_by_id(
+            profile_id
+        )
     )
 
     if (
@@ -165,10 +204,14 @@ async def get_public_agent(
         raise HTTPException(
             status_code=404,
             detail=(
-                "Approved agent not found."
+                "Approved agent "
+                "not found."
             ),
         )
 
-    return AgentProfilePublicRead.model_validate(
-        profile
+    return (
+        AgentProfilePublicRead
+        .model_validate(
+            profile
+        )
     )

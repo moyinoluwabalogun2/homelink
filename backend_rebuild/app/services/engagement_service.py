@@ -53,9 +53,7 @@ class EngagementService:
         session: AsyncSession,
     ) -> None:
         self.session = session
-        self.notifications = NotificationService(
-            session
-        )
+        self.notifications = NotificationService(session)
 
     # ============================================================
     # SAVED LISTINGS
@@ -87,7 +85,6 @@ class EngagementService:
         )
 
         self.session.add(saved)
-
         await self.session.commit()
 
         reloaded = await self.session.scalar(
@@ -143,9 +140,8 @@ class EngagementService:
             )
         )
 
-        return list(
-            result.unique().all()
-        )
+        return list(result.unique().all())
+
     # ============================================================
     # CREATE INQUIRY / START CONVERSATION
     # ============================================================
@@ -190,7 +186,10 @@ class EngagementService:
         if listing_row["owner_id"] == user.id:
             raise HTTPException(
                 status_code=409,
-                detail="You cannot inquire about your own listing.",
+                detail=(
+                    "You cannot inquire about "
+                    "your own listing."
+                ),
             )
 
         now = datetime.now(UTC)
@@ -212,7 +211,8 @@ class EngagementService:
 
         self.session.add(inquiry)
 
-        # Flush so inquiry.id exists before creating the first message.
+        # Flush first so inquiry.id exists for the message and
+        # notification records.
         await self.session.flush()
 
         first_message = InquiryMessage(
@@ -223,8 +223,7 @@ class EngagementService:
 
         self.session.add(first_message)
 
-        # Increment the listing contact counter without loading
-        # the complete Listing ORM object.
+        # Increment without loading the complete Listing ORM graph.
         await self.session.execute(
             update(Listing)
             .where(
@@ -239,7 +238,9 @@ class EngagementService:
 
         self.notifications.create(
             user_id=listing_row["owner_id"],
-            notification_type=NotificationType.NEW_INQUIRY,
+            notification_type=(
+                NotificationType.NEW_INQUIRY
+            ),
             title="New listing inquiry",
             message=(
                 "You received a new inquiry about "
@@ -257,16 +258,8 @@ class EngagementService:
 
         await self.session.commit()
 
-        # Deliberately return nothing.
-        #
-        # The listing details page does not use the returned
-        # Inquiry object. Avoiding _get_inquiry() here removes an
-        # unnecessary post-commit query and joined ORM graph.
+        # Avoid an unnecessary post-commit database query.
         return None
-
-    # ============================================================
-    # MESSAGE INBOX
-    # ============================================================
 
     # ============================================================
     # MESSAGE INBOX
@@ -280,11 +273,10 @@ class EngagementService:
         before: datetime | None = None,
     ) -> list[InquiryInboxItemRead]:
         """
-        One lightweight query for sent + received conversations.
+        Load sent and received conversations using one bounded query.
 
-        No message-table scan.
-        No full Listing hydration.
-        No full User hydration.
+        This avoids scanning the message table or loading complete
+        Listing and User ORM objects for every conversation.
         """
 
         limit = max(
@@ -364,18 +356,20 @@ class EngagementService:
                 Inquiry.last_message_at < before
             )
 
-        statement = statement.order_by(
-            Inquiry.last_message_at.desc(),
-            Inquiry.id.desc(),
-        ).limit(limit)
+        statement = (
+            statement
+            .order_by(
+                Inquiry.last_message_at.desc(),
+                Inquiry.id.desc(),
+            )
+            .limit(limit)
+        )
 
         result = await self.session.execute(
             statement
         )
 
-        items: list[
-            InquiryInboxItemRead
-        ] = []
+        items: list[InquiryInboxItemRead] = []
 
         for row in result.mappings():
             current_user_is_sender = (
@@ -407,7 +401,9 @@ class EngagementService:
                     ),
                     other_user=InquiryParticipantRead(
                         id=row["other_user_id"],
-                        full_name=row["other_user_full_name"],
+                        full_name=(
+                            row["other_user_full_name"]
+                        ),
                         role=row["other_user_role"],
                         profile_image_url=row[
                             "other_user_profile_image_url"
@@ -446,8 +442,8 @@ class EngagementService:
         """
         Bounded conversation loading:
 
-        1 query for conversation metadata.
-        1 query for at most limit + 1 messages.
+        - One query for conversation metadata.
+        - One query for no more than limit + 1 messages.
         """
 
         limit = max(
@@ -465,7 +461,7 @@ class EngagementService:
             name="inquiry_recipient",
         )
 
-        statement = (
+        header_statement = (
             select(
                 Inquiry.id.label(
                     "inquiry_id"
@@ -529,17 +525,9 @@ class EngagementService:
             )
         )
 
-        if user.role != UserRole.ADMIN:
-            statement = statement.where(
-                or_(
-                    Inquiry.sender_id == user.id,
-                    Inquiry.recipient_id == user.id,
-                )
-            )
-
         header = (
             await self.session.execute(
-                statement
+                header_statement
             )
         ).mappings().first()
 
@@ -559,13 +547,17 @@ class EngagementService:
                 InquiryMessage.updated_at,
             )
             .where(
-                InquiryMessage.inquiry_id == inquiry_id
+                InquiryMessage.inquiry_id
+                == inquiry_id
             )
         )
 
         if before is not None:
-            messages_statement = messages_statement.where(
-                InquiryMessage.created_at < before
+            messages_statement = (
+                messages_statement.where(
+                    InquiryMessage.created_at
+                    < before
+                )
             )
 
         messages_statement = (
@@ -581,16 +573,12 @@ class EngagementService:
             messages_statement
         )
 
-        rows = list(
-            result.mappings().all()
-        )
-
+        rows = list(result.mappings().all())
         has_more = len(rows) > limit
-
         rows = rows[:limit]
 
-        # DB returns newest first.
-        # Chat UI wants oldest -> newest.
+        # The database returns newest first, but the chat interface
+        # displays messages from oldest to newest.
         rows.reverse()
 
         messages = [
@@ -628,7 +616,9 @@ class EngagementService:
             ),
             recipient=InquiryParticipantRead(
                 id=header["recipient_user_id"],
-                full_name=header["recipient_full_name"],
+                full_name=header[
+                    "recipient_full_name"
+                ],
                 role=header["recipient_role"],
                 profile_image_url=header[
                     "recipient_profile_image_url"
@@ -649,19 +639,17 @@ class EngagementService:
     # ============================================================
 
     async def send_reply(
-    self,
-    *,
-    user: User,
-    inquiry_id: UUID,
-    payload: InquiryMessageCreate,
-) -> InquiryMessageRead:
+        self,
+        *,
+        user: User,
+        inquiry_id: UUID,
+        payload: InquiryMessageCreate,
+    ) -> InquiryMessageRead:
         """
-        Send one message while briefly locking only the Inquiry row.
+        Save a message and publish it to the recipient.
 
-        The event tells the frontend whether this message changed
-        the recipient's conversation from read -> unread, so the
-        global unread badge does not over-count multiple messages
-        in the same unread conversation.
+        The Inquiry row is locked briefly to prevent concurrent
+        messages from corrupting unread and status information.
         """
 
         statement = (
@@ -671,14 +659,10 @@ class EngagementService:
                 Inquiry.recipient_id,
                 Inquiry.listing_id,
                 Inquiry.status,
-
-                # Needed to calculate the recipient's unread state
-                # BEFORE this new message changes the conversation.
                 Inquiry.last_message_at,
                 Inquiry.last_message_sender_id,
                 Inquiry.sender_last_read_at,
                 Inquiry.recipient_last_read_at,
-
                 Listing.title.label(
                     "listing_title"
                 ),
@@ -690,15 +674,11 @@ class EngagementService:
             .where(
                 Inquiry.id == inquiry_id
             )
-            .with_for_update(
-                of=Inquiry
-            )
+            .with_for_update(of=Inquiry)
         )
 
         row = (
-            await self.session.execute(
-                statement
-            )
+            await self.session.execute(statement)
         ).mappings().first()
 
         if row is None:
@@ -728,20 +708,13 @@ class EngagementService:
         now = datetime.now(UTC)
         message_text = payload.message.strip()
 
-        # --------------------------------------------------------
-        # RECIPIENT + EXISTING UNREAD STATE
-        # --------------------------------------------------------
-
         if user.id == row["sender_id"]:
             other_user_id = row["recipient_id"]
-
             other_user_read_at = row[
                 "recipient_last_read_at"
             ]
-
         else:
             other_user_id = row["sender_id"]
-
             other_user_read_at = row[
                 "sender_last_read_at"
             ]
@@ -756,16 +729,9 @@ class EngagementService:
             )
         )
 
-        # Every incoming message makes the conversation unread for
-        # the recipient. But the unread-conversation COUNT should
-        # increase only if it was previously read.
-        became_unread = (
-            not other_user_was_unread
-        )
-
-        # --------------------------------------------------------
-        # CREATE MESSAGE
-        # --------------------------------------------------------
+        # Increment the unread-conversation count only when the
+        # conversation changes from read to unread.
+        became_unread = not other_user_was_unread
 
         message = InquiryMessage(
             inquiry_id=inquiry_id,
@@ -773,10 +739,7 @@ class EngagementService:
             message=message_text,
         )
 
-        self.session.add(
-            message
-        )
-
+        self.session.add(message)
         await self.session.flush()
 
         message_read = InquiryMessageRead(
@@ -788,52 +751,26 @@ class EngagementService:
             updated_at=message.updated_at,
         )
 
-        # --------------------------------------------------------
-        # UPDATE CONVERSATION METADATA
-        # --------------------------------------------------------
-
-        values: dict[
-            str,
-            object,
-        ] = {
-            "last_message_at":
-                now,
-
-            "last_message_preview":
-                message_text[:240],
-
-            "last_message_sender_id":
-                user.id,
+        values: dict[str, object] = {
+            "last_message_at": now,
+            "last_message_preview": message_text[:240],
+            "last_message_sender_id": user.id,
         }
 
-        resulting_status = row[
-            "status"
-        ]
+        resulting_status = row["status"]
 
         if user.id == row["sender_id"]:
-            values[
-                "sender_last_read_at"
-            ] = now
-
+            values["sender_last_read_at"] = now
         else:
-            values[
-                "recipient_last_read_at"
-            ] = now
+            values["recipient_last_read_at"] = now
 
-            # Listing owner's first reply automatically changes
-            # open -> responded.
-            if (
-                row["status"]
-                == InquiryStatus.OPEN
-            ):
-                values[
-                    "status"
-                ] = InquiryStatus.RESPONDED
-
-                values[
-                    "responded_at"
-                ] = now
-
+            # The listing owner's first response changes an open
+            # inquiry into a responded inquiry.
+            if row["status"] == InquiryStatus.OPEN:
+                values["status"] = (
+                    InquiryStatus.RESPONDED
+                )
+                values["responded_at"] = now
                 resulting_status = (
                     InquiryStatus.RESPONDED
                 )
@@ -841,117 +778,95 @@ class EngagementService:
         await self.session.execute(
             update(Inquiry)
             .where(
-                Inquiry.id
-                == inquiry_id
+                Inquiry.id == inquiry_id
             )
-            .values(
-                **values
-            )
+            .values(**values)
         )
 
-        # --------------------------------------------------------
-        # NOTIFICATION
-        # --------------------------------------------------------
-
-        self.notifications.create(
+        # Keep the returned object for the real-time payload.
+        notification = self.notifications.create(
             user_id=other_user_id,
             notification_type=(
                 NotificationType.NEW_INQUIRY
             ),
             title="New message",
             message=(
-                f'You received a new message about '
+                "You received a new message about "
                 f'"{row["listing_title"]}".'
             ),
             data={
                 "listing_id": str(
                     row["listing_id"]
                 ),
-
-                "inquiry_id": str(
-                    inquiry_id
-                ),
-
-                "message_id": str(
-                    message.id
-                ),
+                "inquiry_id": str(inquiry_id),
+                "message_id": str(message.id),
             },
         )
 
-        # --------------------------------------------------------
-        # DATABASE FIRST
-        #
-        # Never publish a live event until the database transaction
-        # has definitely succeeded.
-        # --------------------------------------------------------
-
+        # Commit the database transaction before publishing.
         await self.session.commit()
 
-        # --------------------------------------------------------
-        # REAL-TIME EVENT
-        #
-        # Redis failure does not undo or report failure for a
-        # message already saved successfully.
-        # --------------------------------------------------------
-
+        # Redis failure must not undo a message that was already
+        # saved successfully.
         try:
             await publish_user_event(
                 user_id=other_user_id,
                 event_type="message.created",
                 data={
-                    "inquiry_id": str(
-                        inquiry_id
-                    ),
-
+                    "inquiry_id": str(inquiry_id),
                     "listing_id": str(
                         row["listing_id"]
                     ),
-
-                    "listing_title":
-                        row[
-                            "listing_title"
-                        ],
-
-                    "status":
-                        resulting_status.value,
-
-                    # THIS is what the dashboard badge will use.
-                    #
-                    # True:
-                    #   conversation changed read -> unread,
-                    #   increment unread conversation count.
-                    #
-                    # False:
-                    #   conversation was already unread,
-                    #   do not increment again.
-                    "became_unread":
-                        became_unread,
-
-                    "message": {
-                        "id": str(
-                            message_read.id
+                    "listing_title": row[
+                        "listing_title"
+                    ],
+                    "status": (
+                        resulting_status.value
+                    ),
+                    "became_unread": became_unread,
+                    "notification": {
+                        "id": str(notification.id),
+                        "notification_type": (
+                            notification
+                            .notification_type
+                            .value
                         ),
-
+                        "title": notification.title,
+                        "message": (
+                            notification.message
+                        ),
+                        "data": notification.data,
+                        "read_at": None,
+                        "created_at": (
+                            notification
+                            .created_at
+                            .isoformat()
+                        ),
+                    },
+                    "message": {
+                        "id": str(message_read.id),
                         "inquiry_id": str(
                             message_read.inquiry_id
                         ),
-
                         "sender_id": str(
                             message_read.sender_id
                         ),
-
-                        "message":
-                            message_read.message,
-
-                        "created_at":
-                            message_read.created_at.isoformat(),
-
-                        "updated_at":
-                            message_read.updated_at.isoformat(),
+                        "message": (
+                            message_read.message
+                        ),
+                        "created_at": (
+                            message_read
+                            .created_at
+                            .isoformat()
+                        ),
+                        "updated_at": (
+                            message_read
+                            .updated_at
+                            .isoformat()
+                        ),
                     },
                 },
             )
-
         except Exception:
             logger.exception(
                 "Could not publish live message event "
@@ -972,19 +887,16 @@ class EngagementService:
         inquiry_id: UUID,
     ) -> None:
         """
-        Only one Inquiry row is updated.
+        Mark a conversation as read using one Inquiry-row update.
 
-        We do not UPDATE every individual message when a thread
-        is read.
+        Individual message rows do not need to be updated.
         """
 
         now = datetime.now(UTC)
 
         if user.role == UserRole.ADMIN:
             exists = await self.session.scalar(
-                select(
-                    Inquiry.id
-                ).where(
+                select(Inquiry.id).where(
                     Inquiry.id == inquiry_id
                 )
             )
@@ -995,9 +907,76 @@ class EngagementService:
                     detail="Conversation not found.",
                 )
 
-            return
+            return None
 
-        result = await self.session.execute(
+        if user.id is None:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "You cannot update this conversation."
+                ),
+            )
+
+        sender_result = await self.session.execute(
+            update(Inquiry)
+            .where(
+                Inquiry.id == inquiry_id,
+                Inquiry.sender_id == user.id,
+            )
+            .values(
+                sender_last_read_at=now
+            )
+            .returning(Inquiry.id)
+        )
+
+        updated_id = sender_result.scalar_one_or_none()
+
+        if updated_id is None:
+            recipient_result = (
+                await self.session.execute(
+                    update(Inquiry)
+                    .where(
+                        Inquiry.id == inquiry_id,
+                        Inquiry.recipient_id
+                        == user.id,
+                    )
+                    .values(
+                        recipient_last_read_at=now
+                    )
+                    .returning(Inquiry.id)
+                )
+            )
+
+            updated_id = (
+                recipient_result.scalar_one_or_none()
+            )
+
+        if updated_id is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Conversation not found.",
+            )
+
+        await self.session.commit()
+        return None
+
+    # ============================================================
+    # CLOSE CONVERSATION
+    # ============================================================
+
+    async def close_inquiry(
+        self,
+        *,
+        user: User,
+        inquiry_id: UUID,
+    ) -> None:
+        """
+        Close a conversation without loading its complete ORM graph.
+        """
+
+        now = datetime.now(UTC)
+
+        statement = (
             update(Inquiry)
             .where(
                 Inquiry.id == inquiry_id,
@@ -1005,41 +984,93 @@ class EngagementService:
                     Inquiry.sender_id == user.id,
                     Inquiry.recipient_id == user.id,
                 ),
+                Inquiry.status
+                != InquiryStatus.CLOSED,
             )
             .values(
-                sender_last_read_at=case(
-                    (
-                        Inquiry.sender_id == user.id,
-                        now,
-                    ),
-                    else_=Inquiry.sender_last_read_at,
-                ),
-                recipient_last_read_at=case(
-                    (
-                        Inquiry.recipient_id == user.id,
-                        now,
-                    ),
-                    else_=Inquiry.recipient_last_read_at,
-                ),
+                status=InquiryStatus.CLOSED,
+                closed_at=now,
             )
-            .returning(
-                Inquiry.id
-            )
+            .returning(Inquiry.id)
+        )
+
+        result = await self.session.execute(
+            statement
         )
 
         updated_id = result.scalar_one_or_none()
 
         if updated_id is None:
-            await self.session.rollback()
-
-            raise HTTPException(
-                status_code=404,
-                detail="Conversation not found.",
+            accessible = await self.session.scalar(
+                select(Inquiry.id).where(
+                    Inquiry.id == inquiry_id,
+                    or_(
+                        Inquiry.sender_id == user.id,
+                        Inquiry.recipient_id
+                        == user.id,
+                    ),
+                )
             )
 
+            if accessible is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Conversation not found.",
+                )
+
+            # It was already closed, so this is idempotent.
+            await self.session.rollback()
+            return None
+
         await self.session.commit()
+        return None
 
     # ============================================================
+    # UNREAD CONVERSATION COUNT
+    # ============================================================
+
+    async def unread_inquiry_count(
+        self,
+        *,
+        user: User,
+    ) -> int:
+        """
+        Count unread conversations without loading their messages.
+        """
+
+        from sqlalchemy import func
+
+        current_user_read_at = case(
+            (
+                Inquiry.sender_id == user.id,
+                Inquiry.sender_last_read_at,
+            ),
+            else_=Inquiry.recipient_last_read_at,
+        )
+
+        statement = (
+            select(func.count(Inquiry.id))
+            .where(
+                or_(
+                    Inquiry.sender_id == user.id,
+                    Inquiry.recipient_id == user.id,
+                ),
+                Inquiry.last_message_sender_id
+                != user.id,
+                or_(
+                    current_user_read_at.is_(None),
+                    current_user_read_at
+                    < Inquiry.last_message_at,
+                ),
+            )
+        )
+
+        count = await self.session.scalar(
+            statement
+        )
+
+        return int(count or 0)
+        # ============================================================
     # LEGACY SENT / RECEIVED
     # ============================================================
 
@@ -1060,7 +1091,7 @@ class EngagementService:
         )
 
     # ============================================================
-    # STATUS
+    # INQUIRY STATUS
     # ============================================================
 
     async def update_inquiry_status(
@@ -1084,7 +1115,9 @@ class EngagementService:
         ):
             raise HTTPException(
                 status_code=403,
-                detail="You cannot update this inquiry.",
+                detail=(
+                    "You cannot update this inquiry."
+                ),
             )
 
         if (
@@ -1101,7 +1134,6 @@ class EngagementService:
             )
 
         now = datetime.now(UTC)
-
         inquiry.status = status
 
         if status == InquiryStatus.RESPONDED:
@@ -1121,7 +1153,7 @@ class EngagementService:
         )
 
     # ============================================================
-    # REPORTS
+    # LISTING REPORTS
     # ============================================================
 
     async def create_report(
@@ -1138,7 +1170,9 @@ class EngagementService:
         if listing.owner_id == user.id:
             raise HTTPException(
                 status_code=409,
-                detail="You cannot report your own listing.",
+                detail=(
+                    "You cannot report your own listing."
+                ),
             )
 
         report = ListingReport(
@@ -1164,7 +1198,8 @@ class EngagementService:
             raise HTTPException(
                 status_code=409,
                 detail=(
-                    "You have already reported this listing."
+                    "You have already reported "
+                    "this listing."
                 ),
             ) from exc
 
@@ -1177,28 +1212,23 @@ class EngagementService:
         user: User,
     ) -> list[ListingReport]:
         result = await self.session.scalars(
-            select(
-                ListingReport
-            )
+            select(ListingReport)
             .where(
-                ListingReport.reporter_id == user.id
+                ListingReport.reporter_id
+                == user.id
             )
             .order_by(
                 ListingReport.created_at.desc()
             )
         )
 
-        return list(
-            result.unique().all()
-        )
+        return list(result.unique().all())
 
     async def list_admin_reports(
         self,
         status: ReportStatus | None,
     ) -> list[ListingReport]:
-        statement = select(
-            ListingReport
-        )
+        statement = select(ListingReport)
 
         if status is not None:
             statement = statement.where(
@@ -1211,9 +1241,7 @@ class EngagementService:
             )
         )
 
-        return list(
-            result.unique().all()
-        )
+        return list(result.unique().all())
 
     async def resolve_report(
         self,
@@ -1240,27 +1268,24 @@ class EngagementService:
         )
 
         report.status = payload.status
-
         report.resolution_note = (
             payload.resolution_note.strip()
         )
-
         report.reviewed_by_id = admin.id
-
         report.reviewed_at = datetime.now(UTC)
 
         self.notifications.create(
             user_id=report.reporter_id,
-            notification_type=NotificationType.REPORT_RESOLVED,
+            notification_type=(
+                NotificationType.REPORT_RESOLVED
+            ),
             title="Listing report reviewed",
             message=(
                 "An administrator reviewed "
                 "your listing report."
             ),
             data={
-                "report_id": str(
-                    report.id
-                ),
+                "report_id": str(report.id),
                 "status": report.status.value,
             },
         )
@@ -1282,7 +1307,8 @@ class EngagementService:
         listing = await self.session.scalar(
             select(Listing).where(
                 Listing.id == listing_id,
-                Listing.status == ListingStatus.PUBLISHED,
+                Listing.status
+                == ListingStatus.PUBLISHED,
                 Listing.deleted_at.is_(None),
             )
         )
@@ -1290,7 +1316,9 @@ class EngagementService:
         if listing is None:
             raise HTTPException(
                 status_code=404,
-                detail="Published listing not found.",
+                detail=(
+                    "Published listing not found."
+                ),
             )
 
         return listing
@@ -1300,10 +1328,11 @@ class EngagementService:
         inquiry_id: UUID,
         for_update: bool = False,
     ) -> Inquiry:
-        statement = select(
-            Inquiry
-        ).where(
-            Inquiry.id == inquiry_id
+        statement = (
+            select(Inquiry)
+            .where(
+                Inquiry.id == inquiry_id
+            )
         )
 
         if for_update:
@@ -1329,27 +1358,24 @@ class EngagementService:
     ) -> list[Inquiry]:
         result = await self.session.scalars(
             select(Inquiry)
-            .where(
-                condition
-            )
+            .where(condition)
             .order_by(
                 Inquiry.created_at.desc()
             )
         )
 
-        return list(
-            result.unique().all()
-        )
+        return list(result.unique().all())
 
     async def _get_report(
         self,
         report_id: UUID,
         for_update: bool = False,
     ) -> ListingReport:
-        statement = select(
-            ListingReport
-        ).where(
-            ListingReport.id == report_id
+        statement = (
+            select(ListingReport)
+            .where(
+                ListingReport.id == report_id
+            )
         )
 
         if for_update:

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   type FormEvent,
@@ -11,25 +11,44 @@ import Image from "next/image";
 import Link from "next/link";
 
 import {
+  useRouter,
+} from "next/navigation";
+
+import {
   ArrowLeft,
   Bath,
   BedDouble,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Heart,
   Loader2,
   MapPin,
   MessageSquare,
   Package,
+  Play,
   Ruler,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import {
+  toast,
+} from "sonner";
 
-import { useAuth } from "@/context/AuthContext";
-import { getApiErrorMessage } from "@/lib/api-errors";
+import SponsoredPlacement
+  from "@/components/advertising/SponsoredPlacement";
+
+import ListingReportDialog
+  from "@/components/listings/ListingReportDialog";
+
+import {
+  useAuth,
+} from "@/context/AuthContext";
+
+import {
+  getApiErrorMessage,
+} from "@/lib/api-errors";
 
 import {
   formatCurrency,
@@ -38,60 +57,174 @@ import {
   titleCase,
 } from "@/lib/formatters";
 
-import { engagementService } from "@/services/engagement-service";
-import { listingService } from "@/services/listing-service";
+import {
+  engagementService,
+} from "@/services/engagement-service";
+
+import {
+  listingService,
+} from "@/services/listing-service";
 
 import type {
   InquiryType,
   Listing,
+  ListingMedia,
 } from "@/types/listing";
 
-import styles from "./ListingDetailsClient.module.css";
+import styles
+  from "./ListingDetailsClient.module.css";
+
+
+interface ListingDetailsClientProps {
+  listingId: string;
+}
+
+
+function hasValue(
+  value: unknown,
+): boolean {
+  return (
+    value !== null &&
+    value !== undefined &&
+    value !== ""
+  );
+}
+
+
+function orderedMedia(
+  media: ListingMedia[],
+): ListingMedia[] {
+  return [
+    ...media,
+  ].sort(
+    (
+      first,
+      second,
+    ) => {
+      if (
+        first.is_cover !==
+        second.is_cover
+      ) {
+        return first.is_cover
+          ? -1
+          : 1;
+      }
+
+      return (
+        first.sort_order -
+        second.sort_order
+      );
+    },
+  );
+}
+
+
+function listingIsUnavailable(
+  listing: Listing,
+): boolean {
+  return [
+    "sold",
+    "rented",
+    "expired",
+    "archived",
+  ].includes(
+    listing.status,
+  );
+}
+
+
+function listingStatusText(
+  listing: Listing,
+): string {
+  if (
+    listing.status ===
+    "sold"
+  ) {
+    return "Sold";
+  }
+
+  if (
+    listing.status ===
+    "rented"
+  ) {
+    return "Rented";
+  }
+
+  if (
+    listing.status ===
+    "expired"
+  ) {
+    return "Expired";
+  }
+
+  if (
+    listing.status ===
+    "archived"
+  ) {
+    return "Archived";
+  }
+
+  return "Published";
+}
 
 
 export default function ListingDetailsClient({
   listingId,
-}: {
-  listingId: string;
-}) {
-  const router = useRouter();
+}: ListingDetailsClientProps) {
+  const router =
+    useRouter();
 
-  const { status } =
-    useAuth();
+  const {
+    status,
+    user,
+  } = useAuth();
+
 
   const [
     listing,
     setListing,
-  ] = useState<Listing | null>(
+  ] = useState<
+    Listing | null
+  >(
     null,
   );
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] = useState(
+    true,
+  );
 
   const [
     error,
     setError,
-  ] = useState<string | null>(
+  ] = useState<
+    string | null
+  >(
     null,
   );
 
   const [
-    activeImage,
-    setActiveImage,
-  ] = useState(0);
+    activeMediaIndex,
+    setActiveMediaIndex,
+  ] = useState(
+    0,
+  );
 
   const [
     saved,
     setSaved,
-  ] = useState(false);
+  ] = useState(
+    false,
+  );
 
   const [
     saving,
     setSaving,
-  ] = useState(false);
+  ] = useState(
+    false,
+  );
 
   const [
     inquiryType,
@@ -103,72 +236,121 @@ export default function ListingDetailsClient({
   const [
     message,
     setMessage,
-  ] = useState("");
+  ] = useState(
+    "",
+  );
 
   const [
     sending,
     setSending,
-  ] = useState(false);
+  ] = useState(
+    false,
+  );
 
-
-  /* =========================================================
-     LOAD LISTING
-  ========================================================= */
 
   useEffect(() => {
     let active = true;
 
-    setLoading(true);
+    const controller =
+      new AbortController();
+
+    setLoading(
+      true,
+    );
+
+    setError(
+      null,
+    );
 
     listingService
-      .getById(listingId)
+      .getById(
+        listingId,
+        controller.signal,
+      )
       .then((record) => {
-        if (!active) {
+        if (
+          !active ||
+          controller.signal
+            .aborted
+        ) {
           return;
         }
 
-        setListing(record);
-        setActiveImage(0);
-        setError(null);
-      })
-      .catch((requestError) => {
-        if (!active) {
-          return;
-        }
+        setListing(
+          record,
+        );
 
-        setError(
-          getApiErrorMessage(
-            requestError,
-            "This listing could not be found.",
-          ),
+        setActiveMediaIndex(
+          0,
         );
       })
+      .catch(
+        (
+          requestError,
+        ) => {
+          if (
+            !active ||
+            controller.signal
+              .aborted
+          ) {
+            return;
+          }
+
+          setListing(
+            null,
+          );
+
+          setError(
+            getApiErrorMessage(
+              requestError,
+              "This listing could not be found.",
+            ),
+          );
+        },
+      )
       .finally(() => {
-        if (active) {
-          setLoading(false);
+        if (
+          active &&
+          !controller.signal
+            .aborted
+        ) {
+          setLoading(
+            false,
+          );
         }
       });
 
     return () => {
       active = false;
+
+      controller.abort();
     };
-  }, [listingId]);
+  }, [
+    listingId,
+  ]);
 
-
-  /* =========================================================
-     SAVED STATE
-  ========================================================= */
 
   useEffect(() => {
     if (
-      status !== "authenticated"
+      status !==
+      "authenticated"
     ) {
+      setSaved(
+        false,
+      );
+
       return;
     }
+
+    let active = true;
 
     engagementService
       .listSaved()
       .then((records) => {
+        if (!active) {
+          return;
+        }
+
         setSaved(
           records.some(
             (record) =>
@@ -180,34 +362,86 @@ export default function ListingDetailsClient({
       .catch(
         () => undefined,
       );
+
+    return () => {
+      active = false;
+    };
   }, [
     listingId,
     status,
   ]);
 
 
-  const images = useMemo(
-    () =>
-      listing?.media.filter(
-        (item) =>
-          item.media_type ===
-          "image",
-      ) ?? [],
-    [listing],
-  );
+  const media =
+    useMemo(
+      () =>
+        listing
+          ? orderedMedia(
+              listing.media,
+            )
+          : [],
+      [
+        listing,
+      ],
+    );
 
 
-  const details =
-    listing?.rental_details ??
-    listing?.buy_property_details;
+  const activeMedia =
+    media[
+      activeMediaIndex
+    ] ?? null;
 
 
-  /* =========================================================
-     SAVE
-  ========================================================= */
+  const showPreviousMedia =
+    () => {
+      if (
+        !media.length
+      ) {
+        return;
+      }
+
+      setActiveMediaIndex(
+        (current) =>
+          current === 0
+            ? media.length - 1
+            : current - 1,
+      );
+    };
+
+
+  const showNextMedia =
+    () => {
+      if (
+        !media.length
+      ) {
+        return;
+      }
+
+      setActiveMediaIndex(
+        (current) =>
+          current ===
+          media.length - 1
+            ? 0
+            : current + 1,
+      );
+    };
+
 
   const toggleSave =
     async () => {
+      if (
+        listing &&
+        listingIsUnavailable(
+          listing,
+        )
+      ) {
+        toast.message(
+          "This listing is no longer available.",
+        );
+
+        return;
+      }
+
       if (
         status !==
         "authenticated"
@@ -225,25 +459,37 @@ export default function ListingDetailsClient({
         return;
       }
 
-      setSaving(true);
+      if (saving) {
+        return;
+      }
+
+      setSaving(
+        true,
+      );
 
       try {
         if (saved) {
-          await engagementService.removeSavedListing(
-            listingId,
-          );
+          await engagementService
+            .removeSavedListing(
+              listingId,
+            );
 
-          setSaved(false);
+          setSaved(
+            false,
+          );
 
           toast.success(
             "Removed from saved listings.",
           );
         } else {
-          await engagementService.saveListing(
-            listingId,
-          );
+          await engagementService
+            .saveListing(
+              listingId,
+            );
 
-          setSaved(true);
+          setSaved(
+            true,
+          );
 
           toast.success(
             "Listing saved.",
@@ -259,23 +505,48 @@ export default function ListingDetailsClient({
           ),
         );
       } finally {
-        setSaving(false);
+        setSaving(
+          false,
+        );
       }
     };
 
 
-  /* =========================================================
-     SEND INQUIRY
-  ========================================================= */
-
   const sendInquiry =
     async (
-      event: FormEvent,
+      event:
+        FormEvent<HTMLFormElement>,
     ) => {
       event.preventDefault();
+
       if (sending) {
-      return;
-    }
+        return;
+      }
+
+      if (
+        listing &&
+        user?.id ===
+          listing.owner.id
+      ) {
+        toast.message(
+          "This is your own listing.",
+        );
+
+        return;
+      }
+
+      if (
+        listing &&
+        listingIsUnavailable(
+          listing,
+        )
+      ) {
+        toast.message(
+          "This listing is no longer accepting inquiries.",
+        );
+
+        return;
+      }
 
       if (
         status !==
@@ -294,8 +565,11 @@ export default function ListingDetailsClient({
         return;
       }
 
+      const trimmedMessage =
+        message.trim();
+
       if (
-        message.trim().length <
+        trimmedMessage.length <
         10
       ) {
         toast.error(
@@ -305,21 +579,37 @@ export default function ListingDetailsClient({
         return;
       }
 
-      setSending(true);
-
-      try {
-        await engagementService.createInquiry(
-          listingId,
-          {
-            inquiry_type:
-              inquiryType,
-
-            message:
-              message.trim(),
-          },
+      if (
+        trimmedMessage.length >
+        3000
+      ) {
+        toast.error(
+          "Your message cannot exceed 3,000 characters.",
         );
 
-        setMessage("");
+        return;
+      }
+
+      setSending(
+        true,
+      );
+
+      try {
+        await engagementService
+          .createInquiry(
+            listingId,
+            {
+              inquiry_type:
+                inquiryType,
+
+              message:
+                trimmedMessage,
+            },
+          );
+
+        setMessage(
+          "",
+        );
 
         toast.success(
           "Your inquiry has been sent.",
@@ -334,14 +624,12 @@ export default function ListingDetailsClient({
           ),
         );
       } finally {
-        setSending(false);
+        setSending(
+          false,
+        );
       }
     };
 
-
-  /* =========================================================
-     STATES
-  ========================================================= */
 
   if (loading) {
     return (
@@ -349,6 +637,8 @@ export default function ListingDetailsClient({
         className={
           styles.centerState
         }
+        role="status"
+        aria-live="polite"
       >
         <Loader2
           className={
@@ -404,10 +694,6 @@ export default function ListingDetailsClient({
   }
 
 
-  /* =========================================================
-     LISTING META
-  ========================================================= */
-
   const isMarketplace =
     listing.listing_type ===
     "marketplace";
@@ -416,23 +702,35 @@ export default function ListingDetailsClient({
     listing.listing_type ===
     "rental";
 
+  const isProperty =
+    listing.listing_type ===
+    "buy_property";
+
+  const rental =
+    listing.rental_details;
+
+  const property =
+    listing.buy_property_details;
+
+  const marketplace =
+    listing.marketplace_details;
+
+  const details =
+    rental ??
+    property;
+
+
   const category =
-    listing.rental_details
-      ?.category ??
-    listing
-      .buy_property_details
-      ?.category ??
-    listing
-      .marketplace_details
-      ?.category ??
+    rental?.category ??
+    property?.category ??
+    marketplace?.category ??
     listing.listing_type;
 
 
   const browseHref =
     isRental
       ? "/rentals"
-      : listing.listing_type ===
-          "buy_property"
+      : isProperty
         ? "/buy-property"
         : "/marketplace";
 
@@ -440,8 +738,7 @@ export default function ListingDetailsClient({
   const browseLabel =
     isRental
       ? "Rentals"
-      : listing.listing_type ===
-          "buy_property"
+      : isProperty
         ? "Property"
         : "Marketplace";
 
@@ -473,21 +770,36 @@ export default function ListingDetailsClient({
       : "Keep conversations and inspection arrangements documented before making payments.";
 
 
-  return (
-    <div
-      className={
-        styles.page
-      }
-    >
-      {/* =====================================================
-          TOP BAR
-      ====================================================== */}
+  /*
+   * Do not expose the poster's full street address on the
+   * public listing page. The precise address can be shared
+   * privately after a legitimate inquiry or inspection request.
+   */
+  const publicLocation =
+    listing.campus?.name ??
+    "OOU surrounding community";
 
-      <div
-        className={
-          styles.topbar
-        }
-      >
+
+  const isOwner =
+    user?.id ===
+    listing.owner.id;
+
+
+  const isUnavailable =
+    listingIsUnavailable(
+      listing,
+    );
+
+
+  const statusLabel =
+    listingStatusText(
+      listing,
+    );
+
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.topbar}>
         <button
           type="button"
           onClick={() =>
@@ -501,17 +813,21 @@ export default function ListingDetailsClient({
           Back
         </button>
 
-
-        <div
+        <nav
           className={
             styles.breadcrumbs
           }
+          aria-label="Breadcrumb"
         >
           <Link href="/">
             Home
           </Link>
 
-          <span>/</span>
+          <span
+            aria-hidden="true"
+          >
+            /
+          </span>
 
           <Link
             href={
@@ -521,34 +837,28 @@ export default function ListingDetailsClient({
             {browseLabel}
           </Link>
 
-          <span>/</span>
+          <span
+            aria-hidden="true"
+          >
+            /
+          </span>
 
-          <strong>
+          <strong
+            aria-current="page"
+          >
             Listing
           </strong>
-        </div>
+        </nav>
       </div>
 
 
-      {/* =====================================================
-          HERO / PRODUCT AREA
-      ====================================================== */}
-
       <section
-        className={[
-          styles.heroLayout,
-
+        className={`${styles.heroLayout} ${
           isMarketplace
             ? styles.marketplaceHero
-            : styles.propertyHero,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+            : styles.propertyHero
+        }`}
       >
-        {/* ===============================================
-            MEDIA
-        ================================================ */}
-
         <div
           className={
             styles.galleryColumn
@@ -558,32 +868,86 @@ export default function ListingDetailsClient({
             className={
               styles.mainImage
             }
-          >
-            {images[
-              activeImage
-            ] ? (
-              <Image
-                src={
-                  images[
-                    activeImage
-                  ].url
-                }
-                alt={
-                  listing.title
-                }
-                fill
-                priority
-                sizes="(max-width: 900px) 100vw, 62vw"
-                className={[
-                  styles.mainPhoto,
+            role="group"
+            aria-label={
+              "Listing media gallery"
+            }
+            tabIndex={
+              media.length > 1
+                ? 0
+                : -1
+            }
+            onKeyDown={
+              (event) => {
+                if (
+                  event.key ===
+                  "ArrowLeft"
+                ) {
+                  event.preventDefault();
 
-                  isMarketplace
-                    ? styles.marketPhoto
-                    : styles.propertyPhoto,
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              />
+                  showPreviousMedia();
+                }
+
+                if (
+                  event.key ===
+                  "ArrowRight"
+                ) {
+                  event.preventDefault();
+
+                  showNextMedia();
+                }
+              }
+            }
+          >
+            {activeMedia ? (
+              activeMedia.media_type ===
+              "video" ? (
+                <video
+                  key={
+                    activeMedia.id
+                  }
+                  src={
+                    activeMedia.url
+                  }
+                  className={
+                    styles.mainVideo
+                  }
+                  controls
+                  playsInline
+                  preload="metadata"
+                  aria-label={
+                    `${listing.title} video`
+                  }
+                >
+                  Your browser does not support video playback.
+                </video>
+              ) : (
+                <Image
+                  key={
+                    activeMedia.id
+                  }
+                  src={
+                    activeMedia.url
+                  }
+                  alt={`${listing.title} — media ${
+                    activeMediaIndex + 1
+                  }`}
+                  fill
+                  priority={
+                    activeMediaIndex ===
+                    0
+                  }
+                  quality={86}
+                  sizes={
+                    "(max-width: 900px) 100vw, 62vw"
+                  }
+                  className={`${styles.mainPhoto} ${
+                    isMarketplace
+                      ? styles.marketPhoto
+                      : styles.propertyPhoto
+                  }`}
+                />
+              )
             ) : (
               <div
                 className={
@@ -595,7 +959,7 @@ export default function ListingDetailsClient({
                 />
 
                 <span>
-                  No image supplied
+                  No media supplied
                 </span>
               </div>
             )}
@@ -632,93 +996,141 @@ export default function ListingDetailsClient({
                 ) : null}
               </div>
 
-
               <span
                 className={
                   styles.imageCount
                 }
+                aria-live="polite"
               >
-                {images.length
+                {media.length
                   ? `${
-                      activeImage +
-                      1
-                    } / ${
-                      images.length
-                    }`
-                  : "No photos"}
+                      activeMediaIndex + 1
+                    } / ${media.length}`
+                  : "No media"}
               </span>
             </div>
+
+
+            {media.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className={`${styles.galleryControl} ${styles.previousControl}`}
+                  onClick={
+                    showPreviousMedia
+                  }
+                  aria-label={
+                    "View previous media"
+                  }
+                >
+                  <ChevronLeft
+                    aria-hidden="true"
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  className={`${styles.galleryControl} ${styles.nextControl}`}
+                  onClick={
+                    showNextMedia
+                  }
+                  aria-label={
+                    "View next media"
+                  }
+                >
+                  <ChevronRight
+                    aria-hidden="true"
+                  />
+                </button>
+              </>
+            ) : null}
           </div>
 
 
-          {images.length >
-          1 ? (
+          {media.length > 1 ? (
             <div
               className={
                 styles.thumbnails
               }
+              role="group"
+              aria-label={
+                "Listing media"
+              }
             >
-              {images
-                .slice(
-                  0,
-                  6,
-                )
-                .map(
-                  (
-                    image,
-                    index,
-                  ) => (
-                    <button
-                      key={
-                        image.id
-                      }
-                      type="button"
-                      className={
-                        index ===
-                        activeImage
-                          ? styles.activeThumbnail
-                          : ""
-                      }
-                      onClick={() =>
-                        setActiveImage(
-                          index,
-                        )
-                      }
-                      aria-label={`View image ${
-                        index +
-                        1
-                      }`}
-                    >
+              {media.map(
+                (
+                  mediaItem,
+                  index,
+                ) => (
+                  <button
+                    key={
+                      mediaItem.id
+                    }
+                    type="button"
+                    className={
+                      index ===
+                      activeMediaIndex
+                        ? styles
+                            .activeThumbnail
+                        : ""
+                    }
+                    onClick={() =>
+                      setActiveMediaIndex(
+                        index,
+                      )
+                    }
+                    aria-label={`View ${
+                      mediaItem.media_type ===
+                      "video"
+                        ? "video"
+                        : "image"
+                    } ${index + 1}`}
+                    aria-pressed={
+                      index ===
+                      activeMediaIndex
+                    }
+                  >
+                    {mediaItem.media_type ===
+                    "video" ? (
+                      <span
+                        className={
+                          styles.videoThumbnail
+                        }
+                      >
+                        <Play
+                          aria-hidden="true"
+                        />
+
+                        <small>
+                          Video
+                        </small>
+                      </span>
+                    ) : (
                       <Image
                         src={
-                          image.url
+                          mediaItem.url
                         }
                         alt=""
                         fill
-                        sizes="120px"
+                        sizes="110px"
                         className={
                           isMarketplace
-                            ? styles.marketThumb
-                            : styles.propertyThumb
+                            ? styles
+                                .marketThumb
+                            : styles
+                                .propertyThumb
                         }
                       />
-                    </button>
-                  ),
-                )}
+                    )}
+                  </button>
+                ),
+              )}
             </div>
           ) : null}
         </div>
 
 
-        {/* ===============================================
-            SUMMARY
-        ================================================ */}
-
-        <div
-          className={
-            styles.summary
-          }
-        >
+        <div className={styles.summary}>
           <div
             className={
               styles.summaryMeta
@@ -731,23 +1143,23 @@ export default function ListingDetailsClient({
             </span>
 
             <span
-              className={
-                styles.published
-              }
+              className={`${styles.published} ${
+                isUnavailable
+                  ? styles.unavailableStatus
+                  : ""
+              }`}
             >
               <CheckCircle2
                 aria-hidden="true"
               />
 
-              Published
+              {statusLabel}
             </span>
           </div>
-
 
           <h1>
             {listing.title}
           </h1>
-
 
           <div
             className={
@@ -759,18 +1171,13 @@ export default function ListingDetailsClient({
             />
 
             <span>
-              {
-                listing.area
-                  .name
-              }
+              {listing.area.name}
 
-              {listing.campus
-                ?.name
+              {listing.campus?.name
                 ? ` · ${listing.campus.name}`
                 : ""}
             </span>
           </div>
-
 
           <div
             className={
@@ -788,24 +1195,20 @@ export default function ListingDetailsClient({
               )}
             </strong>
 
-            {listing
-              .rental_details ? (
+            {rental ? (
               <small>
                 Per{" "}
+
                 {titleCase(
-                  listing
-                    .rental_details
-                    .rent_period,
+                  rental.rent_period,
                 )}
               </small>
             ) : null}
           </div>
 
 
-          {/* Marketplace gets commerce-specific data */}
-
           {isMarketplace &&
-          listing.marketplace_details ? (
+          marketplace ? (
             <div
               className={
                 styles.commerceFacts
@@ -818,9 +1221,7 @@ export default function ListingDetailsClient({
 
                 <strong>
                   {titleCase(
-                    listing
-                      .marketplace_details
-                      .condition,
+                    marketplace.condition,
                   )}
                 </strong>
               </div>
@@ -831,9 +1232,7 @@ export default function ListingDetailsClient({
                 </span>
 
                 <strong>
-                  {listing
-                    .marketplace_details
-                    .is_negotiable
+                  {marketplace.is_negotiable
                     ? "Negotiable"
                     : "Fixed"}
                 </strong>
@@ -842,8 +1241,6 @@ export default function ListingDetailsClient({
           ) : null}
 
 
-          {/* Property/rental quick facts */}
-
           {!isMarketplace &&
           details ? (
             <div
@@ -851,70 +1248,59 @@ export default function ListingDetailsClient({
                 styles.quickFacts
               }
             >
-              {details.bedrooms !==
-                null &&
-              details.bedrooms !==
-                undefined ? (
+              {hasValue(
+                details.bedrooms,
+              ) ? (
                 <span>
                   <BedDouble
                     aria-hidden="true"
                   />
 
-                  {
-                    details.bedrooms
-                  }{" "}
-                  bed
+                  {details.bedrooms} bed
                 </span>
               ) : null}
 
-
-              {details.bathrooms !==
-                null &&
-              details.bathrooms !==
-                undefined ? (
+              {hasValue(
+                details.bathrooms,
+              ) ? (
                 <span>
                   <Bath
                     aria-hidden="true"
                   />
 
-                  {
-                    details.bathrooms
-                  }{" "}
-                  bath
+                  {details.bathrooms} bath
                 </span>
               ) : null}
 
-
-              {listing
-                .buy_property_details
-                ?.land_size_sqm ? (
+              {hasValue(
+                property
+                  ?.land_size_sqm,
+              ) ? (
                 <span>
                   <Ruler
                     aria-hidden="true"
                   />
 
                   {
-                    listing
-                      .buy_property_details
-                      .land_size_sqm
+                    property
+                      ?.land_size_sqm
                   }{" "}
                   m²
                 </span>
               ) : null}
 
-
-              {listing
-                .rental_details
-                ?.distance_to_campus_km ? (
+              {hasValue(
+                rental
+                  ?.distance_to_campus_km,
+              ) ? (
                 <span>
                   <MapPin
                     aria-hidden="true"
                   />
 
                   {
-                    listing
-                      .rental_details
-                      .distance_to_campus_km
+                    rental
+                      ?.distance_to_campus_km
                   }{" "}
                   km
                 </span>
@@ -928,48 +1314,84 @@ export default function ListingDetailsClient({
               styles.summaryActions
             }
           >
-            <a
-              href="#inquiry"
-              className={
-                styles.contactButton
-              }
-            >
-              <MessageSquare
-                aria-hidden="true"
-              />
+            {isOwner ? (
+              <Link
+                href={
+                  "/dashboard/listings"
+                }
+                className={
+                  styles.contactButton
+                }
+              >
+                Manage your listing
+              </Link>
+            ) : isUnavailable ? (
+              <span
+                className={
+                  styles.unavailableAction
+                }
+              >
+                This listing is no longer available
+              </span>
+            ) : (
+              <a
+                href="#inquiry"
+                className={
+                  styles.contactButton
+                }
+              >
+                <MessageSquare
+                  aria-hidden="true"
+                />
 
-              {isMarketplace
-                ? "Message seller"
-                : "Ask about listing"}
-            </a>
-
+                {isMarketplace
+                  ? "Message seller"
+                  : "Ask about listing"}
+              </a>
+            )}
 
             <button
               type="button"
-              className={[
-                styles.saveButton,
-
+              className={`${styles.saveButton} ${
                 saved
                   ? styles.savedButton
-                  : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
+                  : ""
+              }`}
               onClick={
                 toggleSave
               }
               disabled={
+                saving ||
+                isUnavailable
+              }
+              aria-pressed={
+                saved
+              }
+              aria-label={
                 saving
+                  ? "Updating saved listing"
+                  : saved
+                    ? "Remove from saved listings"
+                    : "Save listing"
               }
             >
-              <Heart
-                aria-hidden="true"
-                fill={
-                  saved
-                    ? "currentColor"
-                    : "none"
-                }
-              />
+              {saving ? (
+                <Loader2
+                  className={
+                    styles.spinner
+                  }
+                  aria-hidden="true"
+                />
+              ) : (
+                <Heart
+                  aria-hidden="true"
+                  fill={
+                    saved
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+              )}
 
               {saved
                 ? "Saved"
@@ -995,24 +1417,19 @@ export default function ListingDetailsClient({
       </section>
 
 
-      {/* =====================================================
-          DETAILS
-      ====================================================== */}
-
-      <div
-        className={
-          styles.bodyLayout
+      <SponsoredPlacement
+        placement={
+          "listing_detail"
         }
-      >
+      />
+
+
+      <div className={styles.bodyLayout}>
         <main
           className={
             styles.mainContent
           }
         >
-          {/* ===============================================
-              KEY DETAILS
-          ================================================ */}
-
           <section
             className={
               styles.detailSection
@@ -1032,14 +1449,13 @@ export default function ListingDetailsClient({
               </h2>
             </div>
 
-
             <div
               className={
                 styles.detailContent
               }
             >
               {isMarketplace &&
-              listing.marketplace_details ? (
+              marketplace ? (
                 <div
                   className={
                     styles.detailGrid
@@ -1056,13 +1472,10 @@ export default function ListingDetailsClient({
 
                     <strong>
                       {titleCase(
-                        listing
-                          .marketplace_details
-                          .condition,
+                        marketplace.condition,
                       )}
                     </strong>
                   </div>
-
 
                   <div>
                     <CheckCircle2
@@ -1074,9 +1487,7 @@ export default function ListingDetailsClient({
                     </span>
 
                     <strong>
-                      {listing
-                        .marketplace_details
-                        .is_negotiable
+                      {marketplace.is_negotiable
                         ? "Negotiable"
                         : "Fixed price"}
                     </strong>
@@ -1088,12 +1499,10 @@ export default function ListingDetailsClient({
                     styles.detailGrid
                   }
                 >
-                  {details
-                    ?.bedrooms !==
-                    null &&
-                  details
-                    ?.bedrooms !==
-                    undefined ? (
+                  {hasValue(
+                    details
+                      ?.bedrooms,
+                  ) ? (
                     <div>
                       <BedDouble
                         aria-hidden="true"
@@ -1105,19 +1514,17 @@ export default function ListingDetailsClient({
 
                       <strong>
                         {
-                          details.bedrooms
+                          details
+                            ?.bedrooms
                         }
                       </strong>
                     </div>
                   ) : null}
 
-
-                  {details
-                    ?.bathrooms !==
-                    null &&
-                  details
-                    ?.bathrooms !==
-                    undefined ? (
+                  {hasValue(
+                    details
+                      ?.bathrooms,
+                  ) ? (
                     <div>
                       <Bath
                         aria-hidden="true"
@@ -1129,40 +1536,75 @@ export default function ListingDetailsClient({
 
                       <strong>
                         {
-                          details.bathrooms
+                          details
+                            ?.bathrooms
                         }
                       </strong>
                     </div>
                   ) : null}
 
-
-                  {listing
-                    .buy_property_details
-                    ?.land_size_sqm ? (
+                  {hasValue(
+                    details
+                      ?.toilets,
+                  ) ? (
                     <div>
-                      <Ruler
+                      <CheckCircle2
                         aria-hidden="true"
                       />
 
                       <span>
-                        Land size
+                        Toilets
                       </span>
 
                       <strong>
                         {
-                          listing
-                            .buy_property_details
-                            .land_size_sqm
-                        }{" "}
-                        m²
+                          details
+                            ?.toilets
+                        }
                       </strong>
                     </div>
                   ) : null}
 
+                  {rental ? (
+                    <div>
+                      <Package
+                        aria-hidden="true"
+                      />
 
-                  {listing
-                    .rental_details
-                    ?.distance_to_campus_km ? (
+                      <span>
+                        Furnishing
+                      </span>
+
+                      <strong>
+                        {rental.is_furnished
+                          ? "Furnished"
+                          : "Unfurnished"}
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  {rental ? (
+                    <div>
+                      <CheckCircle2
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        Rent period
+                      </span>
+
+                      <strong>
+                        {titleCase(
+                          rental.rent_period,
+                        )}
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  {hasValue(
+                    rental
+                      ?.distance_to_campus_km,
+                  ) ? (
                     <div>
                       <MapPin
                         aria-hidden="true"
@@ -1174,11 +1616,122 @@ export default function ListingDetailsClient({
 
                       <strong>
                         {
-                          listing
-                            .rental_details
-                            .distance_to_campus_km
+                          rental
+                            ?.distance_to_campus_km
                         }{" "}
                         km
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  {hasValue(
+                    rental
+                      ?.caution_fee,
+                  ) ? (
+                    <div>
+                      <Package
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        Caution fee
+                      </span>
+
+                      <strong>
+                        {formatCurrency(
+                          rental
+                            ?.caution_fee ??
+                            0,
+                          listing.currency,
+                        )}
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  {hasValue(
+                    rental
+                      ?.service_charge,
+                  ) ? (
+                    <div>
+                      <Package
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        Service charge
+                      </span>
+
+                      <strong>
+                        {formatCurrency(
+                          rental
+                            ?.service_charge ??
+                            0,
+                          listing.currency,
+                        )}
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  {property ? (
+                    <div>
+                      <CheckCircle2
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        Property condition
+                      </span>
+
+                      <strong>
+                        {titleCase(
+                          property
+                            .property_condition,
+                        )}
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  {hasValue(
+                    property
+                      ?.land_size_sqm,
+                  ) ? (
+                    <div>
+                      <Ruler
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        Land size
+                      </span>
+
+                      <strong>
+                        {
+                          property
+                            ?.land_size_sqm
+                        }{" "}
+                        m²
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  {hasValue(
+                    property
+                      ?.title_document,
+                  ) ? (
+                    <div>
+                      <Package
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        Title document
+                      </span>
+
+                      <strong>
+                        {
+                          property
+                            ?.title_document
+                        }
                       </strong>
                     </div>
                   ) : null}
@@ -1187,10 +1740,6 @@ export default function ListingDetailsClient({
             </div>
           </section>
 
-
-          {/* ===============================================
-              DESCRIPTION
-          ================================================ */}
 
           <section
             className={
@@ -1211,7 +1760,6 @@ export default function ListingDetailsClient({
               </h2>
             </div>
 
-
             <div
               className={
                 styles.detailContent
@@ -1222,17 +1770,11 @@ export default function ListingDetailsClient({
                   styles.description
                 }
               >
-                {
-                  listing.description
-                }
+                {listing.description}
               </p>
             </div>
           </section>
 
-
-          {/* ===============================================
-              LOCATION
-          ================================================ */}
 
           <section
             className={
@@ -1255,7 +1797,6 @@ export default function ListingDetailsClient({
               </h2>
             </div>
 
-
             <div
               className={
                 styles.detailContent
@@ -1276,27 +1817,22 @@ export default function ListingDetailsClient({
                   />
                 </span>
 
-
                 <div>
                   <small>
                     Area
                   </small>
 
                   <strong>
-                    {
-                      listing.area
-                        .name
-                    }
+                    {listing.area.name}
                   </strong>
 
                   <p>
-                    {listing.campus
-                      ?.name ??
-                      "OOU surrounding community"}
+                    {publicLocation}
                   </p>
 
                   <span>
                     Published{" "}
+
                     {formatDate(
                       listing.published_at,
                     )}
@@ -1307,10 +1843,6 @@ export default function ListingDetailsClient({
           </section>
         </main>
 
-
-        {/* ===================================================
-            CONTACT COLUMN
-        ==================================================== */}
 
         <aside
           className={
@@ -1332,7 +1864,6 @@ export default function ListingDetailsClient({
                 : "Listed by"}
             </span>
 
-
             <div
               className={
                 styles.ownerTop
@@ -1350,35 +1881,29 @@ export default function ListingDetailsClient({
                       listing.owner
                         .profile_image_url
                     }
-                    alt={`${listing.owner.full_name} profile`}
+                    alt={
+                      `${listing.owner.full_name} profile`
+                    }
                     width={72}
                     height={72}
                   />
                 ) : (
                   initials(
-                    listing.owner
-                      .full_name,
+                    listing.owner.full_name,
                   )
                 )}
               </span>
 
-
               <div>
                 <strong>
-                  {
-                    listing.owner
-                      .full_name
-                  }
+                  {listing.owner.full_name}
                 </strong>
 
                 <span>
-                  {
-                    ownerTypeLabel
-                  }
+                  {ownerTypeLabel}
                 </span>
               </div>
             </div>
-
 
             <div
               className={
@@ -1393,141 +1918,218 @@ export default function ListingDetailsClient({
                 {safetyMessage}
               </p>
             </div>
+
+            <div
+              className={
+                styles.reportRow
+              }
+            >
+              <ListingReportDialog
+                listingId={
+                  listing.id
+                }
+                listingTitle={
+                  listing.title
+                }
+                ownerId={
+                  listing.owner.id
+                }
+              />
+            </div>
           </section>
 
 
-          {/* ===============================================
-              INQUIRY
-          ================================================ */}
-
-          <form
-            id="inquiry"
-            className={
-              styles.inquiryCard
-            }
-            onSubmit={
-              sendInquiry
-            }
-          >
-            <div
+          {isOwner ? (
+            <section
+              id="inquiry"
               className={
-                styles.inquiryHeading
+                styles.actionNotice
               }
             >
-              <span
-                className={
-                  styles.inquiryIcon
+              <ShieldCheck
+                aria-hidden="true"
+              />
+
+              <h2>
+                This is your listing
+              </h2>
+
+              <p>
+                Manage its status, media and details
+                from your listing dashboard.
+              </p>
+
+              <Link
+                href={
+                  "/dashboard/listings"
                 }
               >
-                <MessageSquare
-                  aria-hidden="true"
-                />
-              </span>
+                Manage listing
+              </Link>
+            </section>
+          ) : isUnavailable ? (
+            <section
+              id="inquiry"
+              className={
+                styles.actionNotice
+              }
+            >
+              <Package
+                aria-hidden="true"
+              />
 
+              <h2>
+                Listing{" "}
+                {statusLabel
+                  .toLowerCase()}
+              </h2>
 
-              <div>
-                <span>
-                  Contact
+              <p>
+                This listing is retained for context
+                but is no longer accepting inquiries.
+              </p>
+
+              <Link
+                href={
+                  browseHref
+                }
+              >
+                Browse available{" "}
+                {browseLabel
+                  .toLowerCase()}
+              </Link>
+            </section>
+          ) : (
+            <form
+              id="inquiry"
+              className={
+                styles.inquiryCard
+              }
+              onSubmit={
+                sendInquiry
+              }
+            >
+              <div
+                className={
+                  styles.inquiryHeading
+                }
+              >
+                <span
+                  className={
+                    styles.inquiryIcon
+                  }
+                >
+                  <MessageSquare
+                    aria-hidden="true"
+                  />
                 </span>
 
-                <h2>
-                  {
-                    contactHeading
-                  }
-                </h2>
+                <div>
+                  <span>
+                    Contact
+                  </span>
 
-                <p>
-                  {
-                    contactDescription
-                  }
-                </p>
+                  <h2>
+                    {contactHeading}
+                  </h2>
+
+                  <p>
+                    {contactDescription}
+                  </p>
+                </div>
               </div>
-            </div>
 
+              <label>
+                <span>
+                  Inquiry type
+                </span>
 
-            <label>
-              <span>
-                Inquiry type
-              </span>
+                <select
+                  value={
+                    inquiryType
+                  }
+                  onChange={
+                    (event) =>
+                      setInquiryType(
+                        event.target
+                          .value as InquiryType,
+                      )
+                  }
+                >
+                  <option value="general">
+                    General question
+                  </option>
 
-              <select
-                value={
-                  inquiryType
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setInquiryType(
-                    event.target
-                      .value as InquiryType,
-                  )
+                  <option value="inspection">
+                    {isMarketplace
+                      ? "Arrange pickup / viewing"
+                      : "Request inspection"}
+                  </option>
+                </select>
+              </label>
+
+              <label>
+                <span>
+                  Message
+                </span>
+
+                <textarea
+                  rows={5}
+                  minLength={10}
+                  maxLength={3000}
+                  required
+                  value={
+                    message
+                  }
+                  onChange={
+                    (event) =>
+                      setMessage(
+                        event.target
+                          .value,
+                      )
+                  }
+                  placeholder={
+                    isMarketplace
+                      ? "Hello, is this item still available?"
+                      : "Hello, I would like to know whether this listing is still available…"
+                  }
+                />
+
+                <small>
+                  {message.length
+                    .toLocaleString()}
+                  /3,000
+                </small>
+              </label>
+
+              <button
+                type="submit"
+                disabled={
+                  sending
                 }
               >
-                <option value="general">
-                  General question
-                </option>
+                {sending ? (
+                  <Loader2
+                    className={
+                      styles.spinner
+                    }
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <MessageSquare
+                    aria-hidden="true"
+                  />
+                )}
 
-                <option value="inspection">
-                  {isMarketplace
-                    ? "Arrange pickup / viewing"
-                    : "Request inspection"}
-                </option>
-              </select>
-            </label>
-
-
-            <label>
-              <span>
-                Message
-              </span>
-
-              <textarea
-                rows={5}
-                value={
-                  message
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setMessage(
-                    event.target
-                      .value,
-                  )
-                }
-                placeholder={
-                  isMarketplace
-                    ? "Hello, is this item still available?"
-                    : "Hello, I would like to know whether this listing is still available…"
-                }
-              />
-            </label>
-
-
-            <button
-              type="submit"
-              disabled={
-                sending
-              }
-            >
-              {sending ? (
-                <Loader2
-                  className={
-                    styles.spinner
-                  }
-                  aria-hidden="true"
-                />
-              ) : (
-                <MessageSquare
-                  aria-hidden="true"
-                />
-              )}
-
-              {status ===
-              "authenticated"
-                ? "Send inquiry"
-                : "Sign in to contact"}
-            </button>
-          </form>
+                {status ===
+                "authenticated"
+                  ? sending
+                    ? "Sending…"
+                    : "Send inquiry"
+                  : "Sign in to contact"}
+              </button>
+            </form>
+          )}
         </aside>
       </div>
     </div>

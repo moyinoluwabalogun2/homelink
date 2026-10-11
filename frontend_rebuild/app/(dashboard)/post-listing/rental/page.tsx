@@ -1,5 +1,30 @@
 import PropertyListingForm from "@/components/forms/PropertyListingForm";
 
-export default function RentalListingPage() {
-  return <PropertyListingForm mode="rental" />;
+interface RentalListingPageProps {
+  searchParams?: {
+    edit?: string | string[];
+  };
+}
+
+export default function RentalListingPage({
+  searchParams,
+}: RentalListingPageProps) {
+  const editValue =
+    searchParams?.edit;
+
+  const listingId =
+    Array.isArray(
+      editValue,
+    )
+      ? editValue[0]
+      : editValue;
+
+  return (
+    <PropertyListingForm
+      mode="rental"
+      listingId={
+        listingId
+      }
+    />
+  );
 }

@@ -902,3 +902,9 @@
     animation: none;
   }
 }
+
+.retryButton:disabled,
+.creditRetry:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}

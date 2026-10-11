@@ -1,11 +1,11 @@
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     HTTPException,
     Request,
     Response,
     status,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_dependencies import CurrentUser
 from app.api.dependencies import DbSession, RedisClient
@@ -41,6 +41,7 @@ from app.services.auth_service import (
 from app.services.password_reset_service import (
     PasswordResetError,
     PasswordResetService,
+    deliver_password_reset_email,
 )
 
 
@@ -158,22 +159,14 @@ def clear_refresh_cookie(
 # ============================================================
 # AUTH RESPONSE
 #
-# Keep this refresh.
-#
-# Auth operations can update DB-managed values such as
-# updated_at. Refreshing while we are still inside SQLAlchemy's
-# async context prevents Pydantic from trying to lazy-load an
-# expired attribute during serialization.
+# AuthService returns every scalar field required by UserRead in
+# memory. Building the response must not issue another database
+# query or reload the User relationships.
 # ============================================================
 
-async def build_auth_response(
+def build_auth_response(
     result: AuthResult,
-    session: AsyncSession,
 ) -> AuthResponse:
-    await session.refresh(
-        result.user
-    )
-
     return AuthResponse(
         access_token=(
             result.access_token
@@ -248,9 +241,8 @@ async def register(
         result.refresh_token,
     )
 
-    return await build_auth_response(
+    return build_auth_response(
         result,
-        session,
     )
 
 
@@ -357,9 +349,8 @@ async def login(
         result.refresh_token,
     )
 
-    return await build_auth_response(
+    return build_auth_response(
         result,
-        session,
     )
 
 
@@ -448,9 +439,8 @@ async def refresh_access_token(
         result.refresh_token,
     )
 
-    return await build_auth_response(
+    return build_auth_response(
         result,
-        session,
     )
 
 
@@ -528,6 +518,7 @@ async def logout_all(
 async def forgot_password(
     payload: ForgotPasswordRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     session: DbSession,
     redis: RedisClient,
 ) -> MessageResponse:
@@ -555,7 +546,7 @@ async def forgot_password(
         window_seconds=3600,
     )
 
-    await PasswordResetService(
+    delivery = await PasswordResetService(
         session
     ).request_reset(
         email=str(
@@ -563,6 +554,12 @@ async def forgot_password(
         ),
         requested_ip=ip_address,
     )
+
+    if delivery is not None:
+        background_tasks.add_task(
+            deliver_password_reset_email,
+            delivery,
+        )
 
     return MessageResponse(
         message=(

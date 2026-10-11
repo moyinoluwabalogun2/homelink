@@ -29,7 +29,11 @@ class PaymentPlanRead(ORMModel):
 
 
 class PaymentInitializeRequest(BaseModel):
-    plan_code: str = Field(min_length=2, max_length=80)
+    plan_code: str = Field(
+        min_length=2,
+        max_length=80,
+    )
+    provider: PaymentProvider | None = None
 
 
 class PaymentRead(ORMModel):
@@ -48,3 +52,8 @@ class PaymentRead(ORMModel):
 class PaymentInitializeResponse(BaseModel):
     payment: PaymentRead
     authorization_url: str
+
+
+class PaymentProvidersRead(BaseModel):
+    providers: list[PaymentProvider]
+    default_provider: PaymentProvider | None

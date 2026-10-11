@@ -28,7 +28,8 @@ import type {
 type AuthStatus =
   | "loading"
   | "authenticated"
-  | "guest";
+  | "guest"
+  | "unavailable";
 
 
 interface AuthContextValue {
@@ -40,18 +41,15 @@ interface AuthContextValue {
   isAuthenticated:
     boolean;
 
-
   login: (
     payload:
       LoginPayload,
   ) => Promise<User>;
 
-
   register: (
     payload:
       RegisterPayload,
   ) => Promise<User>;
-
 
   logout:
     () => Promise<void>;
@@ -59,11 +57,13 @@ interface AuthContextValue {
   logoutAll:
     () => Promise<void>;
 
-
   refreshProfile:
     () => Promise<
       User | null
     >;
+
+  retryRestore:
+    () => void;
 }
 
 
@@ -92,7 +92,6 @@ export function AuthProvider({
       null,
     );
 
-
   const [
     status,
     setStatus,
@@ -100,6 +99,12 @@ export function AuthProvider({
     useState<AuthStatus>(
       "loading",
     );
+
+  const [
+    restoreAttempt,
+    setRestoreAttempt,
+  ] =
+    useState(0);
 
 
   const markGuest =
@@ -135,10 +140,6 @@ export function AuthProvider({
     );
 
 
-  /* =======================================================
-     RESTORE SESSION
-  ======================================================= */
-
   useEffect(
     () => {
       let active =
@@ -152,24 +153,15 @@ export function AuthProvider({
           );
 
           try {
-            /*
-             * Always attempt restoration.
-             *
-             * The access token intentionally lives only in
-             * memory.
-             *
-             * The refresh token lives in a protected HttpOnly
-             * cookie and cannot be inspected by JavaScript.
-             */
             const session =
               await authService
                 .restoreSession();
 
-
-            if (!active) {
+            if (
+              !active
+            ) {
               return;
             }
-
 
             markAuthenticated(
               session.user,
@@ -178,17 +170,12 @@ export function AuthProvider({
           } catch (
             error
           ) {
-            if (!active) {
+            if (
+              !active
+            ) {
               return;
             }
 
-
-            /*
-             * 401 / 403 means the server has definitively
-             * rejected the session.
-             *
-             * That is a real logout.
-             */
             if (
               isDefinitiveAuthFailure(
                 error,
@@ -199,17 +186,8 @@ export function AuthProvider({
               return;
             }
 
-
-            /*
-             * A network timeout / temporary infrastructure
-             * problem must not be interpreted as logout.
-             *
-             * Keep HomeLink in restoration state. The user is
-             * not redirected to /login merely because the API
-             * temporarily failed.
-             */
             setStatus(
-              "loading",
+              "unavailable",
             );
           }
         };
@@ -247,13 +225,29 @@ export function AuthProvider({
     [
       markAuthenticated,
       markGuest,
+      restoreAttempt,
     ],
   );
 
 
-  /* =======================================================
-     LOGIN
-  ======================================================= */
+  const retryRestore =
+    useCallback(
+      () => {
+        setStatus(
+          "loading",
+        );
+
+        setRestoreAttempt(
+          (
+            current,
+          ) =>
+            current +
+            1,
+        );
+      },
+      [],
+    );
+
 
   const login =
     useCallback(
@@ -262,15 +256,14 @@ export function AuthProvider({
           LoginPayload,
       ): Promise<User> => {
         const session =
-          await authService.login(
-            payload,
-          );
-
+          await authService
+            .login(
+              payload,
+            );
 
         markAuthenticated(
           session.user,
         );
-
 
         return session.user;
       },
@@ -279,10 +272,6 @@ export function AuthProvider({
       ],
     );
 
-
-  /* =======================================================
-     REGISTER
-  ======================================================= */
 
   const register =
     useCallback(
@@ -291,15 +280,14 @@ export function AuthProvider({
           RegisterPayload,
       ): Promise<User> => {
         const session =
-          await authService.register(
-            payload,
-          );
-
+          await authService
+            .register(
+              payload,
+            );
 
         markAuthenticated(
           session.user,
         );
-
 
         return session.user;
       },
@@ -309,15 +297,12 @@ export function AuthProvider({
     );
 
 
-  /* =======================================================
-     LOGOUT
-  ======================================================= */
-
   const logout =
     useCallback(
       async (): Promise<void> => {
         try {
-          await authService.logout();
+          await authService
+            .logout();
 
         } finally {
           markGuest();
@@ -333,7 +318,8 @@ export function AuthProvider({
     useCallback(
       async (): Promise<void> => {
         try {
-          await authService.logoutAll();
+          await authService
+            .logoutAll();
 
         } finally {
           markGuest();
@@ -345,10 +331,6 @@ export function AuthProvider({
     );
 
 
-  /* =======================================================
-     PROFILE REFRESH
-  ======================================================= */
-
   const refreshProfile =
     useCallback(
       async (): Promise<
@@ -359,21 +341,15 @@ export function AuthProvider({
             await authService
               .getMe();
 
-
           markAuthenticated(
             currentUser,
           );
-
 
           return currentUser;
 
         } catch (
           error
         ) {
-          /*
-           * Only invalidate the UI session when FastAPI has
-           * actually rejected authentication.
-           */
           if (
             isDefinitiveAuthFailure(
               error,
@@ -382,11 +358,6 @@ export function AuthProvider({
             markGuest();
           }
 
-
-          /*
-           * A temporary timeout / network failure leaves the
-           * existing authenticated UI state untouched.
-           */
           return null;
         }
       },
@@ -396,10 +367,6 @@ export function AuthProvider({
       ],
     );
 
-
-  /* =======================================================
-     CONTEXT
-  ======================================================= */
 
   const value =
     useMemo<
@@ -426,6 +393,8 @@ export function AuthProvider({
         logoutAll,
 
         refreshProfile,
+
+        retryRestore,
       }),
       [
         user,
@@ -435,6 +404,7 @@ export function AuthProvider({
         logout,
         logoutAll,
         refreshProfile,
+        retryRestore,
       ],
     );
 
@@ -458,13 +428,13 @@ export function useAuth():
       AuthContext,
     );
 
-
-  if (!context) {
+  if (
+    !context
+  ) {
     throw new Error(
       "useAuth must be used inside AuthProvider.",
     );
   }
-
 
   return context;
 }

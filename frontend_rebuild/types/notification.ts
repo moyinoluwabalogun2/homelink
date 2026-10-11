@@ -18,3 +18,15 @@ export interface Notification {
   read_at: string | null;
   created_at: string;
 }
+
+export interface NotificationPage {
+  items: Notification[];
+  has_more: boolean;
+  next_before: string | null;
+  next_before_id: string | null;
+}
+
+export interface NotificationMarkAllReadResponse {
+  message: string;
+  updated_count: number;
+}

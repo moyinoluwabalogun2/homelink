@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import {
   type FormEvent,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -23,35 +24,56 @@ import {
   X,
 } from "lucide-react";
 
-import { toast } from "sonner";
+import {
+  toast,
+} from "sonner";
 
-import ListingGrid from "@/components/listings/ListingGrid";
+import SponsoredPlacement
+  from "@/components/advertising/SponsoredPlacement";
 
-import { useAuth } from "@/context/AuthContext";
+import ListingGrid
+  from "@/components/listings/ListingGrid";
 
-import { getApiErrorMessage } from "@/lib/api-errors";
-import { categoriesFor } from "@/lib/listing-options";
-import { toNumber } from "@/lib/formatters";
+import {
+  useAuth,
+} from "@/context/AuthContext";
 
-import { engagementService } from "@/services/engagement-service";
-import { listingService } from "@/services/listing-service";
-import { locationService } from "@/services/location-service";
+import {
+  useDialogAccessibility,
+} from "@/hooks/use-dialog-accessibility";
 
-import type { AreaRead } from "@/types/location";
+import {
+  getApiErrorMessage,
+} from "@/lib/api-errors";
+
+import {
+  categoriesFor,
+} from "@/lib/listing-options";
+
+import {
+  engagementService,
+} from "@/services/engagement-service";
+
+import {
+  listingService,
+} from "@/services/listing-service";
+
+import {
+  locationService,
+} from "@/services/location-service";
+
+import type {
+  AreaRead,
+} from "@/types/location";
 
 import type {
   Listing,
+  ListingSort,
   ListingType,
 } from "@/types/listing";
 
-import styles from "./ListingExplorer.module.css";
-
-
-type SortOption =
-  | "recommended"
-  | "newest"
-  | "price_low"
-  | "price_high";
+import styles
+  from "./ListingExplorer.module.css";
 
 
 interface FilterState {
@@ -60,7 +82,7 @@ interface FilterState {
   category: string;
   minPrice: string;
   maxPrice: string;
-  sort: SortOption;
+  sort: ListingSort;
 }
 
 
@@ -72,16 +94,7 @@ interface ListingExplorerProps {
 }
 
 
-function listingCategory(
-  listing: Listing,
-): string {
-  return (
-    listing.rental_details?.category ??
-    listing.buy_property_details?.category ??
-    listing.marketplace_details?.category ??
-    ""
-  );
-}
+const PAGE_SIZE = 24;
 
 
 function normalize(
@@ -90,7 +103,25 @@ function normalize(
   return value
     .trim()
     .toLowerCase()
-    .replace(/-/g, "_");
+    .replace(
+      /-/g,
+      "_",
+    );
+}
+
+
+function parseSortOption(
+  value: string | null,
+): ListingSort {
+  if (
+    value === "newest" ||
+    value === "price_low" ||
+    value === "price_high"
+  ) {
+    return value;
+  }
+
+  return "recommended";
 }
 
 
@@ -100,12 +131,18 @@ export default function ListingExplorer({
   title,
   description,
 }: ListingExplorerProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const router =
+    useRouter();
 
-  const { status } =
-    useAuth();
+  const pathname =
+    usePathname();
+
+  const searchParams =
+    useSearchParams();
+
+  const {
+    status,
+  } = useAuth();
 
 
   const isMarketplace =
@@ -116,10 +153,21 @@ export default function ListingExplorer({
     listingType ===
     "buy_property";
 
+  const advertisementPlacement =
+    isMarketplace
+      ? "marketplace"
+      : "discovery";
+
 
   const categoryOptions =
-    categoriesFor(
-      listingType,
+    useMemo(
+      () =>
+        categoriesFor(
+          listingType,
+        ),
+      [
+        listingType,
+      ],
     );
 
 
@@ -127,12 +175,14 @@ export default function ListingExplorer({
     useMemo<FilterState>(
       () => ({
         q:
-          searchParams.get("q") ??
-          "",
+          searchParams.get(
+            "q",
+          ) ?? "",
 
         area:
-          searchParams.get("area") ??
-          "",
+          searchParams.get(
+            "area",
+          ) ?? "",
 
         category:
           normalize(
@@ -152,93 +202,159 @@ export default function ListingExplorer({
           ) ?? "",
 
         sort:
-          (searchParams.get(
-            "sort",
-          ) as
-            | SortOption
-            | null) ??
-          "recommended",
+          parseSortOption(
+            searchParams.get(
+              "sort",
+            ),
+          ),
       }),
-      [searchParams],
+      [
+        searchParams,
+      ],
     );
 
 
   const [
     draft,
     setDraft,
-  ] =
-    useState<FilterState>(
-      initialFilters,
-    );
-
+  ] = useState<FilterState>(
+    initialFilters,
+  );
 
   const [
     applied,
     setApplied,
-  ] =
-    useState<FilterState>(
+  ] = useState<FilterState>(
+    initialFilters,
+  );
+
+
+  useEffect(() => {
+    setDraft(
       initialFilters,
     );
+
+    setApplied(
+      initialFilters,
+    );
+  }, [
+    initialFilters,
+  ]);
 
 
   const [
     areas,
     setAreas,
-  ] =
-    useState<AreaRead[]>([]);
+  ] = useState<AreaRead[]>(
+    [],
+  );
 
+  const [
+    areasReady,
+    setAreasReady,
+  ] = useState(
+    false,
+  );
 
   const [
     listings,
     setListings,
-  ] =
-    useState<Listing[]>([]);
-
+  ] = useState<Listing[]>(
+    [],
+  );
 
   const [
     loading,
     setLoading,
-  ] =
-    useState(true);
+  ] = useState(
+    true,
+  );
 
+  const [
+    loadingMore,
+    setLoadingMore,
+  ] = useState(
+    false,
+  );
+
+  const [
+    hasMore,
+    setHasMore,
+  ] = useState(
+    false,
+  );
 
   const [
     error,
     setError,
-  ] =
-    useState<
-      string | null
-    >(null);
-
+  ] = useState<
+    string | null
+  >(
+    null,
+  );
 
   const [
     filtersOpen,
     setFiltersOpen,
-  ] =
-    useState(false);
-
+  ] = useState(
+    false,
+  );
 
   const [
     savedIds,
     setSavedIds,
-  ] =
-    useState<Set<string>>(
-      new Set(),
-    );
-
+  ] = useState<
+    Set<string>
+  >(
+    new Set(),
+  );
 
   const [
     savingId,
     setSavingId,
-  ] =
-    useState<
-      string | null
-    >(null);
+  ] = useState<
+    string | null
+  >(
+    null,
+  );
 
 
-  /* =========================================================
-     AREAS
-  ========================================================= */
+  const requestVersionRef =
+    useRef(0);
+
+  const mobileSheetRef =
+    useRef<HTMLElement>(
+      null,
+    );
+
+  const mobileCloseRef =
+    useRef<HTMLButtonElement>(
+      null,
+    );
+
+
+  const closeFilters =
+    useCallback(() => {
+      setFiltersOpen(
+        false,
+      );
+    }, []);
+
+
+  useDialogAccessibility({
+    open:
+      filtersOpen,
+
+    containerRef:
+      mobileSheetRef,
+
+    initialFocusRef:
+      mobileCloseRef,
+
+    onClose:
+      closeFilters,
+  });
+
 
   useEffect(() => {
     let active = true;
@@ -247,12 +363,23 @@ export default function ListingExplorer({
       .listAreas()
       .then((records) => {
         if (active) {
-          setAreas(records);
+          setAreas(
+            records,
+          );
         }
       })
       .catch(() => {
         if (active) {
-          setAreas([]);
+          setAreas(
+            [],
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setAreasReady(
+            true,
+          );
         }
       });
 
@@ -261,10 +388,6 @@ export default function ListingExplorer({
     };
   }, []);
 
-
-  /* =========================================================
-     SAVED LISTINGS
-  ========================================================= */
 
   useEffect(() => {
     if (
@@ -291,7 +414,9 @@ export default function ListingExplorer({
           new Set(
             records.map(
               (record) =>
-                record.listing.id,
+                record
+                  .listing
+                  .id,
             ),
           ),
         );
@@ -303,12 +428,10 @@ export default function ListingExplorer({
     return () => {
       active = false;
     };
-  }, [status]);
+  }, [
+    status,
+  ]);
 
-
-  /* =========================================================
-     AREA RESOLUTION
-  ========================================================= */
 
   const selectedArea =
     useMemo(() => {
@@ -331,15 +454,41 @@ export default function ListingExplorer({
     ]);
 
 
-  /* =========================================================
-     LOAD LISTINGS
-  ========================================================= */
-
   const loadListings =
     useCallback(
-      async () => {
-        setLoading(true);
-        setError(null);
+      async (
+        signal?: AbortSignal,
+        offset = 0,
+      ) => {
+        if (
+          applied.area &&
+          !areasReady
+        ) {
+          return;
+        }
+
+        const requestVersion =
+          offset === 0
+            ? ++requestVersionRef
+                .current
+            : requestVersionRef
+                .current;
+
+        if (
+          offset === 0
+        ) {
+          setLoading(
+            true,
+          );
+        } else {
+          setLoadingMore(
+            true,
+          );
+        }
+
+        setError(
+          null,
+        );
 
         try {
           const records =
@@ -349,37 +498,117 @@ export default function ListingExplorer({
                   listingType,
 
                 area_id:
-                  selectedArea?.id,
+                  selectedArea
+                    ?.id,
 
                 min_price:
                   applied.minPrice
                     ? Number(
-                        applied.minPrice,
+                        applied
+                          .minPrice,
                       )
                     : undefined,
 
                 max_price:
                   applied.maxPrice
                     ? Number(
-                        applied.maxPrice,
+                        applied
+                          .maxPrice,
                       )
                     : undefined,
 
                 q:
-                  applied.q.trim() ||
+                  applied.q
+                    .trim() ||
                   undefined,
 
-                limit: 100,
+                category:
+                  applied
+                    .category ||
+                  undefined,
+
+                sort:
+                  applied.sort,
+
+                limit:
+                  PAGE_SIZE + 1,
+
+                offset,
               },
+              signal,
             );
 
+          if (
+            signal?.aborted ||
+            requestVersion !==
+              requestVersionRef
+                .current
+          ) {
+            return;
+          }
+
+          const page =
+            records.slice(
+              0,
+              PAGE_SIZE,
+            );
+
+          setHasMore(
+            records.length >
+              PAGE_SIZE,
+          );
+
           setListings(
-            records,
+            (current) => {
+              if (
+                offset === 0
+              ) {
+                return page;
+              }
+
+              const knownIds =
+                new Set(
+                  current.map(
+                    (item) =>
+                      item.id,
+                  ),
+                );
+
+              return [
+                ...current,
+
+                ...page.filter(
+                  (item) =>
+                    !knownIds.has(
+                      item.id,
+                    ),
+                ),
+              ];
+            },
           );
         } catch (
           requestError
         ) {
-          setListings([]);
+          if (
+            signal?.aborted ||
+            requestVersion !==
+              requestVersionRef
+                .current
+          ) {
+            return;
+          }
+
+          if (
+            offset === 0
+          ) {
+            setListings(
+              [],
+            );
+
+            setHasMore(
+              false,
+            );
+          }
 
           setError(
             getApiErrorMessage(
@@ -388,261 +617,234 @@ export default function ListingExplorer({
             ),
           );
         } finally {
-          setLoading(false);
+          if (
+            !signal?.aborted
+          ) {
+            if (
+              offset === 0
+            ) {
+              setLoading(
+                false,
+              );
+            } else {
+              setLoadingMore(
+                false,
+              );
+            }
+          }
         }
       },
       [
         listingType,
         selectedArea?.id,
+        applied.area,
         applied.minPrice,
         applied.maxPrice,
         applied.q,
+        applied.category,
+        applied.sort,
+        areasReady,
       ],
     );
 
 
   useEffect(() => {
-    void loadListings();
-  }, [loadListings]);
-
-
-  /* =========================================================
-     FILTER + SORT
-  ========================================================= */
-
-  const visibleListings =
-    useMemo(() => {
-      const category =
-        normalize(
-          applied.category,
-        );
-
-      const filtered =
-        category
-          ? listings.filter(
-              (listing) =>
-                normalize(
-                  listingCategory(
-                    listing,
-                  ),
-                ) ===
-                category,
-            )
-          : [...listings];
-
-
-      if (
-        applied.sort ===
-        "price_low"
-      ) {
-        filtered.sort(
-          (a, b) =>
-            toNumber(
-              a.price,
-            ) -
-            toNumber(
-              b.price,
-            ),
-        );
-      } else if (
-        applied.sort ===
-        "price_high"
-      ) {
-        filtered.sort(
-          (a, b) =>
-            toNumber(
-              b.price,
-            ) -
-            toNumber(
-              a.price,
-            ),
-        );
-      } else if (
-        applied.sort ===
-        "newest"
-      ) {
-        filtered.sort(
-          (a, b) =>
-            new Date(
-              b.published_at ??
-                b.created_at,
-            ).getTime() -
-            new Date(
-              a.published_at ??
-                a.created_at,
-            ).getTime(),
-        );
-      }
-
-      return filtered;
-    }, [
-      listings,
-      applied.category,
-      applied.sort,
-    ]);
-
-
-  /* =========================================================
-     URL STATE
-  ========================================================= */
-
-  const updateUrl = (
-    filters: FilterState,
-  ) => {
-    const params =
-      new URLSearchParams();
-
-
-    if (filters.q.trim()) {
-      params.set(
-        "q",
-        filters.q.trim(),
-      );
-    }
-
-
-    if (filters.area) {
-      params.set(
-        "area",
-        filters.area,
-      );
-    }
-
-
     if (
-      filters.category
+      applied.area &&
+      !areasReady
     ) {
-      params.set(
-        "category",
-        filters.category,
-      );
+      return;
     }
 
+    const controller =
+      new AbortController();
 
-    if (
-      filters.minPrice
-    ) {
-      params.set(
-        "min_price",
-        filters.minPrice,
-      );
-    }
-
-
-    if (
-      filters.maxPrice
-    ) {
-      params.set(
-        "max_price",
-        filters.maxPrice,
-      );
-    }
-
-
-    if (
-      filters.sort !==
-      "recommended"
-    ) {
-      params.set(
-        "sort",
-        filters.sort,
-      );
-    }
-
-
-    const query =
-      params.toString();
-
-
-    router.replace(
-      query
-        ? `${pathname}?${query}`
-        : pathname,
-      {
-        scroll: false,
-      },
+    void loadListings(
+      controller.signal,
     );
-  };
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    applied.area,
+    areasReady,
+    loadListings,
+  ]);
 
 
-  /* =========================================================
-     APPLY
-  ========================================================= */
+  const updateUrl =
+    useCallback(
+      (
+        filters:
+          FilterState,
+      ) => {
+        const params =
+          new URLSearchParams();
+
+        if (
+          filters.q.trim()
+        ) {
+          params.set(
+            "q",
+            filters.q.trim(),
+          );
+        }
+
+        if (
+          filters.area
+        ) {
+          params.set(
+            "area",
+            filters.area,
+          );
+        }
+
+        if (
+          filters.category
+        ) {
+          params.set(
+            "category",
+            filters.category,
+          );
+        }
+
+        if (
+          filters.minPrice
+        ) {
+          params.set(
+            "min_price",
+            filters.minPrice,
+          );
+        }
+
+        if (
+          filters.maxPrice
+        ) {
+          params.set(
+            "max_price",
+            filters.maxPrice,
+          );
+        }
+
+        if (
+          filters.sort !==
+          "recommended"
+        ) {
+          params.set(
+            "sort",
+            filters.sort,
+          );
+        }
+
+        const query =
+          params.toString();
+
+        router.replace(
+          query
+            ? `${pathname}?${query}`
+            : pathname,
+          {
+            scroll:
+              false,
+          },
+        );
+      },
+      [
+        pathname,
+        router,
+      ],
+    );
+
 
   const applyFilters = (
     event?: FormEvent,
   ) => {
-    event?.preventDefault();
+    event
+      ?.preventDefault();
 
-    setApplied(draft);
-    updateUrl(draft);
+    const next = {
+      ...draft,
 
-    setFiltersOpen(
-      false,
+      q:
+        draft.q.trim(),
+    };
+
+    setDraft(
+      next,
     );
+
+    setApplied(
+      next,
+    );
+
+    updateUrl(
+      next,
+    );
+
+    closeFilters();
   };
 
-
-  /* =========================================================
-     CATEGORY QUICK FILTER
-  ========================================================= */
 
   const applyCategory = (
     category: string,
   ) => {
-    const next = {
+    const nextDraft = {
       ...draft,
       category,
     };
 
-    setDraft(next);
-
-    setApplied(
-      (current) => ({
-        ...current,
-        category,
-      }),
-    );
-
-    updateUrl({
+    const nextApplied = {
       ...applied,
       category,
-    });
+    };
+
+    setDraft(
+      nextDraft,
+    );
+
+    setApplied(
+      nextApplied,
+    );
+
+    updateUrl(
+      nextApplied,
+    );
   };
 
 
-  /* =========================================================
-     CLEAR
-  ========================================================= */
-
   const clearFilters =
     () => {
-      const empty: FilterState =
-        {
-          q: "",
-          area: "",
-          category: "",
-          minPrice: "",
-          maxPrice: "",
-          sort:
-            "recommended",
-        };
+      const empty:
+        FilterState = {
+        q: "",
+        area: "",
+        category: "",
+        minPrice: "",
+        maxPrice: "",
+        sort:
+          "recommended",
+      };
 
-      setDraft(empty);
-      setApplied(empty);
+      setDraft(
+        empty,
+      );
+
+      setApplied(
+        empty,
+      );
 
       router.replace(
         pathname,
         {
-          scroll: false,
+          scroll:
+            false,
         },
       );
+
+      closeFilters();
     };
 
-
-  /* =========================================================
-     SAVE
-  ========================================================= */
 
   const toggleSaved =
     async (
@@ -665,7 +867,6 @@ export default function ListingExplorer({
         return;
       }
 
-
       const currentlySaved =
         savedIds.has(
           listing.id,
@@ -675,14 +876,14 @@ export default function ListingExplorer({
         listing.id,
       );
 
-
       try {
         if (
           currentlySaved
         ) {
-          await engagementService.removeSavedListing(
-            listing.id,
-          );
+          await engagementService
+            .removeSavedListing(
+              listing.id,
+            );
 
           setSavedIds(
             (current) => {
@@ -703,9 +904,10 @@ export default function ListingExplorer({
             "Removed from saved listings.",
           );
         } else {
-          await engagementService.saveListing(
-            listing.id,
-          );
+          await engagementService
+            .saveListing(
+              listing.id,
+            );
 
           setSavedIds(
             (current) =>
@@ -730,20 +932,22 @@ export default function ListingExplorer({
           ),
         );
       } finally {
-        setSavingId(null);
+        setSavingId(
+          null,
+        );
       }
     };
 
 
-  const activeFilterCount =
-    [
-      applied.q,
-      applied.area,
-      applied.category,
-      applied.minPrice,
-      applied.maxPrice,
-    ].filter(Boolean)
-      .length;
+  const activeFilterCount = [
+    applied.q,
+    applied.area,
+    applied.category,
+    applied.minPrice,
+    applied.maxPrice,
+  ].filter(
+    Boolean,
+  ).length;
 
 
   const searchPlaceholder =
@@ -758,6 +962,12 @@ export default function ListingExplorer({
     isMarketplace
       ? "items"
       : "listings";
+
+
+  const singularResultLabel =
+    isMarketplace
+      ? "item"
+      : "listing";
 
 
   const trustTitle =
@@ -778,37 +988,22 @@ export default function ListingExplorer({
       : "Compare photos, location and listing details before making an inquiry.";
 
 
-  /* =========================================================
-     FILTER FIELDS
-  ========================================================= */
-
   const filterFields = (
     <>
-      <label
-        className={
-          styles.field
-        }
-      >
+      <label className={styles.field}>
         <span>
           Area
         </span>
 
         <select
-          value={
-            draft.area
-          }
-          onChange={(
-            event,
-          ) =>
+          value={draft.area}
+          onChange={(event) =>
             setDraft(
-              (
-                current,
-              ) => ({
+              (current) => ({
                 ...current,
 
                 area:
-                  event
-                    .target
+                  event.target
                     .value,
               }),
             )
@@ -821,9 +1016,7 @@ export default function ListingExplorer({
           {areas.map(
             (area) => (
               <option
-                key={
-                  area.id
-                }
+                key={area.id}
                 value={
                   area.slug ||
                   area.id
@@ -837,31 +1030,20 @@ export default function ListingExplorer({
       </label>
 
 
-      <label
-        className={
-          styles.field
-        }
-      >
+      <label className={styles.field}>
         <span>
           Category
         </span>
 
         <select
-          value={
-            draft.category
-          }
-          onChange={(
-            event,
-          ) =>
+          value={draft.category}
+          onChange={(event) =>
             setDraft(
-              (
-                current,
-              ) => ({
+              (current) => ({
                 ...current,
 
                 category:
-                  event
-                    .target
+                  event.target
                     .value,
               }),
             )
@@ -874,16 +1056,10 @@ export default function ListingExplorer({
           {categoryOptions.map(
             (option) => (
               <option
-                key={
-                  option.value
-                }
-                value={
-                  option.value
-                }
+                key={option.value}
+                value={option.value}
               >
-                {
-                  option.label
-                }
+                {option.label}
               </option>
             ),
           )}
@@ -891,16 +1067,8 @@ export default function ListingExplorer({
       </label>
 
 
-      <div
-        className={
-          styles.priceFields
-        }
-      >
-        <label
-          className={
-            styles.field
-          }
-        >
+      <div className={styles.priceFields}>
+        <label className={styles.field}>
           <span>
             Minimum price
           </span>
@@ -913,18 +1081,13 @@ export default function ListingExplorer({
             value={
               draft.minPrice
             }
-            onChange={(
-              event,
-            ) =>
+            onChange={(event) =>
               setDraft(
-                (
-                  current,
-                ) => ({
+                (current) => ({
                   ...current,
 
                   minPrice:
-                    event
-                      .target
+                    event.target
                       .value,
                 }),
               )
@@ -933,12 +1096,7 @@ export default function ListingExplorer({
           />
         </label>
 
-
-        <label
-          className={
-            styles.field
-          }
-        >
+        <label className={styles.field}>
           <span>
             Maximum price
           </span>
@@ -951,18 +1109,13 @@ export default function ListingExplorer({
             value={
               draft.maxPrice
             }
-            onChange={(
-              event,
-            ) =>
+            onChange={(event) =>
               setDraft(
-                (
-                  current,
-                ) => ({
+                (current) => ({
                   ...current,
 
                   maxPrice:
-                    event
-                      .target
+                    event.target
                       .value,
                 }),
               )
@@ -981,46 +1134,41 @@ export default function ListingExplorer({
         styles.page,
 
         isMarketplace
-          ? styles.marketplacePage
+          ? styles
+              .marketplacePage
           : "",
 
         isProperty
-          ? styles.propertyPage
+          ? styles
+              .propertyPage
           : "",
       ]
-        .filter(Boolean)
-        .join(" ")}
+        .filter(
+          Boolean,
+        )
+        .join(
+          " ",
+        )}
     >
-      {/* ===================================================
-          PAGE INTRO
-      ==================================================== */}
-
       <section
         className={[
           styles.hero,
 
           isMarketplace
-            ? styles.marketplaceHero
+            ? styles
+                .marketplaceHero
             : "",
         ]
-          .filter(Boolean)
-          .join(" ")}
+          .filter(
+            Boolean,
+          )
+          .join(
+            " ",
+          )}
       >
-        <div
-          className={
-            styles.heroInner
-          }
-        >
-          <div
-            className={
-              styles.heroCopy
-            }
-          >
-            <span
-              className={
-                styles.eyebrow
-              }
-            >
+        <div className={styles.heroInner}>
+          <div className={styles.heroCopy}>
+            <span className={styles.eyebrow}>
               {eyebrow}
             </span>
 
@@ -1033,17 +1181,8 @@ export default function ListingExplorer({
             </p>
           </div>
 
-
-          <div
-            className={
-              styles.trustNote
-            }
-          >
-            <span
-              className={
-                styles.trustIcon
-              }
-            >
+          <div className={styles.trustNote}>
+            <span className={styles.trustIcon}>
               <ShieldCheck
                 aria-hidden="true"
               />
@@ -1055,9 +1194,7 @@ export default function ListingExplorer({
               </span>
 
               <p>
-                {
-                  trustDescription
-                }
+                {trustDescription}
               </p>
             </div>
           </div>
@@ -1065,43 +1202,24 @@ export default function ListingExplorer({
       </section>
 
 
-      {/* ===================================================
-          SEARCH
-      ==================================================== */}
-
-      <section
-        className={
-          styles.searchSection
-        }
-      >
+      <section className={styles.searchSection}>
         <form
-          className={
-            styles.searchBar
-          }
-          onSubmit={
-            applyFilters
-          }
+          className={styles.searchBar}
+          onSubmit={applyFilters}
         >
           <Search
             aria-hidden="true"
           />
 
           <input
-            value={
-              draft.q
-            }
-            onChange={(
-              event,
-            ) =>
+            value={draft.q}
+            onChange={(event) =>
               setDraft(
-                (
-                  current,
-                ) => ({
+                (current) => ({
                   ...current,
 
                   q:
-                    event
-                      .target
+                    event.target
                       .value,
                 }),
               )
@@ -1112,33 +1230,36 @@ export default function ListingExplorer({
             aria-label="Search listings"
           />
 
-          <button
-            type="submit"
-          >
+          <button type="submit">
             Search
           </button>
         </form>
 
-
-        {/* ===============================================
-            MARKETPLACE QUICK CATEGORIES
-        ================================================ */}
 
         {isMarketplace ? (
           <div
             className={
               styles.categoryRail
             }
+            aria-label={
+              "Marketplace categories"
+            }
           >
             <button
               type="button"
               className={
                 !applied.category
-                  ? styles.activeCategory
+                  ? styles
+                      .activeCategory
                   : ""
               }
               onClick={() =>
-                applyCategory("")
+                applyCategory(
+                  "",
+                )
+              }
+              aria-pressed={
+                !applied.category
               }
             >
               All items
@@ -1159,7 +1280,8 @@ export default function ListingExplorer({
                     className={
                       applied.category ===
                       option.value
-                        ? styles.activeCategory
+                        ? styles
+                            .activeCategory
                         : ""
                     }
                     onClick={() =>
@@ -1167,10 +1289,12 @@ export default function ListingExplorer({
                         option.value,
                       )
                     }
-                  >
-                    {
-                      option.label
+                    aria-pressed={
+                      applied.category ===
+                      option.value
                     }
+                  >
+                    {option.label}
                   </button>
                 ),
               )}
@@ -1179,25 +1303,16 @@ export default function ListingExplorer({
       </section>
 
 
-      {/* ===================================================
-          EXPLORER
-      ==================================================== */}
-
-      <section
-        className={
-          styles.content
+      <SponsoredPlacement
+        placement={
+          advertisementPlacement
         }
-      >
-        <aside
-          className={
-            styles.sidebar
-          }
-        >
-          <div
-            className={
-              styles.sidebarHeading
-            }
-          >
+      />
+
+
+      <section className={styles.content}>
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarHeading}>
             <div>
               <SlidersHorizontal
                 aria-hidden="true"
@@ -1220,85 +1335,54 @@ export default function ListingExplorer({
             ) : null}
           </div>
 
-
           <form
-            onSubmit={
-              applyFilters
-            }
-            className={
-              styles.filterForm
-            }
+            onSubmit={applyFilters}
+            className={styles.filterForm}
           >
             {filterFields}
 
             <button
               type="submit"
-              className={
-                styles.applyButton
-              }
+              className={styles.applyButton}
             >
               Apply filters
             </button>
           </form>
 
-
-          <div
-            className={
-              styles.sidebarNote
-            }
-          >
+          <div className={styles.sidebarNote}>
             <ShieldCheck
               aria-hidden="true"
             />
 
             <p>
-              {
-                sidebarMessage
-              }
+              {sidebarMessage}
             </p>
           </div>
         </aside>
 
 
-        <div
-          className={
-            styles.results
-          }
-        >
-          <div
-            className={
-              styles.resultsToolbar
-            }
-          >
-            <div
-              className={
-                styles.resultCount
-              }
-            >
+        <div className={styles.results}>
+          <div className={styles.resultsToolbar}>
+            <div className={styles.resultCount}>
               <span>
                 {loading
                   ? "—"
-                  : visibleListings.length}
+                  : listings.length}
               </span>
 
               <div>
                 <strong>
                   {loading
                     ? `Finding ${resultLabel}`
-                    : visibleListings.length ===
-                        1
-                      ? resultLabel ===
-                          "items"
-                        ? "item"
-                        : "listing"
+                    : listings.length === 1
+                      ? singularResultLabel
                       : resultLabel}
                 </strong>
 
                 <small>
                   {activeFilterCount
                     ? `${activeFilterCount} active ${
-                        activeFilterCount ===
-                        1
+                        activeFilterCount === 1
                           ? "filter"
                           : "filters"
                       }`
@@ -1309,12 +1393,7 @@ export default function ListingExplorer({
               </div>
             </div>
 
-
-            <div
-              className={
-                styles.toolbarActions
-              }
-            >
+            <div className={styles.toolbarActions}>
               <button
                 type="button"
                 className={
@@ -1325,6 +1404,10 @@ export default function ListingExplorer({
                     true,
                   )
                 }
+                aria-haspopup="dialog"
+                aria-expanded={
+                  filtersOpen
+                }
               >
                 <Filter
                   aria-hidden="true"
@@ -1334,55 +1417,44 @@ export default function ListingExplorer({
 
                 {activeFilterCount ? (
                   <span>
-                    {
-                      activeFilterCount
-                    }
+                    {activeFilterCount}
                   </span>
                 ) : null}
               </button>
 
-
-              <label
-                className={
-                  styles.sortField
-                }
-              >
+              <label className={styles.sortField}>
                 <ArrowDownUp
                   aria-hidden="true"
                 />
 
                 <select
-                  value={
-                    draft.sort
-                  }
-                  onChange={(
-                    event,
-                  ) => {
+                  value={draft.sort}
+                  onChange={(event) => {
                     const sort =
-                      event
-                        .target
-                        .value as SortOption;
+                      event.target
+                        .value as ListingSort;
 
-                    const next = {
+                    const nextDraft = {
                       ...draft,
                       sort,
                     };
 
-                    setDraft(next);
-
-                    setApplied(
-                      (
-                        current,
-                      ) => ({
-                        ...current,
-                        sort,
-                      }),
-                    );
-
-                    updateUrl({
+                    const nextApplied = {
                       ...applied,
                       sort,
-                    });
+                    };
+
+                    setDraft(
+                      nextDraft,
+                    );
+
+                    setApplied(
+                      nextApplied,
+                    );
+
+                    updateUrl(
+                      nextApplied,
+                    );
                   }}
                   aria-label="Sort listings"
                 >
@@ -1409,9 +1481,8 @@ export default function ListingExplorer({
 
           {error ? (
             <div
-              className={
-                styles.errorBanner
-              }
+              className={styles.errorBanner}
+              role="alert"
             >
               <p>
                 {error}
@@ -1430,15 +1501,15 @@ export default function ListingExplorer({
 
 
           <ListingGrid
-  listingType={
-    listingType
-  }
-  listings={
-    visibleListings
-  }
-  loading={
-    loading
-  }
+            listingType={
+              listingType
+            }
+            listings={
+              listings
+            }
+            loading={
+              loading
+            }
             savedIds={
               savedIds
             }
@@ -1452,38 +1523,66 @@ export default function ListingExplorer({
               clearFilters
             }
           />
+
+
+          {hasMore ||
+          loadingMore ? (
+            <div className={styles.loadMoreRow}>
+              <button
+                type="button"
+                className={
+                  styles.loadMoreButton
+                }
+                disabled={
+                  loadingMore
+                }
+                onClick={() =>
+                  void loadListings(
+                    undefined,
+                    listings.length,
+                  )
+                }
+              >
+                {loadingMore
+                  ? "Loading more…"
+                  : `Load more ${resultLabel}`}
+              </button>
+            </div>
+          ) : null}
         </div>
       </section>
 
 
-      {/* ===================================================
-          MOBILE FILTERS
-      ==================================================== */}
-
       {filtersOpen ? (
         <div
-          className={
-            styles.mobileOverlay
-          }
+          className={styles.mobileOverlay}
           role="presentation"
         >
           <button
+            type="button"
             className={
               styles.mobileBackdrop
             }
-            onClick={() =>
-              setFiltersOpen(
-                false,
-              )
+            onClick={
+              closeFilters
             }
             aria-label="Close filters"
+            tabIndex={-1}
           />
 
           <aside
+            ref={
+              mobileSheetRef
+            }
             className={
               styles.mobileSheet
             }
-            aria-label="Listing filters"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={
+              "mobile-filter-title"
+            }
+            tabIndex={-1}
           >
             <div
               className={
@@ -1491,24 +1590,26 @@ export default function ListingExplorer({
               }
             >
               <div>
-                <span>
+                <span
+                  id={
+                    "mobile-filter-title"
+                  }
+                >
                   Refine results
                 </span>
 
                 <small>
-                  {
-                    activeFilterCount
-                  }{" "}
-                  active
+                  {activeFilterCount} active
                 </small>
               </div>
 
               <button
+                ref={
+                  mobileCloseRef
+                }
                 type="button"
-                onClick={() =>
-                  setFiltersOpen(
-                    false,
-                  )
+                onClick={
+                  closeFilters
                 }
                 aria-label="Close filters"
               >
@@ -1517,7 +1618,6 @@ export default function ListingExplorer({
                 />
               </button>
             </div>
-
 
             <form
               onSubmit={

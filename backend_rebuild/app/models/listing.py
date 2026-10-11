@@ -19,11 +19,25 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from sqlalchemy.dialects.postgresql import (
+    UUID as PG_UUID,
+)
+
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
 from app.db.base import Base
-from app.db.mixins import SoftDeleteMixin, TimestampMixin, UUIDPrimaryKeyMixin
+
+from app.db.mixins import (
+    SoftDeleteMixin,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+)
+
 from app.models.enums import (
     CreditSource,
     ItemCondition,
@@ -38,41 +52,114 @@ from app.models.enums import (
     enum_values,
 )
 
+
 if TYPE_CHECKING:
-    from app.models.location import Area, Campus
+    from app.models.location import (
+        Area,
+        Campus,
+    )
+
     from app.models.user import User
 
 
-class Listing(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
+class Listing(
+    UUIDPrimaryKeyMixin,
+    TimestampMixin,
+    SoftDeleteMixin,
+    Base,
+):
     __tablename__ = "listings"
 
     __table_args__ = (
-        UniqueConstraint("slug", name="uq_listings_slug"),
-        CheckConstraint("price >= 0", name="price_nonnegative"),
-        CheckConstraint("view_count >= 0", name="view_count_nonnegative"),
-        CheckConstraint("contact_count >= 0", name="contact_count_nonnegative"),
-        Index("ix_listings_public_search", "listing_type", "status", "area_id"),
-        Index("ix_listings_owner_status", "owner_id", "status"),
-        Index("ix_listings_featured", "is_featured", "featured_until"),
-        Index("ix_listings_created_at", "created_at"),
+        UniqueConstraint(
+            "slug",
+            name="uq_listings_slug",
+        ),
+        CheckConstraint(
+            "price >= 0",
+            name="price_nonnegative",
+        ),
+        CheckConstraint(
+            "view_count >= 0",
+            name="view_count_nonnegative",
+        ),
+        CheckConstraint(
+            "contact_count >= 0",
+            name="contact_count_nonnegative",
+        ),
+        Index(
+            "ix_listings_public_search",
+            "listing_type",
+            "status",
+            "area_id",
+        ),
+        Index(
+            "ix_listings_owner_status",
+            "owner_id",
+            "status",
+        ),
+        Index(
+            "ix_listings_featured",
+            "is_featured",
+            "featured_until",
+        ),
+        Index(
+            "ix_listings_created_at",
+            "created_at",
+        ),
+        Index(
+            "ix_listings_owner_deleted_at",
+            "owner_id",
+            "deleted_at",
+        ),
+        Index(
+            "ix_listings_media_purge_after",
+            "media_purge_after",
+        ),
     )
 
-    owner_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="RESTRICT"),
-        nullable=False,
+    owner_id: Mapped[UUID] = (
+        mapped_column(
+            PG_UUID(
+                as_uuid=True,
+            ),
+            ForeignKey(
+                "users.id",
+                ondelete="RESTRICT",
+            ),
+            nullable=False,
+        )
     )
-    area_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("areas.id", ondelete="RESTRICT"),
-        nullable=False,
+
+    area_id: Mapped[UUID] = (
+        mapped_column(
+            PG_UUID(
+                as_uuid=True,
+            ),
+            ForeignKey(
+                "areas.id",
+                ondelete="RESTRICT",
+            ),
+            nullable=False,
+        )
     )
-    campus_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("campuses.id", ondelete="SET NULL"),
+
+    campus_id: Mapped[
+        UUID | None
+    ] = mapped_column(
+        PG_UUID(
+            as_uuid=True,
+        ),
+        ForeignKey(
+            "campuses.id",
+            ondelete="SET NULL",
+        ),
         nullable=True,
     )
-    listing_type: Mapped[ListingType] = mapped_column(
+
+    listing_type: Mapped[
+        ListingType
+    ] = mapped_column(
         Enum(
             ListingType,
             name="listing_type",
@@ -83,14 +170,52 @@ class Listing(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
         ),
         nullable=False,
     )
-    title: Mapped[str] = mapped_column(String(220), nullable=False)
-    slug: Mapped[str] = mapped_column(String(260), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    price: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
-    currency: Mapped[str] = mapped_column(
-        String(3), nullable=False, default="NGN", server_default=text("'NGN'")
+
+    title: Mapped[str] = (
+        mapped_column(
+            String(220),
+            nullable=False,
+        )
     )
-    status: Mapped[ListingStatus] = mapped_column(
+
+    slug: Mapped[str] = (
+        mapped_column(
+            String(260),
+            nullable=False,
+        )
+    )
+
+    description: Mapped[str] = (
+        mapped_column(
+            Text,
+            nullable=False,
+        )
+    )
+
+    price: Mapped[Decimal] = (
+        mapped_column(
+            Numeric(
+                14,
+                2,
+            ),
+            nullable=False,
+        )
+    )
+
+    currency: Mapped[str] = (
+        mapped_column(
+            String(3),
+            nullable=False,
+            default="NGN",
+            server_default=text(
+                "'NGN'"
+            ),
+        )
+    )
+
+    status: Mapped[
+        ListingStatus
+    ] = mapped_column(
         Enum(
             ListingStatus,
             name="listing_status",
@@ -100,40 +225,140 @@ class Listing(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
             values_callable=enum_values,
         ),
         nullable=False,
-        default=ListingStatus.DRAFT,
-        server_default=text("'draft'"),
+        default=(
+            ListingStatus.DRAFT
+        ),
+        server_default=text(
+            "'draft'"
+        ),
     )
-    rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_featured: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default=text("false")
-    )
-    featured_until: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    published_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    approved_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    approved_by_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
+
+    rejection_reason: Mapped[
+        str | None
+    ] = mapped_column(
+        Text,
         nullable=True,
     )
-    view_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, server_default=text("0")
+
+    is_featured: Mapped[
+        bool
+    ] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text(
+            "false"
+        ),
     )
-    contact_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, server_default=text("0")
+
+    featured_until: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(
+            timezone=True,
+        ),
+        nullable=True,
     )
-    posting_credit_charged_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+
+    published_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(
+            timezone=True,
+        ),
+        nullable=True,
     )
-    posting_credit_source: Mapped[CreditSource | None] = mapped_column(
+
+    expires_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(
+            timezone=True,
+        ),
+        nullable=True,
+    )
+
+    completed_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(
+            timezone=True,
+        ),
+        nullable=True,
+    )
+
+    archived_from_status: Mapped[
+        str | None
+    ] = mapped_column(
+        String(32),
+        nullable=True,
+    )
+
+    media_purge_after: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(
+            timezone=True,
+        ),
+        nullable=True,
+    )
+
+    approved_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(
+            timezone=True,
+        ),
+        nullable=True,
+    )
+
+    approved_by_id: Mapped[
+        UUID | None
+    ] = mapped_column(
+        PG_UUID(
+            as_uuid=True,
+        ),
+        ForeignKey(
+            "users.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+
+    view_count: Mapped[
+        int
+    ] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text(
+            "0"
+        ),
+    )
+
+    contact_count: Mapped[
+        int
+    ] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text(
+            "0"
+        ),
+    )
+
+    posting_credit_charged_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(
+            timezone=True,
+        ),
+        nullable=True,
+    )
+
+    posting_credit_source: Mapped[
+        CreditSource | None
+    ] = mapped_column(
         Enum(
             CreditSource,
             name="listing_credit_source",
@@ -145,60 +370,127 @@ class Listing(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
         nullable=True,
     )
 
-    owner: Mapped[User] = relationship(
-        back_populates="listings",
-        foreign_keys=[owner_id],
+    owner: Mapped[User] = (
+        relationship(
+            back_populates="listings",
+            foreign_keys=[
+                owner_id,
+            ],
+            lazy="joined",
+        )
+    )
+
+    approved_by: Mapped[
+        User | None
+    ] = relationship(
+        foreign_keys=[
+            approved_by_id,
+        ],
         lazy="joined",
     )
-    approved_by: Mapped[User | None] = relationship(
-        foreign_keys=[approved_by_id], lazy="joined"
+
+    area: Mapped[Area] = (
+        relationship(
+            lazy="joined",
+        )
     )
-    area: Mapped[Area] = relationship(lazy="joined")
-    campus: Mapped[Campus | None] = relationship(lazy="joined")
-    media: Mapped[list[ListingMedia]] = relationship(
+
+    campus: Mapped[
+        Campus | None
+    ] = relationship(
+        lazy="joined",
+    )
+
+    media: Mapped[
+        list[ListingMedia]
+    ] = relationship(
         back_populates="listing",
-        cascade="all, delete-orphan",
+        cascade=(
+            "all, delete-orphan"
+        ),
         passive_deletes=True,
         lazy="selectin",
-        order_by="ListingMedia.sort_order",
+        order_by=(
+            "ListingMedia.sort_order"
+        ),
     )
-    rental_details: Mapped[RentalDetails | None] = relationship(
+
+    rental_details: Mapped[
+        RentalDetails | None
+    ] = relationship(
         back_populates="listing",
-        cascade="all, delete-orphan",
+        cascade=(
+            "all, delete-orphan"
+        ),
         passive_deletes=True,
         uselist=False,
         lazy="selectin",
     )
-    buy_property_details: Mapped[BuyPropertyDetails | None] = relationship(
+
+    buy_property_details: Mapped[
+        BuyPropertyDetails | None
+    ] = relationship(
         back_populates="listing",
-        cascade="all, delete-orphan",
+        cascade=(
+            "all, delete-orphan"
+        ),
         passive_deletes=True,
         uselist=False,
         lazy="selectin",
     )
-    marketplace_details: Mapped[MarketplaceDetails | None] = relationship(
+
+    marketplace_details: Mapped[
+        MarketplaceDetails | None
+    ] = relationship(
         back_populates="listing",
-        cascade="all, delete-orphan",
+        cascade=(
+            "all, delete-orphan"
+        ),
         passive_deletes=True,
         uselist=False,
         lazy="selectin",
     )
 
 
-class ListingMedia(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    __tablename__ = "listing_media"
+class ListingMedia(
+    UUIDPrimaryKeyMixin,
+    TimestampMixin,
+    Base,
+):
+    __tablename__ = (
+        "listing_media"
+    )
 
     __table_args__ = (
-        CheckConstraint("sort_order >= 0", name="sort_order_nonnegative"),
-        Index("ix_listing_media_listing_order", "listing_id", "sort_order"),
+        CheckConstraint(
+            "sort_order >= 0",
+            name=(
+                "sort_order_nonnegative"
+            ),
+        ),
+        Index(
+            "ix_listing_media_listing_order",
+            "listing_id",
+            "sort_order",
+        ),
     )
 
-    listing_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("listings.id", ondelete="CASCADE"),
+    listing_id: Mapped[
+        UUID
+    ] = mapped_column(
+        PG_UUID(
+            as_uuid=True,
+        ),
+        ForeignKey(
+            "listings.id",
+            ondelete="CASCADE",
+        ),
         nullable=False,
     )
-    media_type: Mapped[MediaType] = mapped_column(
+
+    media_type: Mapped[
+        MediaType
+    ] = mapped_column(
         Enum(
             MediaType,
             name="media_type",
@@ -209,25 +501,68 @@ class ListingMedia(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ),
         nullable=False,
     )
-    url: Mapped[str] = mapped_column(Text, nullable=False)
-    storage_public_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    is_cover: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default=text("false")
+
+    url: Mapped[str] = (
+        mapped_column(
+            Text,
+            nullable=False,
+        )
     )
 
-    listing: Mapped[Listing] = relationship(back_populates="media")
+    storage_public_id: Mapped[
+        str | None
+    ] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    sort_order: Mapped[
+        int
+    ] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    is_cover: Mapped[
+        bool
+    ] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text(
+            "false"
+        ),
+    )
+
+    listing: Mapped[
+        Listing
+    ] = relationship(
+        back_populates="media",
+    )
 
 
 class RentalDetails(Base):
-    __tablename__ = "rental_details"
+    __tablename__ = (
+        "rental_details"
+    )
 
-    listing_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("listings.id", ondelete="CASCADE"),
+    listing_id: Mapped[
+        UUID
+    ] = mapped_column(
+        PG_UUID(
+            as_uuid=True,
+        ),
+        ForeignKey(
+            "listings.id",
+            ondelete="CASCADE",
+        ),
         primary_key=True,
     )
-    category: Mapped[RentalCategory] = mapped_column(
+
+    category: Mapped[
+        RentalCategory
+    ] = mapped_column(
         Enum(
             RentalCategory,
             name="rental_category",
@@ -238,7 +573,10 @@ class RentalDetails(Base):
         ),
         nullable=False,
     )
-    rent_period: Mapped[RentPeriod] = mapped_column(
+
+    rent_period: Mapped[
+        RentPeriod
+    ] = mapped_column(
         Enum(
             RentPeriod,
             name="rent_period",
@@ -249,29 +587,103 @@ class RentalDetails(Base):
         ),
         nullable=False,
     )
-    bedrooms: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    bathrooms: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    toilets: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    is_furnished: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    caution_fee: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
-    service_charge: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
-    distance_to_campus_km: Mapped[Decimal | None] = mapped_column(
-        Numeric(8, 2), nullable=True
-    )
-    address: Mapped[str] = mapped_column(Text, nullable=False)
 
-    listing: Mapped[Listing] = relationship(back_populates="rental_details")
+    bedrooms: Mapped[
+        int | None
+    ] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    bathrooms: Mapped[
+        int | None
+    ] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    toilets: Mapped[
+        int | None
+    ] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    is_furnished: Mapped[
+        bool
+    ] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    caution_fee: Mapped[
+        Decimal | None
+    ] = mapped_column(
+        Numeric(
+            14,
+            2,
+        ),
+        nullable=True,
+    )
+
+    service_charge: Mapped[
+        Decimal | None
+    ] = mapped_column(
+        Numeric(
+            14,
+            2,
+        ),
+        nullable=True,
+    )
+
+    distance_to_campus_km: Mapped[
+        Decimal | None
+    ] = mapped_column(
+        Numeric(
+            8,
+            2,
+        ),
+        nullable=True,
+    )
+
+    address: Mapped[
+        str
+    ] = mapped_column(
+        Text,
+        nullable=False,
+    )
+
+    listing: Mapped[
+        Listing
+    ] = relationship(
+        back_populates=(
+            "rental_details"
+        ),
+    )
 
 
 class BuyPropertyDetails(Base):
-    __tablename__ = "buy_property_details"
+    __tablename__ = (
+        "buy_property_details"
+    )
 
-    listing_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("listings.id", ondelete="CASCADE"),
+    listing_id: Mapped[
+        UUID
+    ] = mapped_column(
+        PG_UUID(
+            as_uuid=True,
+        ),
+        ForeignKey(
+            "listings.id",
+            ondelete="CASCADE",
+        ),
         primary_key=True,
     )
-    category: Mapped[PropertyCategory] = mapped_column(
+
+    category: Mapped[
+        PropertyCategory
+    ] = mapped_column(
         Enum(
             PropertyCategory,
             name="property_category",
@@ -282,10 +694,15 @@ class BuyPropertyDetails(Base):
         ),
         nullable=False,
     )
-    property_condition: Mapped[PropertyCondition] = mapped_column(
+
+    property_condition: Mapped[
+        PropertyCondition
+    ] = mapped_column(
         Enum(
             PropertyCondition,
-            name="property_condition",
+            name=(
+                "property_condition"
+            ),
             native_enum=False,
             create_constraint=True,
             validate_strings=True,
@@ -293,28 +710,87 @@ class BuyPropertyDetails(Base):
         ),
         nullable=False,
     )
-    bedrooms: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    bathrooms: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    toilets: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    land_size_sqm: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
-    title_document: Mapped[str | None] = mapped_column(String(180), nullable=True)
-    address: Mapped[str] = mapped_column(Text, nullable=False)
 
-    listing: Mapped[Listing] = relationship(back_populates="buy_property_details")
+    bedrooms: Mapped[
+        int | None
+    ] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    bathrooms: Mapped[
+        int | None
+    ] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    toilets: Mapped[
+        int | None
+    ] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    land_size_sqm: Mapped[
+        Decimal | None
+    ] = mapped_column(
+        Numeric(
+            14,
+            2,
+        ),
+        nullable=True,
+    )
+
+    title_document: Mapped[
+        str | None
+    ] = mapped_column(
+        String(180),
+        nullable=True,
+    )
+
+    address: Mapped[
+        str
+    ] = mapped_column(
+        Text,
+        nullable=False,
+    )
+
+    listing: Mapped[
+        Listing
+    ] = relationship(
+        back_populates=(
+            "buy_property_details"
+        ),
+    )
 
 
 class MarketplaceDetails(Base):
-    __tablename__ = "marketplace_details"
+    __tablename__ = (
+        "marketplace_details"
+    )
 
-    listing_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("listings.id", ondelete="CASCADE"),
+    listing_id: Mapped[
+        UUID
+    ] = mapped_column(
+        PG_UUID(
+            as_uuid=True,
+        ),
+        ForeignKey(
+            "listings.id",
+            ondelete="CASCADE",
+        ),
         primary_key=True,
     )
-    category: Mapped[MarketplaceCategory] = mapped_column(
+
+    category: Mapped[
+        MarketplaceCategory
+    ] = mapped_column(
         Enum(
             MarketplaceCategory,
-            name="marketplace_category",
+            name=(
+                "marketplace_category"
+            ),
             native_enum=False,
             create_constraint=True,
             validate_strings=True,
@@ -322,7 +798,10 @@ class MarketplaceDetails(Base):
         ),
         nullable=False,
     )
-    condition: Mapped[ItemCondition] = mapped_column(
+
+    condition: Mapped[
+        ItemCondition
+    ] = mapped_column(
         Enum(
             ItemCondition,
             name="item_condition",
@@ -333,8 +812,22 @@ class MarketplaceDetails(Base):
         ),
         nullable=False,
     )
-    is_negotiable: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default=text("false")
+
+    is_negotiable: Mapped[
+        bool
+    ] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text(
+            "false"
+        ),
     )
 
-    listing: Mapped[Listing] = relationship(back_populates="marketplace_details")
+    listing: Mapped[
+        Listing
+    ] = relationship(
+        back_populates=(
+            "marketplace_details"
+        ),
+    )

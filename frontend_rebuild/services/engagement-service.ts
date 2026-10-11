@@ -29,25 +29,49 @@ interface ThreadOptions {
 }
 
 
+export type ListingReportReason =
+  | "fraud"
+  | "misleading"
+  | "duplicate"
+  | "unavailable"
+  | "inappropriate"
+  | "other";
+
+
+export interface ListingReportCreatePayload {
+  reason:
+    ListingReportReason;
+
+  details?:
+    string | null;
+}
+
+
 /*
- * Single-flight request dedupe.
+ * Single-flight request deduplication.
  *
- * This prevents React development mode from accidentally
- * issuing the same GET twice at the same moment.
- *
- * We intentionally do NOT keep long-lived cached message data.
+ * This prevents React development mode from issuing identical
+ * GET requests simultaneously without keeping stale long-lived
+ * message data in memory.
  */
+
 const inFlightInbox =
   new Map<
     string,
-    Promise<InquiryInboxItem[]>
+    Promise<
+      InquiryInboxItem[]
+    >
   >();
+
 
 const inFlightThreads =
   new Map<
     string,
-    Promise<InquiryThread>
+    Promise<
+      InquiryThread
+    >
   >();
+
 
 const inFlightReads =
   new Map<
@@ -56,7 +80,8 @@ const inFlightReads =
   >();
 
 
-function sessionKey(): string {
+function sessionKey():
+  string {
   return (
     getAccessToken() ??
     "cookie-session"
@@ -66,19 +91,27 @@ function sessionKey(): string {
 
 function requestKey(
   parts: Array<
-    string | number | null | undefined
+    | string
+    | number
+    | null
+    | undefined
   >,
 ): string {
   return [
     sessionKey(),
+
     ...parts.map(
       (part) =>
         part === null ||
         part === undefined
           ? ""
-          : String(part),
+          : String(
+              part,
+            ),
     ),
-  ].join(":");
+  ].join(
+    ":",
+  );
 }
 
 
@@ -127,15 +160,32 @@ export const engagementService = {
      CREATE CONVERSATION
   ======================================================= */
 
- async createInquiry(
-  listingId: string,
-  payload: InquiryCreatePayload,
-): Promise<void> {
-  await api.post(
-    `/listings/${listingId}/inquiries`,
-    payload,
-  );
-},
+  async createInquiry(
+    listingId: string,
+    payload:
+      InquiryCreatePayload,
+  ): Promise<void> {
+    await api.post(
+      `/listings/${listingId}/inquiries`,
+      payload,
+    );
+  },
+
+
+  /* =======================================================
+     REPORT LISTING
+  ======================================================= */
+
+  async reportListing(
+    listingId: string,
+    payload:
+      ListingReportCreatePayload,
+  ): Promise<void> {
+    await api.post(
+      `/listings/${listingId}/reports`,
+      payload,
+    );
+  },
 
 
   /* =======================================================
@@ -143,8 +193,11 @@ export const engagementService = {
   ======================================================= */
 
   async listInbox(
-    options: InboxOptions = {},
-  ): Promise<InquiryInboxItem[]> {
+    options:
+      InboxOptions = {},
+  ): Promise<
+    InquiryInboxItem[]
+  > {
     const {
       limit = 50,
       before = null,
@@ -157,7 +210,6 @@ export const engagementService = {
         before,
       ]);
 
-
     const existing =
       inFlightInbox.get(
         key,
@@ -166,7 +218,6 @@ export const engagementService = {
     if (existing) {
       return existing;
     }
-
 
     const promise =
       api
@@ -177,6 +228,7 @@ export const engagementService = {
           {
             params: {
               limit,
+
               ...(before
                 ? {
                     before,
@@ -195,7 +247,6 @@ export const engagementService = {
           );
         });
 
-
     inFlightInbox.set(
       key,
       promise,
@@ -211,7 +262,8 @@ export const engagementService = {
 
   async getInquiryThread(
     inquiryId: string,
-    options: ThreadOptions = {},
+    options:
+      ThreadOptions = {},
   ): Promise<InquiryThread> {
     const {
       limit = 50,
@@ -226,7 +278,6 @@ export const engagementService = {
         before,
       ]);
 
-
     const existing =
       inFlightThreads.get(
         key,
@@ -236,7 +287,6 @@ export const engagementService = {
       return existing;
     }
 
-
     const promise =
       api
         .get<InquiryThread>(
@@ -244,6 +294,7 @@ export const engagementService = {
           {
             params: {
               limit,
+
               ...(before
                 ? {
                     before,
@@ -262,7 +313,6 @@ export const engagementService = {
           );
         });
 
-
     inFlightThreads.set(
       key,
       promise,
@@ -279,7 +329,9 @@ export const engagementService = {
   async sendInquiryMessage(
     inquiryId: string,
     message: string,
-  ): Promise<InquiryMessage> {
+  ): Promise<
+    InquiryMessage
+  > {
     const response =
       await api.post<
         InquiryMessage
@@ -307,7 +359,6 @@ export const engagementService = {
         inquiryId,
       ]);
 
-
     const existing =
       inFlightReads.get(
         key,
@@ -316,7 +367,6 @@ export const engagementService = {
     if (existing) {
       return existing;
     }
-
 
     const promise =
       api
@@ -331,7 +381,6 @@ export const engagementService = {
             key,
           );
         });
-
 
     inFlightReads.set(
       key,
@@ -348,7 +397,8 @@ export const engagementService = {
 
   async updateInquiryStatus(
     inquiryId: string,
-    status: InquiryStatus,
+    status:
+      InquiryStatus,
   ): Promise<Inquiry> {
     const response =
       await api.patch<
@@ -365,9 +415,10 @@ export const engagementService = {
 
 
   /* =======================================================
-     OLD ENDPOINTS
-     Keep these temporarily for anything elsewhere that
-     still relies on them.
+     LEGACY ENDPOINTS
+
+     Temporarily retained for screens that still use the
+     older sent/received inquiry endpoints.
   ======================================================= */
 
   async listSentInquiries():

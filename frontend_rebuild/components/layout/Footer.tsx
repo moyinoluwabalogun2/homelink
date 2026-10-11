@@ -3,110 +3,184 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   LifeBuoy,
+  Mail,
   MapPin,
+  MessageCircle,
   ShieldCheck,
 } from "lucide-react";
 
-import HomeLinkLogo from
-  "@/components/brand/HomeLinkLogo";
+import HomeLinkLogo from "@/components/brand/HomeLinkLogo";
 
 import styles from "./Footer.module.css";
 
+interface FooterLink {
+  label: string;
+  href: string;
+  newTab?: boolean;
+}
 
-const footerGroups = [
-  {
-    title: "Explore",
-    links: [
-      {
-        label: "Rentals",
-        href: "/rentals",
-      },
-      {
-        label: "Buy property",
-        href: "/buy-property",
-      },
-      {
-        label: "Marketplace",
-        href: "/marketplace",
-      },
-      {
-        label: "Approved agents",
-        href: "/agents",
-      },
-    ],
-  },
+interface FooterGroup {
+  title: string;
+  links: FooterLink[];
+}
 
-  {
-    title: "Your account",
-    links: [
-      {
-        label: "Sign in",
-        href: "/login",
-      },
-      {
-        label: "Create account",
-        href: "/register",
-      },
-      {
-        label: "Post a listing",
-        href: "/post-listing",
-      },
-      {
-        label: "Dashboard",
-        href: "/dashboard",
-      },
-    ],
-  },
+function validCommunityUrl(
+  value: string | undefined,
+): string | null {
+  const candidate =
+    value?.trim();
 
-  {
-    title: "Support",
-    links: [
-      {
-        label: "Safety centre",
-        href: "/safety",
-      },
-      {
-        label: "Rental safety",
-        href: "/safety/rentals",
-      },
-      {
-        label: "Help & support",
-        href: "/support",
-      },
-      {
-        label: "Approved profiles",
-        href: "/agents",
-      },
-    ],
-  },
+  if (!candidate) {
+    return null;
+  }
 
-  {
-    title: "Legal",
-    links: [
-      {
-        label: "Privacy notice",
-        href: "/privacy",
-      },
-      {
-        label: "Terms of service",
-        href: "/terms",
-      },
-      {
-        label: "Cookie notice",
-        href: "/cookie-policy",
-      },
-    ],
-  },
-] as const;
+  try {
+    const url =
+      new URL(candidate);
 
+    if (
+      url.protocol !== "https:" &&
+      url.protocol !== "http:"
+    ) {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function footerGroups(
+  communityUrl: string | null,
+): FooterGroup[] {
+  const supportLinks:
+    FooterLink[] = [
+    {
+      label: "Safety centre",
+      href: "/safety",
+    },
+    {
+      label: "Rental safety",
+      href:
+        "/safety/rentals",
+    },
+    {
+      label: "Help & support",
+      href: "/support",
+    },
+    {
+      label: "Email HomeLink",
+      href:
+        "mailto:homelink814@gmail.com",
+    },
+  ];
+
+  if (communityUrl) {
+    supportLinks.push({
+      label:
+        "WhatsApp community",
+      href: communityUrl,
+      newTab: true,
+    });
+  }
+
+  return [
+    {
+      title: "Explore",
+      links: [
+        {
+          label: "Rentals",
+          href: "/rentals",
+        },
+        {
+          label: "Buy property",
+          href:
+            "/buy-property",
+        },
+        {
+          label: "Marketplace",
+          href:
+            "/marketplace",
+        },
+        {
+          label:
+            "Approved agents",
+          href: "/agents",
+        },
+        {
+      label:
+        "Advertise your business",
+      href: "/advertise",
+    },
+      ],
+    },
+    {
+      title: "Your account",
+      links: [
+        {
+          label: "Sign in",
+          href: "/login",
+        },
+        {
+          label:
+            "Create account",
+          href: "/register",
+        },
+        {
+          label:
+            "Post a listing",
+          href:
+            "/post-listing",
+        },
+        {
+          label: "Dashboard",
+          href: "/dashboard",
+        },
+      ],
+    },
+    {
+      title: "Support",
+      links: supportLinks,
+    },
+    {
+      title: "Legal",
+      links: [
+        {
+          label:
+            "Privacy notice",
+          href: "/privacy",
+        },
+        {
+          label:
+            "Terms of service",
+          href: "/terms",
+        },
+        {
+          label:
+            "Cookie notice",
+          href:
+            "/cookie-policy",
+        },
+      ],
+    },
+  ];
+}
 
 export default function Footer() {
+  const communityUrl =
+    validCommunityUrl(
+      process.env
+        .NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL,
+    );
+
+  const groups =
+    footerGroups(
+      communityUrl,
+    );
+
   return (
     <footer className={styles.footer}>
-      {/* =====================================================
-          MAIN FOOTER
-      ====================================================== */}
-
       <div className={styles.inner}>
         <div className={styles.footerIntro}>
           <div className={styles.brandArea}>
@@ -123,7 +197,6 @@ export default function Footer() {
             </p>
           </div>
 
-
           <div className={styles.footerStatement}>
             <span>
               Built around OOU
@@ -135,11 +208,6 @@ export default function Footer() {
             </h2>
           </div>
         </div>
-
-
-        {/* =================================================
-            LOCATION STRIP
-        ================================================== */}
 
         <div className={styles.locationStrip}>
           <div className={styles.locationIcon}>
@@ -157,11 +225,6 @@ export default function Footer() {
           </div>
         </div>
 
-
-        {/* =================================================
-            LINKS
-        ================================================== */}
-
         <div className={styles.footerNavigation}>
           <div className={styles.navigationLabel}>
             <span>
@@ -174,9 +237,8 @@ export default function Footer() {
             </p>
           </div>
 
-
           <div className={styles.linkGrid}>
-            {footerGroups.map((group) => (
+            {groups.map((group) => (
               <div
                 key={group.title}
                 className={styles.linkGroup}
@@ -186,31 +248,60 @@ export default function Footer() {
                 </h3>
 
                 <div>
-                  {group.links.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                    >
-                      <span>
-                        {link.label}
-                      </span>
+                  {group.links.map((link) => {
+                    const content = (
+                      <>
+                        <span>
+                          {link.label}
+                        </span>
 
-                      <ArrowUpRight
-                        aria-hidden="true"
-                      />
-                    </Link>
-                  ))}
+                        <ArrowUpRight
+                          aria-hidden="true"
+                        />
+                      </>
+                    );
+
+                    if (
+                      link.newTab ||
+                      link.href.startsWith(
+                        "mailto:",
+                      )
+                    ) {
+                      return (
+                        <a
+                          key={link.href}
+                          href={link.href}
+                          target={
+                            link.newTab
+                              ? "_blank"
+                              : undefined
+                          }
+                          rel={
+                            link.newTab
+                              ? "noopener noreferrer"
+                              : undefined
+                          }
+                        >
+                          {content}
+                        </a>
+                      );
+                    }
+
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                      >
+                        {content}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </div>
         </div>
       </div>
-
-
-      {/* =====================================================
-          BOTTOM
-      ====================================================== */}
 
       <div className={styles.bottomArea}>
         <div className={styles.bottomInner}>
@@ -219,14 +310,12 @@ export default function Footer() {
             All rights reserved.
           </span>
 
-
           <div className={styles.bottomActions}>
             <Link
               href="/safety"
               className={styles.safetyLink}
             >
               <ShieldCheck aria-hidden="true" />
-
               Safer discovery
             </Link>
 
@@ -235,9 +324,28 @@ export default function Footer() {
               className={styles.supportLink}
             >
               <LifeBuoy aria-hidden="true" />
-
               Support
             </Link>
+
+            <a
+              href="mailto:homelink814@gmail.com"
+              className={styles.supportLink}
+            >
+              <Mail aria-hidden="true" />
+              Email
+            </a>
+
+            {communityUrl ? (
+              <a
+                href={communityUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.supportLink}
+              >
+                <MessageCircle aria-hidden="true" />
+                WhatsApp
+              </a>
+            ) : null}
           </div>
         </div>
       </div>

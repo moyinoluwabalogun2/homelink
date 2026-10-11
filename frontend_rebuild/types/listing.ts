@@ -1,7 +1,13 @@
 import type { UserRole } from "@/types/auth";
-import type { AreaRead, CampusRead } from "@/types/location";
+import type {
+  AreaRead,
+  CampusRead,
+} from "@/types/location";
 
-export type ListingType = "rental" | "buy_property" | "marketplace";
+export type ListingType =
+  | "rental"
+  | "buy_property"
+  | "marketplace";
 
 export type ListingStatus =
   | "draft"
@@ -13,7 +19,9 @@ export type ListingStatus =
   | "rented"
   | "archived";
 
-export type MediaType = "image" | "video";
+export type MediaType =
+  | "image"
+  | "video";
 
 export type RentalCategory =
   | "hostel"
@@ -24,7 +32,10 @@ export type RentalCategory =
   | "flat"
   | "duplex";
 
-export type RentPeriod = "monthly" | "six_months" | "yearly";
+export type RentPeriod =
+  | "monthly"
+  | "six_months"
+  | "yearly";
 
 export type PropertyCategory =
   | "land"
@@ -34,7 +45,10 @@ export type PropertyCategory =
   | "office"
   | "warehouse";
 
-export type PropertyCondition = "new" | "good" | "renovation_required";
+export type PropertyCondition =
+  | "new"
+  | "good"
+  | "renovation_required";
 
 export type MarketplaceCategory =
   | "phones"
@@ -48,7 +62,17 @@ export type MarketplaceCategory =
   | "services"
   | "others";
 
-export type ItemCondition = "new" | "like_new" | "used" | "fair";
+export type ItemCondition =
+  | "new"
+  | "like_new"
+  | "used"
+  | "fair";
+
+export type ListingSort =
+  | "recommended"
+  | "newest"
+  | "price_low"
+  | "price_high";
 
 export interface PublicUser {
   id: string;
@@ -61,6 +85,13 @@ export interface ListingMedia {
   id: string;
   media_type: MediaType;
   url: string;
+
+  /*
+   * Returned only by the authenticated owner-edit endpoint.
+   * Public listing responses deliberately omit it.
+   */
+  storage_public_id?: string | null;
+
   sort_order: number;
   is_cover: boolean;
 }
@@ -100,6 +131,7 @@ export interface Listing {
   owner: PublicUser;
   area: AreaRead;
   campus: CampusRead | null;
+
   listing_type: ListingType;
   title: string;
   slug: string;
@@ -108,16 +140,24 @@ export interface Listing {
   currency: string;
   status: ListingStatus;
   rejection_reason: string | null;
+
   is_featured: boolean;
   featured_until: string | null;
   published_at: string | null;
   expires_at: string | null;
+
+  completed_at: string | null;
+  deleted_at: string | null;
+  media_purge_after: string | null;
+
   view_count: number;
   contact_count: number;
+
   media: ListingMedia[];
   rental_details: RentalDetails | null;
   buy_property_details: BuyPropertyDetails | null;
   marketplace_details: MarketplaceDetails | null;
+
   created_at: string;
   updated_at: string;
 }
@@ -128,6 +168,8 @@ export interface ListingFilters {
   min_price?: number;
   max_price?: number;
   q?: string;
+  category?: string;
+  sort?: ListingSort;
   limit?: number;
   offset?: number;
 }
@@ -137,7 +179,9 @@ export interface SavedListing {
   created_at: string;
 }
 
-export type InquiryType = "general" | "inspection";
+export type InquiryType =
+  | "general"
+  | "inspection";
 
 export interface InquiryCreatePayload {
   inquiry_type: InquiryType;
@@ -161,13 +205,15 @@ export interface ListingBaseCreatePayload {
   media: ListingMediaInput[];
 }
 
-export interface MarketplaceCreatePayload extends ListingBaseCreatePayload {
+export interface MarketplaceCreatePayload
+  extends ListingBaseCreatePayload {
   category: MarketplaceCategory;
   condition: ItemCondition;
   is_negotiable: boolean;
 }
 
-export interface RentalCreatePayload extends ListingBaseCreatePayload {
+export interface RentalCreatePayload
+  extends ListingBaseCreatePayload {
   category: RentalCategory;
   rent_period: RentPeriod;
   bedrooms?: number | null;
@@ -180,7 +226,8 @@ export interface RentalCreatePayload extends ListingBaseCreatePayload {
   address: string;
 }
 
-export interface BuyPropertyCreatePayload extends ListingBaseCreatePayload {
+export interface BuyPropertyCreatePayload
+  extends ListingBaseCreatePayload {
   category: PropertyCategory;
   property_condition: PropertyCondition;
   bedrooms?: number | null;

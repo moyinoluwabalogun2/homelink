@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import Link from "next/link";
-import { zodResolver } from "@hookform/resolvers/zod";
+
+import {
+  zodResolver,
+} from "@hookform/resolvers/zod";
+
 import {
   ArrowLeft,
   CheckCircle2,
@@ -11,7 +19,11 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+
+import {
+  useForm,
+} from "react-hook-form";
+
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -20,27 +32,33 @@ import { authService } from "@/services/auth-service";
 
 import styles from "@/components/auth/AuthForm.module.css";
 
+const schema =
+  z.object({
+    email:
+      z
+        .string()
+        .trim()
+        .email(
+          "Enter a valid email address.",
+        ),
+  });
 
-const schema = z.object({
-  email: z
-    .string()
-    .trim()
-    .email("Enter a valid email address."),
-});
+type FormValues =
+  z.infer<
+    typeof schema
+  >;
 
+const GENERIC_SUCCESS_MESSAGE =
+  "If a HomeLink account exists for that email, password reset instructions have been sent.";
 
-type FormValues = z.infer<
-  typeof schema
->;
-
+const RESEND_COOLDOWN_SECONDS =
+  30;
 
 export default function ForgotPasswordPage() {
   const [
-    message,
-    setMessage,
-  ] = useState<string | null>(
-    null,
-  );
+    complete,
+    setComplete,
+  ] = useState(false);
 
   const [
     submittedEmail,
@@ -52,6 +70,10 @@ export default function ForgotPasswordPage() {
     setIsResending,
   ] = useState(false);
 
+  const [
+    cooldown,
+    setCooldown,
+  ] = useState(0);
 
   const {
     register,
@@ -70,26 +92,56 @@ export default function ForgotPasswordPage() {
     },
   });
 
+  useEffect(() => {
+    if (cooldown <= 0) {
+      return;
+    }
+
+    const timer =
+      window.setInterval(
+        () => {
+          setCooldown(
+            (current) =>
+              Math.max(
+                0,
+                current - 1,
+              ),
+          );
+        },
+        1_000,
+      );
+
+    return () => {
+      window.clearInterval(
+        timer,
+      );
+    };
+  }, [cooldown]);
 
   const sendResetLink =
     async (
       email: string,
     ) => {
-      const response =
-        await authService
-          .forgotPassword(
-            email,
-          );
+      const normalizedEmail =
+        email
+          .trim()
+          .toLowerCase();
+
+      await authService
+        .forgotPassword(
+          normalizedEmail,
+        );
 
       setSubmittedEmail(
-        email,
+        normalizedEmail,
       );
 
-      setMessage(
-        response.message,
+      setComplete(true);
+
+      setCooldown(
+        RESEND_COOLDOWN_SECONDS,
       );
     };
-
 
   const submit =
     handleSubmit(
@@ -100,151 +152,99 @@ export default function ForgotPasswordPage() {
           await sendResetLink(
             email,
           );
-        } catch (
-          error
-        ) {
+        } catch (error) {
           toast.error(
             getApiErrorMessage(
               error,
+              "Password reset instructions could not be requested right now.",
             ),
           );
         }
       },
     );
 
-
   const resend =
     async () => {
       if (
         !submittedEmail ||
-        isResending
+        isResending ||
+        cooldown > 0
       ) {
         return;
       }
 
-
-      setIsResending(
-        true,
-      );
-
+      setIsResending(true);
 
       try {
-        await sendResetLink(
-          submittedEmail,
+        await authService
+          .forgotPassword(
+            submittedEmail,
+          );
+
+        setCooldown(
+          RESEND_COOLDOWN_SECONDS,
         );
 
         toast.success(
           "Reset instructions requested again.",
         );
-      } catch (
-        error
-      ) {
+      } catch (error) {
         toast.error(
           getApiErrorMessage(
             error,
+            "Reset instructions could not be requested again right now.",
           ),
         );
       } finally {
-        setIsResending(
-          false,
-        );
+        setIsResending(false);
       }
     };
 
-
   return (
-    <main
-      className={
-        styles.recoveryPage
-      }
-    >
-      <div
-        className={
-          styles.recoveryShell
-        }
-      >
-        <div
-          className={
-            styles.recoveryBrand
-          }
-        >
+    <main className={styles.recoveryPage}>
+      <div className={styles.recoveryShell}>
+        <div className={styles.recoveryBrand}>
           <Link href="/">
             HomeLink
           </Link>
 
           <span>
-            <ShieldCheck
-              aria-hidden="true"
-            />
-
+            <ShieldCheck aria-hidden="true" />
             Account security
           </span>
         </div>
 
-
-        <section
-          className={
-            styles.recoveryCard
-          }
-        >
+        <section className={styles.recoveryCard}>
           <Link
             href="/login"
-            className={
-              styles.recoveryBack
-            }
+            className={styles.recoveryBack}
           >
-            <ArrowLeft
-              aria-hidden="true"
-            />
-
+            <ArrowLeft aria-hidden="true" />
             Back to sign in
           </Link>
 
-
-          {message ? (
+          {complete ? (
             <>
-              <div
-                className={
-                  styles.recoveryStatusIcon
-                }
-              >
-                <CheckCircle2
-                  aria-hidden="true"
-                />
+              <div className={styles.recoveryStatusIcon}>
+                <CheckCircle2 aria-hidden="true" />
               </div>
 
-
-              <header
-                className={
-                  styles.recoveryHeader
-                }
-              >
-                <span
-                  className={
-                    styles.formEyebrow
-                  }
-                >
+              <header className={styles.recoveryHeader}>
+                <span className={styles.formEyebrow}>
                   Check your inbox
                 </span>
 
                 <h1>
-                  Reset instructions sent
+                  Reset instructions requested
                 </h1>
 
                 <p>
-                  {message}
+                  {GENERIC_SUCCESS_MESSAGE}
                 </p>
               </header>
 
-
-              <div
-                className={
-                  styles.recoveryNotice
-                }
-              >
-                <Mail
-                  aria-hidden="true"
-                />
+              <div className={styles.recoveryNotice}>
+                <Mail aria-hidden="true" />
 
                 <div>
                   <strong>
@@ -252,94 +252,62 @@ export default function ForgotPasswordPage() {
                   </strong>
 
                   <p>
-                    We sent reset
-                    instructions for{" "}
+                    We processed a reset request for{" "}
+
                     <span>
-                      {
-                        submittedEmail
-                      }
+                      {submittedEmail}
                     </span>
                     .
                   </p>
                 </div>
               </div>
 
-
-              <p
-                className={
-                  styles.recoverySecurityText
-                }
-              >
-                For security, HomeLink
-                displays the same response
-                whether or not an account
-                exists for that email.
+              <p className={styles.recoverySecurityText}>
+                For security, HomeLink displays the same
+                response whether or not an account exists
+                for that email.
               </p>
-
 
               <button
                 type="button"
-                className={
-                  styles.secondaryButton
-                }
+                className={styles.secondaryButton}
                 disabled={
-                  isResending
+                  isResending ||
+                  cooldown > 0
                 }
-                onClick={
-                  resend
-                }
+                onClick={resend}
               >
                 {isResending ? (
                   <Loader2
-                    className={
-                      styles.spinner
-                    }
+                    className={styles.spinner}
                     aria-hidden="true"
                   />
                 ) : (
-                  <Send
-                    aria-hidden="true"
-                  />
+                  <Send aria-hidden="true" />
                 )}
 
                 {isResending
                   ? "Sending…"
-                  : "Send again"}
+                  : cooldown > 0
+                    ? `Send again in ${cooldown}s`
+                    : "Send again"}
               </button>
-
 
               <Link
                 href="/login"
-                className={
-                  styles.primaryLinkButton
-                }
+                className={styles.primaryLinkButton}
               >
                 Return to sign in
               </Link>
             </>
           ) : (
             <>
-              <div
-                className={
-                  styles.recoveryStatusIcon
-                }
-              >
-                <Mail
-                  aria-hidden="true"
-                />
+              <div className={styles.recoveryStatusIcon}>
+                <Mail aria-hidden="true" />
               </div>
 
-
-              <header
-                className={
-                  styles.recoveryHeader
-                }
-              >
-                <span
-                  className={
-                    styles.formEyebrow
-                  }
-                >
+              <header className={styles.recoveryHeader}>
+                <span className={styles.formEyebrow}>
                   Password recovery
                 </span>
 
@@ -348,53 +316,43 @@ export default function ForgotPasswordPage() {
                 </h1>
 
                 <p>
-                  Enter the email
-                  associated with your
-                  HomeLink account and
-                  we&apos;ll send you
-                  secure password reset
-                  instructions.
+                  Enter the email associated with your
+                  HomeLink account and we&apos;ll process
+                  a secure password reset request.
                 </p>
               </header>
 
-
               <form
-                className={
-                  styles.form
-                }
-                onSubmit={
-                  submit
-                }
+                className={styles.form}
+                onSubmit={submit}
                 noValidate
               >
-                <div
-                  className={
-                    styles.field
-                  }
-                >
-                  <label
-                    htmlFor="email"
-                  >
+                <div className={styles.field}>
+                  <label htmlFor="forgot-email">
                     Email address
                   </label>
 
-
-                  <div
-                    className={
-                      styles.inputWrap
-                    }
-                  >
-                    <Mail
-                      aria-hidden="true"
-                    />
+                  <div className={styles.inputWrap}>
+                    <Mail aria-hidden="true" />
 
                     <input
-                      id="email"
+                      id="forgot-email"
                       type="email"
+                      inputMode="email"
                       autoComplete="email"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       placeholder="you@example.com"
-                      className={
-                        styles.input
+                      className={styles.input}
+                      aria-invalid={
+                        errors.email
+                          ? true
+                          : undefined
+                      }
+                      aria-describedby={
+                        errors.email
+                          ? "forgot-email-error"
+                          : undefined
                       }
                       {...register(
                         "email",
@@ -402,42 +360,29 @@ export default function ForgotPasswordPage() {
                     />
                   </div>
 
-
                   {errors.email ? (
                     <p
-                      className={
-                        styles.error
-                      }
+                      id="forgot-email-error"
+                      className={styles.error}
+                      role="alert"
                     >
-                      {
-                        errors.email
-                          .message
-                      }
+                      {errors.email.message}
                     </p>
                   ) : null}
                 </div>
 
-
                 <button
                   type="submit"
-                  className={
-                    styles.submitButton
-                  }
-                  disabled={
-                    isSubmitting
-                  }
+                  className={styles.submitButton}
+                  disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <Loader2
-                      className={
-                        styles.spinner
-                      }
+                      className={styles.spinner}
                       aria-hidden="true"
                     />
                   ) : (
-                    <Send
-                      aria-hidden="true"
-                    />
+                    <Send aria-hidden="true" />
                   )}
 
                   {isSubmitting
@@ -449,13 +394,9 @@ export default function ForgotPasswordPage() {
           )}
         </section>
 
-
-        <p
-          className={
-            styles.recoveryFooter
-          }
-        >
+        <p className={styles.recoveryFooter}>
           Remembered your password?{" "}
+
           <Link href="/login">
             Sign in
           </Link>

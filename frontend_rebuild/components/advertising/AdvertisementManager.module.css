@@ -1,0 +1,1048 @@
+.page,
+.statePage {
+  --manager-navy: #102035;
+  --manager-blue: #1f5eff;
+  --manager-blue-dark: #174ed8;
+  --manager-blue-soft: #eaf1ff;
+  --manager-gold: #c7a45a;
+  --manager-cream: #f7f5ef;
+  --manager-text: #536174;
+  --manager-muted: #7e8997;
+  --manager-border: #dde0df;
+
+  min-height: 100vh;
+
+  color:
+    var(--manager-navy);
+
+  background:
+    var(--manager-cream);
+}
+
+.header {
+  border-bottom:
+    1px solid
+    var(--manager-border);
+
+  background:
+    rgba(255, 255, 255, 0.86);
+}
+
+.headerInner {
+  width: min(
+    calc(100% - 40px),
+    1240px
+  );
+
+  min-height: 66px;
+
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.backLink,
+.copyLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  color:
+    var(--manager-navy);
+
+  font-size: 0.8rem;
+  font-weight: 720;
+
+  text-decoration: none;
+}
+
+.copyLink {
+  padding:
+    10px
+    15px;
+
+  border:
+    1px solid
+    var(--manager-border);
+
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  background: #ffffff;
+}
+
+.backLink svg,
+.copyLink svg {
+  width: 17px;
+  height: 17px;
+}
+
+.hero {
+  width: min(
+    calc(100% - 40px),
+    1240px
+  );
+
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(260px, 340px);
+
+  gap: 60px;
+
+  align-items: end;
+
+  padding:
+    clamp(75px, 9vw, 125px)
+    0
+    55px;
+}
+
+.eyebrow,
+.sectionLabel {
+  color:
+    var(--manager-blue);
+
+  font-size: 0.73rem;
+  font-weight: 760;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin:
+    20px
+    0
+    0;
+
+  max-width: 840px;
+
+  font-size:
+    clamp(
+      2.6rem,
+      6vw,
+      5.7rem
+    );
+
+  font-weight: 620;
+  line-height: 0.94;
+  letter-spacing: -0.065em;
+  text-wrap: balance;
+}
+
+.hero p {
+  margin:
+    24px
+    0
+    0;
+
+  max-width: 650px;
+
+  color:
+    var(--manager-text);
+
+  line-height: 1.7;
+}
+
+.statusCard {
+  padding:
+    27px;
+
+  border-radius: 24px;
+
+  color: #ffffff;
+
+  background:
+    linear-gradient(
+      145deg,
+      #102035,
+      #1c3d68
+    );
+}
+
+.statusCard > span {
+  color:
+    rgba(255, 255, 255, 0.62);
+
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.statusCard strong {
+  display: block;
+
+  margin-top: 13px;
+
+  font-size: 1.35rem;
+}
+
+.statusCard small {
+  display: block;
+
+  margin-top: 10px;
+
+  color:
+    rgba(255, 255, 255, 0.58);
+}
+
+.statusCard[data-status="live"] {
+  background:
+    linear-gradient(
+      145deg,
+      #0c5b3a,
+      #158052
+    );
+}
+
+.statusCard[data-status="rejected"],
+.statusCard[data-status="cancelled"] {
+  background:
+    linear-gradient(
+      145deg,
+      #612929,
+      #8b3c3c
+    );
+}
+
+.shell {
+  width: min(
+    calc(100% - 40px),
+    1240px
+  );
+
+  margin: 0 auto;
+
+  padding-bottom:
+    120px;
+}
+
+.errorBanner,
+.successBanner,
+.reviewNotice,
+.rejectionNotice {
+  margin-bottom: 20px;
+
+  padding:
+    17px 19px;
+
+  border-radius: 16px;
+
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.errorBanner,
+.rejectionNotice {
+  border:
+    1px solid
+    #efb8b8;
+
+  color: #8b2929;
+
+  background: #fff0f0;
+}
+
+.successBanner {
+  border:
+    1px solid
+    #aedec3;
+
+  color: #17673d;
+
+  background: #eaf8f0;
+}
+
+.reviewNotice {
+  display: flex;
+  gap: 14px;
+
+  border:
+    1px solid
+    #d9c486;
+
+  color: #745613;
+
+  background: #fff8e6;
+}
+
+.reviewNotice svg {
+  flex: 0 0 auto;
+
+  width: 21px;
+  height: 21px;
+}
+
+.reviewNotice p,
+.rejectionNotice p {
+  margin:
+    6px
+    0
+    0;
+}
+
+.paymentPanel {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(320px, 0.7fr);
+
+  gap: 50px;
+
+  align-items: center;
+
+  margin-bottom: 22px;
+
+  padding:
+    clamp(26px, 4vw, 43px);
+
+  border-radius: 25px;
+
+  color: #ffffff;
+
+  background:
+    radial-gradient(
+      circle at 95% 10%,
+      rgba(65, 123, 255, 0.35),
+      transparent 38%
+    ),
+    linear-gradient(
+      145deg,
+      #102035,
+      #17365d
+    );
+}
+
+.paymentPanel h2 {
+  margin:
+    15px
+    0
+    0;
+
+  font-size:
+    clamp(
+      1.7rem,
+      3vw,
+      2.6rem
+    );
+
+  letter-spacing: -0.04em;
+}
+
+.paymentPanel p {
+  margin:
+    13px
+    0
+    0;
+
+  max-width: 620px;
+
+  color:
+    rgba(255, 255, 255, 0.66);
+
+  line-height: 1.65;
+}
+
+.paymentControls {
+  display: grid;
+  gap: 12px;
+}
+
+.providers {
+  display: grid;
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  gap: 9px;
+}
+
+.providers button {
+  min-height: 45px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.18);
+
+  border-radius: 12px;
+
+  color:
+    rgba(255, 255, 255, 0.74);
+
+  cursor: pointer;
+
+  background:
+    rgba(255, 255, 255, 0.06);
+
+  font: inherit;
+  font-size: 0.79rem;
+  font-weight: 700;
+}
+
+.providers .activeProvider {
+  border-color: #ffffff;
+
+  color:
+    var(--manager-navy);
+
+  background: #ffffff;
+}
+
+.payButton,
+.saveButton {
+  min-height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  border: 0;
+  border-radius: 999px;
+
+  color:
+    var(--manager-navy);
+
+  cursor: pointer;
+
+  background: #ffffff;
+
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.payButton svg,
+.saveButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    310px;
+
+  gap: 22px;
+}
+
+.previewCard,
+.metrics article,
+.scheduleCard,
+.editor,
+.dangerZone {
+  border:
+    1px solid
+    var(--manager-border);
+
+  border-radius: 24px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 18px 55px
+    rgba(20, 34, 52, 0.055);
+}
+
+.previewCard {
+  overflow: hidden;
+}
+
+.cardHeading {
+  padding:
+    26px
+    28px;
+}
+
+.cardHeading h2,
+.editorHeading h2 {
+  margin:
+    9px
+    0
+    0;
+
+  font-size: 1.4rem;
+  letter-spacing: -0.03em;
+}
+
+.previewImage {
+  position: relative;
+
+  aspect-ratio: 16 / 7;
+
+  background: #e8edf3;
+}
+
+.previewImage img {
+  object-fit: cover;
+}
+
+.previewCopy {
+  padding:
+    27px
+    28px
+    31px;
+}
+
+.previewCopy > span {
+  color:
+    var(--manager-blue);
+
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.previewCopy h3 {
+  margin:
+    12px
+    0
+    0;
+
+  font-size:
+    clamp(
+      1.4rem,
+      3vw,
+      2.15rem
+    );
+
+  letter-spacing: -0.04em;
+}
+
+.previewCopy p {
+  margin:
+    13px
+    0
+    0;
+
+  color:
+    var(--manager-text);
+
+  line-height: 1.65;
+}
+
+.previewCopy > strong {
+  display: inline-block;
+
+  margin-top: 19px;
+
+  color:
+    var(--manager-blue);
+
+  font-size: 0.82rem;
+}
+
+.metrics {
+  display: grid;
+  gap: 13px;
+}
+
+.metrics article {
+  min-height: 145px;
+
+  display: grid;
+  grid-template-columns:
+    auto 1fr;
+  grid-template-rows:
+    auto 1fr;
+
+  gap:
+    11px
+    13px;
+
+  align-items: start;
+
+  padding: 23px;
+}
+
+.metrics article > svg,
+.metricSymbol {
+  width: 21px;
+  height: 21px;
+
+  color:
+    var(--manager-blue);
+}
+
+.metricSymbol {
+  display: grid;
+  place-items: center;
+
+  font-weight: 800;
+}
+
+.metrics article > span:not(.metricSymbol) {
+  color:
+    var(--manager-muted);
+
+  font-size: 0.77rem;
+}
+
+.metrics article strong {
+  grid-column: 1 / -1;
+
+  align-self: end;
+
+  font-size: 2.25rem;
+  letter-spacing: -0.055em;
+}
+
+.scheduleCard {
+  margin-top: 22px;
+
+  display: grid;
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  overflow: hidden;
+}
+
+.scheduleCard > div {
+  min-width: 0;
+
+  padding: 24px;
+}
+
+.scheduleCard > div:not(:last-child) {
+  border-right:
+    1px solid
+    var(--manager-border);
+}
+
+.scheduleCard span {
+  color:
+    var(--manager-muted);
+
+  font-size: 0.72rem;
+}
+
+.scheduleCard strong {
+  display: block;
+
+  margin-top: 9px;
+
+  overflow-wrap: anywhere;
+
+  font-size: 0.84rem;
+}
+
+.editor {
+  margin-top: 22px;
+
+  padding:
+    clamp(24px, 4vw, 42px);
+}
+
+.editorHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 25px;
+
+  margin-bottom: 30px;
+}
+
+.locked {
+  padding:
+    8px
+    12px;
+
+  border-radius: 999px;
+
+  color:
+    var(--manager-muted);
+
+  background: #f0f2f4;
+
+  font-size: 0.7rem;
+}
+
+.editor fieldset {
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+}
+
+.editor fieldset:disabled {
+  opacity: 0.75;
+}
+
+.editor label {
+  display: grid;
+  gap: 8px;
+
+  color:
+    var(--manager-navy);
+
+  font-size: 0.81rem;
+  font-weight: 680;
+}
+
+.editor label +
+label {
+  margin-top: 18px;
+}
+
+.editor input,
+.editor textarea,
+.editor select {
+  width: 100%;
+
+  border:
+    1px solid
+    #d7dce2;
+
+  border-radius: 13px;
+
+  outline: 0;
+
+  color:
+    var(--manager-navy);
+
+  background: #fcfcfb;
+
+  font: inherit;
+  font-weight: 500;
+}
+
+.editor input,
+.editor select {
+  min-height: 49px;
+
+  padding:
+    0
+    14px;
+}
+
+.editor textarea {
+  min-height: 125px;
+
+  padding:
+    13px
+    14px;
+
+  resize: vertical;
+
+  line-height: 1.6;
+}
+
+.editor input:focus,
+.editor textarea:focus,
+.editor select:focus {
+  border-color:
+    var(--manager-blue);
+
+  box-shadow:
+    0 0 0 4px
+    rgba(31, 94, 255, 0.1);
+}
+
+.editor label > small {
+  color:
+    var(--manager-muted);
+
+  font-size: 0.7rem;
+}
+
+.twoColumns {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 17px;
+
+  margin-bottom: 18px;
+}
+
+.twoColumns label +
+label {
+  margin-top: 0;
+}
+
+.saveButton {
+  width: 100%;
+
+  margin-top: 26px;
+
+  color: #ffffff;
+
+  background:
+    var(--manager-blue);
+}
+
+.saveButton:hover {
+  background:
+    var(--manager-blue-dark);
+}
+
+.saveButton:disabled,
+.payButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.dangerZone {
+  margin-top: 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+
+  padding:
+    25px
+    28px;
+}
+
+.dangerZone span {
+  font-size: 0.8rem;
+  font-weight: 730;
+}
+
+.dangerZone p {
+  margin:
+    7px
+    0
+    0;
+
+  color:
+    var(--manager-muted);
+
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.dangerZone button {
+  flex: 0 0 auto;
+
+  min-height: 43px;
+
+  padding:
+    0
+    17px;
+
+  border:
+    1px solid
+    #d79b9b;
+
+  border-radius: 999px;
+
+  color: #8b2929;
+
+  cursor: pointer;
+
+  background: #fff6f6;
+
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 720;
+}
+
+.statePage {
+  min-height:
+    calc(
+      100vh -
+      var(--nav-height)
+    );
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+
+  padding:
+    70px
+    20px;
+
+  text-align: center;
+}
+
+.statePage > svg {
+  width: 44px;
+  height: 44px;
+
+  color:
+    var(--manager-blue);
+}
+
+.statePage h1 {
+  margin: 9px 0 0;
+
+  font-size:
+    clamp(
+      2rem,
+      5vw,
+      3.6rem
+    );
+
+  letter-spacing: -0.05em;
+}
+
+.statePage p {
+  max-width: 540px;
+
+  margin: 0;
+
+  color:
+    var(--manager-text);
+
+  line-height: 1.65;
+}
+
+.stateActions {
+  margin-top: 16px;
+
+  display: flex;
+  gap: 10px;
+}
+
+.stateActions a {
+  padding:
+    13px
+    18px;
+
+  border:
+    1px solid
+    var(--manager-border);
+
+  border-radius: 999px;
+
+  color:
+    var(--manager-navy);
+
+  background: #ffffff;
+
+  font-size: 0.8rem;
+  font-weight: 720;
+  text-decoration: none;
+}
+
+.spinner {
+  animation:
+    managerSpin 750ms
+    linear
+    infinite;
+}
+
+@keyframes managerSpin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+@media (
+  max-width: 900px
+) {
+  .hero,
+  .paymentPanel,
+  .dashboardGrid {
+    grid-template-columns:
+      1fr;
+  }
+
+  .statusCard {
+    max-width: 430px;
+  }
+
+  .metrics {
+    grid-template-columns:
+      repeat(3, 1fr);
+  }
+
+  .scheduleCard {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .scheduleCard > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .scheduleCard > div:nth-child(-n + 2) {
+    border-bottom:
+      1px solid
+      var(--manager-border);
+  }
+}
+
+@media (
+  max-width: 650px
+) {
+  .headerInner,
+  .hero,
+  .shell {
+    width:
+      min(
+        calc(100% - 28px),
+        1240px
+      );
+  }
+
+  .hero {
+    gap: 30px;
+  }
+
+  .copyLink {
+    font-size: 0;
+  }
+
+  .copyLink svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .metrics,
+  .scheduleCard,
+  .twoColumns {
+    grid-template-columns:
+      1fr;
+  }
+
+  .scheduleCard > div {
+    border-right: 0 !important;
+    border-bottom:
+      1px solid
+      var(--manager-border);
+  }
+
+  .scheduleCard > div:last-child {
+    border-bottom: 0;
+  }
+
+  .editorHeading,
+  .dangerZone {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dangerZone button {
+    width: 100%;
+  }
+
+  .stateActions {
+    width: 100%;
+    max-width: 330px;
+
+    display: grid;
+  }
+}
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .spinner {
+    animation-duration:
+      1.5s;
+  }
+}

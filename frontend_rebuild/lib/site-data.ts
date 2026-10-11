@@ -21,6 +21,20 @@ export const rentalAreas: RentalArea[] = [
       "Homes, apartments and student essentials across the city.",
   },
   {
+    name: "Ijebu-Igbo",
+    slug: "ijebu-igbo",
+    campus: "Nearby community",
+    description:
+      "Affordable options in a growing student community.",
+  },
+  {
+    name: "Oru",
+    slug: "oru",
+    campus: "Nearby community",
+    description:
+      "Rentals, properties and student essentials across Oru.",
+  },
+  {
     name: "Ibogun",
     slug: "ibogun",
     campus: "Engineering campus",
@@ -30,16 +44,16 @@ export const rentalAreas: RentalArea[] = [
   {
     name: "Shagamu",
     slug: "shagamu",
-    campus: "Medical campus",
+    campus: "Health sciences campus",
     description:
-      "Convenient housing for students around Shagamu campus.",
+      "Convenient housing around OOU's health sciences campus.",
   },
   {
-    name: "Ijebu-Igbo",
-    slug: "ijebu-igbo",
-    campus: "Nearby community",
+    name: "Aiyetoro",
+    slug: "aiyetoro",
+    campus: "Growing community",
     description:
-      "Affordable options in a growing student community.",
+      "Discover rentals, properties and marketplace listings across Aiyetoro.",
   },
 ];
 
@@ -50,19 +64,19 @@ export const rentalCategories = [
   },
   {
     label: "Single room",
-    value: "single-room",
+    value: "single_room",
   },
   {
     label: "Self contain",
-    value: "self-contain",
+    value: "self_contain",
   },
   {
     label: "Shared apartment",
-    value: "shared-apartment",
+    value: "shared_apartment",
   },
   {
     label: "Mini flat",
-    value: "mini-flat",
+    value: "mini_flat",
   },
   {
     label: "Flat",
