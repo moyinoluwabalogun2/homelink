@@ -302,10 +302,14 @@ class Payment(
         nullable=True,
     )
 
+    # Payment API responses do not expose the full user.
+    # Prevent payment queries from loading the user's sessions,
+    # tokens, profile and listings.
     user: Mapped[User] = relationship(
-        lazy="selectin",
+        lazy="raise",
     )
 
+    # Payment responses include plan information.
     plan: Mapped[PaymentPlan] = relationship(
         lazy="selectin",
     )
