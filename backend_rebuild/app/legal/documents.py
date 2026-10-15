@@ -1,4 +1,4 @@
-from app.core.config import get_settings
+﻿from app.core.config import get_settings
 
 
 settings = get_settings()
@@ -60,7 +60,7 @@ timestamps.
 Card details and other sensitive payment credentials are handled by HomeLink's
 payment provider rather than being stored directly by HomeLink.
 
-HomeLink currently uses or plans to use Paystack for payment processing.
+HomeLink currently uses Paystack and Flutterwave for payment processing.
 
 ## 4. Technical and security information
 
@@ -114,7 +114,7 @@ platform.
 Depending on the service being used, these providers may include Paystack for
 payments, Cloudinary for media storage and delivery, Neon for database
 infrastructure, Render for backend hosting, Netlify for frontend hosting,
-Upstash for Redis infrastructure and an email provider for transactional email.
+Upstash for Redis infrastructure and Brevo for transactional email.
 
 These providers may process limited information necessary to provide their
 services to HomeLink.
@@ -400,7 +400,7 @@ cash.
 
 ## 13. Payment processing
 
-HomeLink may use a third-party payment provider such as Paystack to process
+HomeLink may use a third-party payment provider such as Paystack or Flutterwave to process
 payments.
 
 A posting credit is granted only after HomeLink receives or independently
@@ -596,7 +596,7 @@ stored in browser preference storage.
 ## 4. Payments and external services
 
 When you choose to make a payment, you may be redirected to or interact with a
-third-party payment provider such as Paystack.
+third-party payment provider such as Paystack or Flutterwave.
 
 That provider may use its own cookies or similar technologies under its own
 privacy and cookie practices.
