@@ -161,35 +161,41 @@ class User(
         DateTime(timezone=True),
         nullable=True,
     )
-
+      
     auth_sessions: Mapped[list[AuthSession]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="raise",
     )
+
     password_reset_tokens: Mapped[list[PasswordResetToken]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="raise",
     )
-    email_verification_tokens: Mapped[list[EmailVerificationToken]] = relationship(
+
+    email_verification_tokens: Mapped[
+        list[EmailVerificationToken]
+    ] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="raise",
     )
+
     agent_profile: Mapped[AgentProfile | None] = relationship(
         back_populates="user",
         foreign_keys="AgentProfile.user_id",
         cascade="all, delete-orphan",
         passive_deletes=True,
         uselist=False,
-        lazy="selectin",
+        lazy="raise",
     )
+
     listings: Mapped[list[Listing]] = relationship(
         back_populates="owner",
         foreign_keys="Listing.owner_id",
-        lazy="selectin",
+        lazy="raise",
     )

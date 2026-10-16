@@ -386,7 +386,7 @@ class Listing(
         foreign_keys=[
             approved_by_id,
         ],
-        lazy="joined",
+        lazy="raise",
     )
 
     area: Mapped[Area] = (

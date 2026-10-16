@@ -106,7 +106,9 @@ class ListingRepository:
                     Listing.deleted_at
                     .is_(None),
                 )
-                .with_for_update()
+                .with_for_update(
+                    of=Listing,
+                )
             )
         )
 
@@ -137,7 +139,9 @@ class ListingRepository:
                     Listing.deleted_at
                     .is_not(None),
                 )
-                .with_for_update()
+                .with_for_update(
+                    of=Listing,
+                )
             )
         )
 

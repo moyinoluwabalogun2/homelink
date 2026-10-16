@@ -221,8 +221,14 @@ export const api =
     baseURL:
       API_BASE_URL,
 
+    /*
+     * Render's free service can take roughly one minute to
+     * wake after inactivity. Keep requests alive long enough
+     * so successful listing operations are not incorrectly
+     * reported as network failures.
+     */
     timeout:
-      20_000,
+      75_000,
 
     withCredentials:
       true,

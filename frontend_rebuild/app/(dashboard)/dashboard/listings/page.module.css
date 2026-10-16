@@ -246,7 +246,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 7px;
 }
 
@@ -275,6 +275,12 @@
     background-color 150ms ease,
     transform 150ms ease,
     opacity 150ms ease;
+}
+.actions a,
+.actions button {
+  width: 38px;
+  min-width: 38px;
+  padding-inline: 0;
 }
 
 .actions a:hover,
@@ -682,9 +688,10 @@
     width: 104px;
   }
 
-  .actions {
+    .actions {
     grid-column: 1 / -1;
     justify-content: flex-start;
+    flex-wrap: wrap;
     padding-top: 12px;
     border-top: 1px solid var(--border-subtle);
   }
