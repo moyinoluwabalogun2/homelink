@@ -84,7 +84,9 @@ class EmailVerificationService:
             select(EmailVerificationToken)
             .options(joinedload(EmailVerificationToken.user))
             .where(EmailVerificationToken.id == token_id)
-            .with_for_update()
+            .with_for_update(
+                of=EmailVerificationToken,
+            )
         )
 
         now = datetime.now(UTC)

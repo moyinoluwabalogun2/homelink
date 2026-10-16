@@ -192,7 +192,9 @@ class PasswordResetService:
                 PasswordResetToken.id
                 == token_id,
             )
-            .with_for_update()
+            .with_for_update(
+                of=PasswordResetToken,
+            )
         )
 
         now = datetime.now(
